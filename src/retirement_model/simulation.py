@@ -1,0 +1,256 @@
+"""Main simulation orchestration for retirement portfolio projections."""
+
+import copy
+
+from retirement_model.models import (
+    Account,
+    AccountType,
+    Owner,
+    PlannedExpense,
+    Portfolio,
+    SimulationConfig,
+    SimulationResult,
+    WithdrawalStrategy,
+    YearResult,
+)
+from retirement_model.taxes import (
+    calculate_capital_gains_tax,
+    calculate_irmaa_cost,
+    calculate_rmd_amount,
+    get_bracket_label,
+    get_marginal_tax_rate,
+)
+from retirement_model.withdrawals import (
+    apply_growth,
+    deposit_to_account,
+    get_total_balance_by_owner,
+    get_total_balance_by_type,
+    withdraw_from_accounts,
+)
+
+
+def get_conversion_ceiling(strategy: WithdrawalStrategy, irmaa_tier_1_limit: float) -> float:
+    """Get the AGI ceiling for Roth conversions based on strategy."""
+    match strategy:
+        case WithdrawalStrategy.BRACKET_24:
+            return 383900
+        case WithdrawalStrategy.BRACKET_22:
+            return 201050
+        case WithdrawalStrategy.IRMAA_TIER_1:
+            return irmaa_tier_1_limit
+        case WithdrawalStrategy.STANDARD:
+            return 0
+
+
+def calculate_planned_expenses(
+    expenses: list[PlannedExpense],
+    year: int,
+    age_primary: int,
+    base_inflation_factor: float,
+) -> float:
+    """Calculate total planned expenses for a given year."""
+    total = 0.0
+    for expense in expenses:
+        applies = False
+
+        if expense.expense_type == "one_time" and expense.year == year:
+            applies = True
+        elif expense.expense_type == "recurring":
+            start = expense.start_age or 0
+            end = expense.end_age or 150
+            if start <= age_primary <= end:
+                applies = True
+
+        if applies:
+            amount = expense.amount
+            if expense.inflation_adjusted:
+                amount *= base_inflation_factor
+            total += amount
+
+    return total
+
+
+def run_simulation(portfolio: Portfolio) -> SimulationResult:
+    """Run the retirement simulation and return year-by-year results."""
+    cfg = portfolio.config
+    accounts = copy.deepcopy(portfolio.accounts)
+    results: list[YearResult] = []
+
+    current_spend_net = cfg.annual_spend_net
+    conversion_ceiling = get_conversion_ceiling(cfg.strategy_target, cfg.irmaa_limit_tier_1)
+
+    for year_idx in range(cfg.simulation_years):
+        age_primary = cfg.current_age_primary + year_idx
+        age_spouse = cfg.current_age_spouse + year_idx
+        current_year = cfg.start_year + year_idx
+        age_map = {"primary": age_primary, "spouse": age_spouse, "joint": age_primary}
+
+        if year_idx > 0:
+            current_spend_net *= 1 + cfg.inflation_rate
+
+        inflation_factor = (1 + cfg.inflation_rate) ** year_idx
+        planned_expense_amount = calculate_planned_expenses(
+            cfg.planned_expenses, current_year, age_primary, inflation_factor
+        )
+        total_spend_needed = current_spend_net + planned_expense_amount
+
+        # Social Security income
+        ss_income = 0.0
+        if age_primary >= cfg.social_security.primary_start_age:
+            ss_income += cfg.social_security.primary_benefit
+        if age_spouse >= cfg.social_security.spouse_start_age:
+            ss_income += cfg.social_security.spouse_benefit
+
+        current_agi = ss_income * 0.85
+
+        # Mandatory RMDs
+        pretax_bal_primary = get_total_balance_by_owner(accounts, AccountType.PRETAX, Owner.PRIMARY)
+        rmd_primary = calculate_rmd_amount(age_primary, pretax_bal_primary, cfg.rmd_start_age)
+
+        pretax_bal_spouse = get_total_balance_by_owner(accounts, AccountType.PRETAX, Owner.SPOUSE)
+        rmd_spouse = calculate_rmd_amount(age_spouse, pretax_bal_spouse, cfg.rmd_start_age)
+
+        total_rmd = rmd_primary + rmd_spouse
+        rmd_result = withdraw_from_accounts(total_rmd, accounts, AccountType.PRETAX, age_map)
+        current_agi += rmd_result.amount_withdrawn
+
+        # Estimate tax rate for withholding
+        est_tax_rate = (
+            get_marginal_tax_rate(current_agi, cfg.tax_brackets_federal or None)
+            + cfg.tax_rate_state
+        )
+
+        # Cash from SS and RMD (net of estimated tax)
+        cash_from_ss = ss_income * (1 - est_tax_rate)
+        cash_from_rmd = rmd_result.amount_withdrawn * (1 - est_tax_rate)
+        cash_in_hand = cash_from_ss + cash_from_rmd
+
+        remaining_spend = max(0, total_spend_needed - cash_in_hand)
+        surplus_cash = max(0, cash_in_hand - total_spend_needed)
+
+        brokerage_withdrawn = 0.0
+        roth_withdrawn = 0.0
+        voluntary_pretax = 0.0
+        converted_amount = 0.0
+        conversion_tax_paid = 0.0
+        brokerage_gains_tax = 0.0
+
+        # Spending logic
+        if remaining_spend > 0:
+            agi_headroom = max(0, conversion_ceiling - current_agi) if conversion_ceiling > 0 else 0
+
+            if conversion_ceiling == 0:
+                max_safe_brokerage = remaining_spend
+            else:
+                max_safe_brokerage = agi_headroom / 0.75 if agi_headroom > 0 else 0
+
+            amount_from_brokerage = min(remaining_spend, max_safe_brokerage)
+
+            if amount_from_brokerage > 0:
+                result = withdraw_from_accounts(
+                    amount_from_brokerage, accounts, AccountType.BROKERAGE, age_map
+                )
+                brokerage_withdrawn += result.amount_withdrawn
+
+                gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
+                current_agi += gains
+                brokerage_gains_tax += calculate_capital_gains_tax(
+                    gains, current_agi, cfg.tax_rate_capital_gains
+                )
+                remaining_spend -= result.amount_withdrawn
+
+            # Use Roth if still needed (doesn't affect AGI)
+            if remaining_spend > 1.0:
+                result = withdraw_from_accounts(
+                    remaining_spend, accounts, AccountType.ROTH, age_map
+                )
+                roth_withdrawn += result.amount_withdrawn
+                remaining_spend -= result.amount_withdrawn
+
+            # Use pre-tax as last resort
+            if remaining_spend > 1.0:
+                gross_need = remaining_spend / (1 - est_tax_rate)
+                result = withdraw_from_accounts(gross_need, accounts, AccountType.PRETAX, age_map)
+                voluntary_pretax += result.amount_withdrawn
+                current_agi += result.amount_withdrawn
+                remaining_spend = 0
+
+        # Roth conversion logic (only pre-RMD age)
+        if conversion_ceiling > 0 and age_primary < cfg.rmd_start_age:
+            agi_headroom = max(0, conversion_ceiling - current_agi)
+
+            if agi_headroom > 5000:
+                available_pretax = get_total_balance_by_type(accounts, AccountType.PRETAX)
+                conversion_target = min(agi_headroom, available_pretax)
+
+                if conversion_target > 0:
+                    tax_bill = conversion_target * est_tax_rate
+                    conversion_tax_paid = tax_bill
+
+                    # Pay tax from brokerage
+                    tax_result = withdraw_from_accounts(
+                        tax_bill, accounts, AccountType.BROKERAGE, age_map
+                    )
+                    brokerage_withdrawn += tax_result.amount_withdrawn
+
+                    # AGI impact from paying tax (gains on the withdrawal)
+                    tax_gains = tax_result.amount_withdrawn * (1 - tax_result.average_basis_ratio)
+                    current_agi += tax_gains
+                    brokerage_gains_tax += calculate_capital_gains_tax(
+                        tax_gains, current_agi, cfg.tax_rate_capital_gains
+                    )
+
+                    # Execute conversion
+                    conv_result = withdraw_from_accounts(
+                        conversion_target, accounts, AccountType.PRETAX, age_map
+                    )
+
+                    # If brokerage ran out, net the unpaid tax from deposit
+                    if tax_result.amount_withdrawn < tax_bill:
+                        net_deposit = conv_result.amount_withdrawn - (
+                            tax_bill - tax_result.amount_withdrawn
+                        )
+                    else:
+                        net_deposit = conv_result.amount_withdrawn
+
+                    deposit_to_account(net_deposit, accounts, AccountType.ROTH, Owner.PRIMARY)
+                    converted_amount += conv_result.amount_withdrawn
+                    current_agi += conv_result.amount_withdrawn
+
+        # Reinvest surplus
+        if surplus_cash > 0:
+            deposit_to_account(surplus_cash, accounts, AccountType.BROKERAGE, Owner.JOINT)
+
+        # Total tax calculation
+        taxable_income = max(0, current_agi - 30000)
+        income_tax = taxable_income * est_tax_rate
+        irmaa_cost = calculate_irmaa_cost(current_agi)
+        total_tax = income_tax + brokerage_gains_tax + irmaa_cost
+
+        # Apply growth and get balances
+        total_balance = apply_growth(accounts, cfg.investment_growth_rate)
+
+        results.append(
+            YearResult(
+                year=current_year,
+                age_primary=age_primary,
+                age_spouse=age_spouse,
+                agi=round(current_agi),
+                bracket=get_bracket_label(current_agi),
+                rmd=round(total_rmd),
+                surplus=round(surplus_cash),
+                roth_conversion=round(converted_amount),
+                conversion_tax=round(conversion_tax_paid),
+                pretax_withdrawal=round(voluntary_pretax),
+                roth_withdrawal=round(roth_withdrawn),
+                brokerage_withdrawal=round(brokerage_withdrawn),
+                total_tax=round(total_tax),
+                irmaa_cost=irmaa_cost,
+                total_balance=round(total_balance),
+                pretax_balance=round(get_total_balance_by_type(accounts, AccountType.PRETAX)),
+                roth_balance=round(get_total_balance_by_type(accounts, AccountType.ROTH)),
+                brokerage_balance=round(get_total_balance_by_type(accounts, AccountType.BROKERAGE)),
+            )
+        )
+
+    return SimulationResult(strategy=cfg.strategy_target, years=results)
