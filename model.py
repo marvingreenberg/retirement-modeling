@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import copy
 import json
 
@@ -74,7 +75,7 @@ def apply_growth(accounts, rate):
 # --- Simulation Orchestrator ---
 
 
-def run_simulation(config_path="portfolio.json"):
+def run_simulation(config_path="input.json"):
     with open(config_path, "r") as f:
         data = json.load(f)
 
