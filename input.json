@@ -9,6 +9,9 @@
     "inflation_rate": 0.03,
     "investment_growth_rate": 0.06,
 
+    "strategy_target": "irmaa_tier_1",
+    "_strategy_options": "Options: 'irmaa_tier_1', '24_percent_bracket', or 'standard'",
+
     "tax_brackets_federal": [
       {"limit": 23200, "rate": 0.10},
       {"limit": 94300, "rate": 0.12},
@@ -16,8 +19,9 @@
       {"limit": 383900, "rate": 0.24},
       {"limit": 487450, "rate": 0.32}
     ],
-
     "tax_rate_state": 0.0575,
+    "tax_rate_capital_gains": 0.15,
+
     "irmaa_limit_tier_1": 218000,
 
     "social_security": {
@@ -36,7 +40,7 @@
       "balance": 1256294,
       "type": "brokerage",
       "owner": "joint",
-      "cost_basis_ratio": 0.75
+      "cost_basis_ratio": 0.25
     },
     {
       "id": "mg_ira",
