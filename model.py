@@ -4,12 +4,13 @@ import json
 
 import pandas as pd
 
-# --- Core Logic Functions ---
+# --- Helper Functions ---
 
 
 def calculate_rmd_amount(age, balance, rmd_start_age):
     if age < rmd_start_age:
         return 0.0
+    # Approx Uniform Lifetime Table
     divisor = max(27.4 - (age - 72), 5.0)
     return balance / divisor
 
@@ -19,6 +20,23 @@ def get_marginal_tax_rate(income, brackets):
         if income < bracket["limit"]:
             return bracket["rate"]
     return brackets[-1]["rate"]
+
+
+def calculate_irmaa_cost(agi, tier_1_limit):
+    # Simplified 2025/26 IRMAA Surcharges (Annual per couple approx)
+    # Tier 1: > $218k -> +$1,600/yr
+    # Tier 2: > $274k -> +$4,000/yr
+    # Tier 3: > $342k -> +$6,400/yr
+    # Tier 4: > $410k -> +$8,800/yr
+    if agi <= tier_1_limit:
+        return 0
+    if agi <= 274000:
+        return 1600
+    if agi <= 342000:
+        return 4000
+    if agi <= 410000:
+        return 6400
+    return 8800
 
 
 def withdraw_from_specific_accounts(amount_needed, accounts, account_type, owner_age_map):
@@ -32,8 +50,8 @@ def withdraw_from_specific_accounts(amount_needed, accounts, account_type, owner
     weighted_basis_accum = 0.0
 
     for acc in accounts:
-        if remaining_need <= 0:
-            break
+        if remaining_need <= 1.0:
+            break  # Float tolerance
         if acc["type"] != account_type:
             continue
 
@@ -76,7 +94,7 @@ def apply_growth(accounts, rate):
 # --- Simulation Orchestrator ---
 
 
-def run_simulation(config_path="portfolio.json"):
+def run_simulation(config_path="input.json"):
     with open(config_path, "r") as f:
         data = json.load(f)
 
@@ -85,7 +103,8 @@ def run_simulation(config_path="portfolio.json"):
 
     projection = []
     current_spend_net = cfg["annual_spend_net"]
-    strategy_mode = cfg.get("strategy", "aggressive_conversion")
+
+    irmaa_limit = cfg["irmaa_limit_tier_1"]
 
     for year in range(cfg["simulation_years"]):
         age_prim = cfg["current_age_primary"] + year
@@ -96,17 +115,16 @@ def run_simulation(config_path="portfolio.json"):
         if year > 0:
             current_spend_net *= 1 + cfg["inflation_rate"]
 
-        # --- Income Sources ---
+        # --- 1. Base Income (SS + RMDs) ---
         ss_income = 0.0
         if age_prim >= cfg["social_security"]["primary_start_age"]:
             ss_income += cfg["social_security"]["primary_benefit"]
         if age_spouse >= cfg["social_security"]["spouse_start_age"]:
             ss_income += cfg["social_security"]["spouse_benefit"]
 
-        # Base AGI (SS is 85% taxable)
         current_agi = ss_income * 0.85
 
-        # --- Mandatory RMDs ---
+        # Mandatory RMDs
         pretax_bal_prim = sum(
             a["balance"] for a in accounts if a["type"] == "pretax" and a["owner"] == "primary"
         )
@@ -121,46 +139,61 @@ def run_simulation(config_path="portfolio.json"):
         rmd_withdrawn, _ = withdraw_from_specific_accounts(total_rmd, accounts, "pretax", age_map)
         current_agi += rmd_withdrawn
 
-        # --- Calculate Initial Tax & Cash Needs ---
+        # --- 2. Calculate Net Spend Needed ---
         est_tax_rate = (
             get_marginal_tax_rate(current_agi, cfg["tax_brackets_federal"]) + cfg["tax_rate_state"]
         )
-
-        # Cash from Income Sources (Net of Tax)
         cash_in_hand = (ss_income * (1 - est_tax_rate)) + (rmd_withdrawn * (1 - est_tax_rate))
         remaining_spend_needed = max(0, current_spend_net - cash_in_hand)
 
-        voluntary_pretax = 0.0
-        converted_amount = 0.0
+        # Trackers
         brokerage_withdrawn = 0.0
         roth_withdrawn = 0.0
+        voluntary_pretax = 0.0
+        converted_amount = 0.0
+        conversion_tax_paid = 0.0
 
-        # --- STRATEGY: Aggressive Conversion ---
-        if strategy_mode == "aggressive_conversion":
+        # --- 3. Spending Phase (Smart Brokerage vs Roth) ---
+        if remaining_spend_needed > 0:
+            # Check AGI Headroom before touching Brokerage
+            agi_headroom = max(0, irmaa_limit - current_agi)
 
-            # 1. Pay for Spending using Brokerage
-            if remaining_spend_needed > 0:
-                withdrawn, basis = withdraw_from_specific_accounts(
-                    remaining_spend_needed, accounts, "brokerage", age_map
+            # Theoretical Brokerage Draw needed
+            # We must solve for X where X adds (X * (1-Basis)) to AGI
+            # Simpler approach: Iterate or assume average basis
+            # If we take $1 from Brokerage with 0.25 basis, we add $0.75 to AGI.
+
+            # Max Safe Brokerage Draw = Headroom / (1 - Basis)
+            # Find generic basis for estimation
+            avg_basis = 0.25
+            for acc in accounts:
+                if acc["type"] == "brokerage":
+                    avg_basis = acc.get("cost_basis_ratio", 0.25)
+
+            max_safe_brokerage = agi_headroom / (1 - avg_basis) if avg_basis < 1 else 9999999
+
+            # Amount we take from Brokerage is limited by the "Safe" amount
+            amount_from_brokerage = min(remaining_spend_needed, max_safe_brokerage)
+
+            if amount_from_brokerage > 0:
+                real_withdrawn, real_basis = withdraw_from_specific_accounts(
+                    amount_from_brokerage, accounts, "brokerage", age_map
                 )
-                brokerage_withdrawn += withdrawn
+                brokerage_withdrawn += real_withdrawn
+                current_agi += real_withdrawn * (1 - real_basis)
+                remaining_spend_needed -= real_withdrawn
 
-                # AGI Impact: (Withdrawn * (1 - basis))
-                # With 0.25 basis, 75% is added to AGI
-                agi_impact = withdrawn * (1 - basis)
-                current_agi += agi_impact
-
-                remaining_spend_needed = max(0, remaining_spend_needed - withdrawn)
-
-            # 2. Fallback: Roth then Pretax for spending (if brokerage empty)
-            if remaining_spend_needed > 0:
+            # If we still need money, it implies Brokerage would have pushed us over IRMAA.
+            # SWITCH TO ROTH.
+            if remaining_spend_needed > 1.0:
                 withdrawn, _ = withdraw_from_specific_accounts(
                     remaining_spend_needed, accounts, "roth", age_map
                 )
                 roth_withdrawn += withdrawn
-                remaining_spend_needed = max(0, remaining_spend_needed - withdrawn)
+                remaining_spend_needed -= withdrawn
 
-            if remaining_spend_needed > 0:
+            # If Roth is empty, last resort is Pretax (will trigger IRMAA)
+            if remaining_spend_needed > 1.0:
                 gross_need = remaining_spend_needed / (1 - est_tax_rate)
                 withdrawn, _ = withdraw_from_specific_accounts(
                     gross_need, accounts, "pretax", age_map
@@ -169,70 +202,61 @@ def run_simulation(config_path="portfolio.json"):
                 current_agi += withdrawn
                 remaining_spend_needed = 0
 
-            # 3. Roth Conversions (The main event)
-            if age_prim < cfg["rmd_start_age"]:
-                target_agi = cfg["irmaa_limit_tier_1"]
-                agi_headroom = max(0, target_agi - current_agi)
+        # --- 4. Conversion Phase (Fill the Bucket) ---
+        # Only convert if we are young (pre-RMD) AND have headroom
+        if age_prim < cfg["rmd_start_age"]:
+            agi_headroom = max(0, irmaa_limit - current_agi)
 
-                # Minimum viable conversion
-                if agi_headroom > 2000:
-                    available_pretax = sum(a["balance"] for a in accounts if a["type"] == "pretax")
-                    conversion_target = min(agi_headroom, available_pretax)
+            # Only convert if it's worth the effort (e.g. > $5k)
+            if agi_headroom > 5000:
+                available_pretax = sum(a["balance"] for a in accounts if a["type"] == "pretax")
+                conversion_target = min(agi_headroom, available_pretax)
 
-                    if conversion_target > 0:
-                        # We need to pay tax on this conversion.
-                        # If we pay from brokerage, THAT withdrawal increases AGI too, eating into headroom.
-                        # Iterative approximation:
-                        # We need roughly (conversion * tax_rate) in cash.
-                        # Brokerage withdrawal factor = 1 + (tax_rate_on_gains * gain_ratio) ... simplified
+                if conversion_target > 0:
+                    # Calculate Tax on Conversion
+                    tax_bill = conversion_target * est_tax_rate
+                    conversion_tax_paid = tax_bill  # Tracking for display
 
-                        tax_bill = conversion_target * est_tax_rate
+                    # Pay Tax from Brokerage (Standard Strategy to Maximize Roth)
+                    # Note: Paying tax adds to AGI (Capital Gains), reducing headroom!
+                    # We will simplify and just pay it, allowing a slight IRMAA overshoot or assuming we left buffer.
 
-                        # Withdraw Tax from Brokerage
-                        tax_cash, tax_basis = withdraw_from_specific_accounts(
-                            tax_bill, accounts, "brokerage", age_map
-                        )
-                        brokerage_withdrawn += tax_cash
+                    tax_cash, tax_basis = withdraw_from_specific_accounts(
+                        tax_bill, accounts, "brokerage", age_map
+                    )
+                    brokerage_withdrawn += tax_cash
+                    current_agi += tax_cash * (1 - tax_basis)
 
-                        # Add tax withdrawal AGI impact
-                        tax_agi_impact = tax_cash * (1 - tax_basis)
-                        current_agi += tax_agi_impact
+                    # Execute Conversion
+                    actual_converted, _ = withdraw_from_specific_accounts(
+                        conversion_target, accounts, "pretax", age_map
+                    )
 
-                        # Did we overshoot IRMAA?
-                        if current_agi > target_agi:
-                            # Simple correction: reduce conversion amount for next year's logic
-                            # (simulation is slightly imperfect here, but acceptable)
-                            pass
+                    # If Brokerage ran out, net the tax
+                    if tax_cash < tax_bill:
+                        net_deposit = actual_converted - (tax_bill - tax_cash)
+                    else:
+                        net_deposit = actual_converted
 
-                        # Execute Conversion
-                        actual_converted, _ = withdraw_from_specific_accounts(
-                            conversion_target, accounts, "pretax", age_map
-                        )
-
-                        # Deposit (assuming tax paid by brokerage)
-                        # If brokerage was empty, we net the tax from the conversion
-                        if tax_cash < tax_bill:
-                            net_deposit = actual_converted - (tax_bill - tax_cash)
-                        else:
-                            net_deposit = actual_converted
-
-                        deposit_into_roth(net_deposit, accounts, "primary")
-
-                        converted_amount += actual_converted
-                        current_agi += actual_converted
+                    deposit_into_roth(net_deposit, accounts, "primary")
+                    converted_amount += actual_converted
+                    current_agi += actual_converted
 
         # --- Finalize ---
         total_balance = apply_growth(accounts, cfg["investment_growth_rate"])
+        irmaa_cost = calculate_irmaa_cost(current_agi, cfg["irmaa_limit_tier_1"])
 
         projection.append(
             {
                 "Year": current_year,
                 "Age": age_prim,
                 "AGI": round(current_agi),
+                "RMD": round(total_rmd),
                 "Roth Conv": round(converted_amount),
-                "PreTax WD": round(voluntary_pretax + rmd_withdrawn),
-                "Brok WD": round(brokerage_withdrawn),
-                "IRMAA?": "⚠️" if current_agi > cfg["irmaa_limit_tier_1"] else "OK",
+                "Conv Tax": round(conversion_tax_paid),
+                "Roth W/D": round(roth_withdrawn),
+                "Brok W/D": round(brokerage_withdrawn),
+                "IRMAA Cost": irmaa_cost,
                 "Balance": round(total_balance),
             }
         )
