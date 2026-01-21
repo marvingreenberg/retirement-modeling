@@ -18,7 +18,9 @@ from retirement_model.models import (
 )
 from retirement_model.monte_carlo import (
     MonteCarloResult,
+    format_full_monte_carlo_result,
     format_monte_carlo_result,
+    run_full_monte_carlo,
     run_monte_carlo,
     run_single_simulation,
     sample_historical_sequence,
@@ -231,3 +233,28 @@ class TestFormatMonteCarloResult:
         if result.depletion_ages:
             formatted = format_monte_carlo_result(result, simple_portfolio)
             assert "Depletion" in formatted
+
+
+class TestFullMonteCarlo:
+    def test_run_full_monte_carlo(self, simple_portfolio: Portfolio):
+        result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
+        assert result.num_simulations == 20
+        assert 0 <= result.success_rate <= 1
+        assert result.median_simulation is not None
+        assert len(result.yearly_percentiles) == simple_portfolio.config.simulation_years
+
+    def test_full_monte_carlo_percentiles_ordered(self, simple_portfolio: Portfolio):
+        result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
+        for yp in result.yearly_percentiles:
+            assert yp.balance_p5 <= yp.balance_p25
+            assert yp.balance_p25 <= yp.balance_median
+            assert yp.balance_median <= yp.balance_p75
+            assert yp.balance_p75 <= yp.balance_p95
+
+    def test_format_full_monte_carlo(self, simple_portfolio: Portfolio):
+        result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
+        formatted = format_full_monte_carlo_result(result)
+        assert "Monte Carlo" in formatted
+        assert "Success Rate" in formatted
+        assert "Age" in formatted
+        assert "Balance" in formatted

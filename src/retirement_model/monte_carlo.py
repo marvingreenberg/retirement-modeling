@@ -5,8 +5,7 @@ import random
 from dataclasses import dataclass, field
 
 from retirement_model.historical_returns import get_historical_inflation, get_historical_returns
-from retirement_model.models import Portfolio, SpendingStrategy
-from retirement_model.simulation import run_simulation
+from retirement_model.models import Portfolio, SimulationResult, SpendingStrategy
 from retirement_model.strategies import calculate_spending_target, create_initial_state
 
 
@@ -47,6 +46,33 @@ class MonteCarloResult:
             return 0.0
         depleted_before = sum(1 for a in self.depletion_ages if a <= age)
         return depleted_before / self.num_simulations
+
+
+@dataclass
+class YearlyResultPercentiles:
+    """Percentile data for each field of YearResult across simulations."""
+
+    age: int
+    balance_p5: float
+    balance_p25: float
+    balance_median: float
+    balance_p75: float
+    balance_p95: float
+    agi_median: float
+    total_tax_median: float
+    roth_conversion_median: float
+
+
+@dataclass
+class FullMonteCarloResult:
+    """Results from running full simulation with Monte Carlo variations."""
+
+    num_simulations: int
+    success_rate: float
+    median_simulation: "SimulationResult"  # The median outcome for display
+    yearly_percentiles: list[YearlyResultPercentiles]
+    final_balance_p5: float
+    final_balance_p95: float
 
 
 @dataclass
@@ -319,5 +345,131 @@ def format_monte_carlo_result(result: MonteCarloResult, portfolio: Portfolio) ->
         )
 
     lines.append("-" * 80)
+
+    return "\n".join(lines)
+
+
+def run_full_monte_carlo(
+    portfolio: Portfolio,
+    num_simulations: int = 100,
+    seed: int | None = None,
+) -> FullMonteCarloResult:
+    """Run Monte Carlo using the full simulation (with taxes, RMDs, conversions, etc.).
+
+    Unlike run_monte_carlo which uses a simplified model, this runs the complete
+    simulation logic with varying return and inflation sequences.
+
+    Args:
+        portfolio: The portfolio to simulate
+        num_simulations: Number of simulations to run
+        seed: Random seed for reproducibility
+    """
+    # Import here to avoid circular dependency
+    from retirement_model.simulation import run_simulation
+
+    if seed is not None:
+        random.seed(seed)
+
+    historical_returns = get_historical_returns()
+    historical_inflation = get_historical_inflation()
+
+    all_results: list[SimulationResult] = []
+
+    for i in range(num_simulations):
+        sim_seed = seed + i if seed is not None else None
+
+        returns_seq, inflation_seq = sample_historical_sequence(
+            portfolio.config.simulation_years,
+            historical_returns,
+            historical_inflation,
+            sim_seed,
+        )
+
+        result = run_simulation(portfolio, returns_seq, inflation_seq)
+        all_results.append(result)
+
+    # Calculate success rate (portfolios that didn't deplete)
+    successful = sum(1 for r in all_results if r.years[-1].total_balance > 0)
+    success_rate = successful / num_simulations
+
+    # Sort by final balance to find median
+    sorted_results = sorted(all_results, key=lambda r: r.final_balance)
+    median_idx = num_simulations // 2
+    median_simulation = sorted_results[median_idx]
+
+    # Calculate year-by-year percentiles
+    num_years = portfolio.config.simulation_years
+    start_age = portfolio.config.current_age_primary
+    yearly_percentiles = []
+
+    for year_idx in range(num_years):
+        balances = sorted([r.years[year_idx].total_balance for r in all_results])
+        agis = sorted([r.years[year_idx].agi for r in all_results])
+        taxes = sorted([r.years[year_idx].total_tax for r in all_results])
+        conversions = sorted([r.years[year_idx].roth_conversion for r in all_results])
+        n = len(balances)
+
+        yearly_percentiles.append(
+            YearlyResultPercentiles(
+                age=start_age + year_idx,
+                balance_p5=balances[int(n * 0.05)],
+                balance_p25=balances[int(n * 0.25)],
+                balance_median=balances[n // 2],
+                balance_p75=balances[int(n * 0.75)],
+                balance_p95=balances[int(n * 0.95)],
+                agi_median=agis[n // 2],
+                total_tax_median=taxes[n // 2],
+                roth_conversion_median=conversions[n // 2],
+            )
+        )
+
+    final_balances = sorted([r.final_balance for r in all_results])
+    n = len(final_balances)
+
+    return FullMonteCarloResult(
+        num_simulations=num_simulations,
+        success_rate=success_rate,
+        median_simulation=median_simulation,
+        yearly_percentiles=yearly_percentiles,
+        final_balance_p5=final_balances[int(n * 0.05)],
+        final_balance_p95=final_balances[int(n * 0.95)],
+    )
+
+
+def format_full_monte_carlo_result(result: FullMonteCarloResult) -> str:
+    """Format full Monte Carlo results showing the median simulation with percentile ranges."""
+    lines = [
+        f"Monte Carlo Simulation ({result.num_simulations} iterations)",
+        f"Success Rate: {result.success_rate * 100:.1f}%",
+        "",
+        "Year-by-year results (showing median values, with balance percentile range):",
+        "-" * 100,
+    ]
+
+    # Header
+    lines.append(
+        f"{'Age':<5} {'AGI':>10} {'Bracket':>8} {'RMD':>10} {'Roth Conv':>10} "
+        f"{'Tax':>10} {'Balance (5th / Median / 95th)':>36}"
+    )
+    lines.append("-" * 100)
+
+    median_sim = result.median_simulation
+    for i, yr in enumerate(median_sim.years):
+        yp = result.yearly_percentiles[i]
+        balance_str = (
+            f"{_format_currency(yp.balance_p5):>10} / "
+            f"{_format_currency(yp.balance_median):>10} / "
+            f"{_format_currency(yp.balance_p95):>10}"
+        )
+        lines.append(
+            f"{yr.age_primary:<5} {yr.agi:>10,} {yr.bracket:>8} {yr.rmd:>10,} "
+            f"{yr.roth_conversion:>10,} {yr.total_tax:>10,} {balance_str}"
+        )
+
+    lines.append("-" * 100)
+    lines.append(
+        f"Final Balance Range: {_format_currency(result.final_balance_p5)} (5th) to "
+        f"{_format_currency(result.final_balance_p95)} (95th)"
+    )
 
     return "\n".join(lines)

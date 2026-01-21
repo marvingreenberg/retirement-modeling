@@ -72,8 +72,18 @@ def calculate_planned_expenses(
     return total
 
 
-def run_simulation(portfolio: Portfolio) -> SimulationResult:
-    """Run the retirement simulation and return year-by-year results."""
+def run_simulation(
+    portfolio: Portfolio,
+    returns_sequence: list[float] | None = None,
+    inflation_sequence: list[float] | None = None,
+) -> SimulationResult:
+    """Run the retirement simulation and return year-by-year results.
+
+    Args:
+        portfolio: The portfolio to simulate
+        returns_sequence: Optional list of annual returns for each year (for Monte Carlo)
+        inflation_sequence: Optional list of inflation rates for each year (for Monte Carlo)
+    """
     cfg = portfolio.config
     accounts = copy.deepcopy(portfolio.accounts)
     results: list[YearResult] = []
@@ -96,11 +106,26 @@ def run_simulation(portfolio: Portfolio) -> SimulationResult:
             initial_withdrawal_rate=cfg.withdrawal_rate
         )
 
+    # Track cumulative inflation for expense adjustments
+    cumulative_inflation = 1.0
+
     for year_idx in range(cfg.simulation_years):
         age_primary = cfg.current_age_primary + year_idx
         age_spouse = cfg.current_age_spouse + year_idx
         current_year = cfg.start_year + year_idx
         age_map = {"primary": age_primary, "spouse": age_spouse, "joint": age_primary}
+
+        # Get this year's rates (from sequence or config defaults)
+        year_inflation = (
+            inflation_sequence[year_idx]
+            if inflation_sequence and year_idx < len(inflation_sequence)
+            else cfg.inflation_rate
+        )
+        year_return = (
+            returns_sequence[year_idx]
+            if returns_sequence and year_idx < len(returns_sequence)
+            else cfg.investment_growth_rate
+        )
 
         # Calculate current total balance for spending strategies that need it
         current_total_balance = sum(a.balance for a in accounts)
@@ -111,11 +136,14 @@ def run_simulation(portfolio: Portfolio) -> SimulationResult:
             year_idx,
             current_total_balance,
             age_primary,
-            cfg.inflation_rate,
+            year_inflation,
             spending_state,
         )
 
-        inflation_factor = (1 + cfg.inflation_rate) ** year_idx
+        # Update cumulative inflation for this year
+        if year_idx > 0:
+            cumulative_inflation *= 1 + year_inflation
+        inflation_factor = cumulative_inflation
         planned_expense_amount = calculate_planned_expenses(
             cfg.planned_expenses, current_year, age_primary, inflation_factor
         )
@@ -255,7 +283,7 @@ def run_simulation(portfolio: Portfolio) -> SimulationResult:
         total_tax = income_tax + brokerage_gains_tax + irmaa_cost
 
         # Apply growth and get balances
-        total_balance = apply_growth(accounts, cfg.investment_growth_rate)
+        total_balance = apply_growth(accounts, year_return)
 
         results.append(
             YearResult(

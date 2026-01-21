@@ -7,7 +7,12 @@ import click
 
 from retirement_model.loader import load_portfolio
 from retirement_model.models import ConversionStrategy, SpendingStrategy
-from retirement_model.monte_carlo import format_monte_carlo_result, run_monte_carlo
+from retirement_model.monte_carlo import (
+    format_full_monte_carlo_result,
+    format_monte_carlo_result,
+    run_full_monte_carlo,
+    run_monte_carlo,
+)
 from retirement_model.output import OutputFormat, compare_results, print_results
 from retirement_model.simulation import run_simulation
 
@@ -59,6 +64,25 @@ def main() -> None:
     default=None,
     help="Write output to file instead of stdout.",
 )
+@click.option(
+    "--with-montecarlo",
+    "-m",
+    is_flag=True,
+    default=False,
+    help="Run with Monte Carlo simulation to show balance ranges.",
+)
+@click.option(
+    "--montecarlo-iterations",
+    type=int,
+    default=100,
+    help="Number of Monte Carlo iterations (default: 100).",
+)
+@click.option(
+    "--seed",
+    type=int,
+    default=None,
+    help="Random seed for reproducibility.",
+)
 def run(
     portfolio_file: Path,
     strategy: str | None,
@@ -67,6 +91,9 @@ def run(
     output_format: str,
     capital_gains_rate: float | None,
     output_file: Path | None,
+    with_montecarlo: bool,
+    montecarlo_iterations: int,
+    seed: int | None,
 ) -> None:
     """Run the retirement simulation on a portfolio file."""
     try:
@@ -87,15 +114,25 @@ def run(
     if capital_gains_rate is not None:
         portfolio.config.tax_rate_capital_gains = capital_gains_rate
 
-    result = run_simulation(portfolio)
-
-    fmt = OutputFormat(output_format)
-    if output_file:
-        with open(output_file, "w") as f:
-            print_results(result, fmt, f)
-        click.echo(f"Results written to {output_file}")
+    if with_montecarlo:
+        click.echo(f"Running {montecarlo_iterations} Monte Carlo simulations...")
+        mc_result = run_full_monte_carlo(portfolio, montecarlo_iterations, seed)
+        output = format_full_monte_carlo_result(mc_result)
+        if output_file:
+            with open(output_file, "w") as f:
+                f.write(output)
+            click.echo(f"Results written to {output_file}")
+        else:
+            click.echo(output)
     else:
-        print_results(result, fmt)
+        result = run_simulation(portfolio)
+        fmt = OutputFormat(output_format)
+        if output_file:
+            with open(output_file, "w") as f:
+                print_results(result, fmt, f)
+            click.echo(f"Results written to {output_file}")
+        else:
+            print_results(result, fmt)
 
 
 @main.command()
