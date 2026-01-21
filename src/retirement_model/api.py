@@ -51,6 +51,17 @@ class SimulationResponse(BaseModel):
     summary: dict
 
 
+class YearlyPercentilesResponse(BaseModel):
+    """Percentile data for a single year."""
+
+    age: int
+    percentile_5: float
+    percentile_25: float
+    median: float
+    percentile_75: float
+    percentile_95: float
+
+
 class MonteCarloResponse(BaseModel):
     """Response from running Monte Carlo simulation."""
 
@@ -63,6 +74,7 @@ class MonteCarloResponse(BaseModel):
     percentile_75: float
     percentile_95: float
     depletion_ages: list[int]
+    yearly_percentiles: list[YearlyPercentilesResponse]
 
     @classmethod
     def from_result(cls, result: MonteCarloResult) -> "MonteCarloResponse":
@@ -76,6 +88,17 @@ class MonteCarloResponse(BaseModel):
             percentile_75=result.percentile_75,
             percentile_95=result.percentile_95,
             depletion_ages=result.depletion_ages,
+            yearly_percentiles=[
+                YearlyPercentilesResponse(
+                    age=yp.age,
+                    percentile_5=yp.percentile_5,
+                    percentile_25=yp.percentile_25,
+                    median=yp.median,
+                    percentile_75=yp.percentile_75,
+                    percentile_95=yp.percentile_95,
+                )
+                for yp in result.yearly_percentiles
+            ],
         )
 
 

@@ -11,6 +11,18 @@ from retirement_model.strategies import calculate_spending_target, create_initia
 
 
 @dataclass
+class YearlyPercentiles:
+    """Percentile data for a single year across all simulations."""
+
+    age: int
+    percentile_5: float
+    percentile_25: float
+    median: float
+    percentile_75: float
+    percentile_95: float
+
+
+@dataclass
 class MonteCarloResult:
     """Results from a Monte Carlo simulation run."""
 
@@ -23,6 +35,7 @@ class MonteCarloResult:
     percentile_95: float
     depletion_ages: list[int]
     final_balances: list[float]
+    yearly_percentiles: list[YearlyPercentiles] = field(default_factory=list)
 
     @property
     def failure_rate(self) -> float:
@@ -208,6 +221,11 @@ def run_monte_carlo(
     final_balances.sort()
     n = len(final_balances)
 
+    # Calculate year-by-year percentiles
+    yearly_percentiles = _calculate_yearly_percentiles(
+        paths, portfolio.config.simulation_years, portfolio.config.current_age_primary
+    )
+
     return MonteCarloResult(
         num_simulations=num_simulations,
         success_rate=successful / num_simulations,
@@ -218,37 +236,88 @@ def run_monte_carlo(
         percentile_95=final_balances[int(n * 0.95)],
         depletion_ages=depletion_ages,
         final_balances=final_balances,
+        yearly_percentiles=yearly_percentiles,
     )
+
+
+def _calculate_yearly_percentiles(
+    paths: list[SimulationPath], num_years: int, start_age: int
+) -> list[YearlyPercentiles]:
+    """Calculate percentile distributions for each year across all simulation paths."""
+    yearly_percentiles = []
+
+    for year_idx in range(num_years):
+        # Collect balances for this year from all paths (use 0 if path ended early)
+        year_balances = []
+        for path in paths:
+            if year_idx < len(path.year_balances):
+                year_balances.append(path.year_balances[year_idx])
+            else:
+                year_balances.append(0.0)
+
+        year_balances.sort()
+        n = len(year_balances)
+
+        yearly_percentiles.append(
+            YearlyPercentiles(
+                age=start_age + year_idx,
+                percentile_5=year_balances[int(n * 0.05)],
+                percentile_25=year_balances[int(n * 0.25)],
+                median=year_balances[n // 2],
+                percentile_75=year_balances[int(n * 0.75)],
+                percentile_95=year_balances[int(n * 0.95)],
+            )
+        )
+
+    return yearly_percentiles
+
+
+def _format_currency(value: float) -> str:
+    """Format currency values in a compact way."""
+    if value >= 1_000_000:
+        return f"${value / 1_000_000:.2f}M"
+    elif value >= 1_000:
+        return f"${value / 1_000:.0f}K"
+    else:
+        return f"${value:.0f}"
 
 
 def format_monte_carlo_result(result: MonteCarloResult, portfolio: Portfolio) -> str:
     """Format Monte Carlo results for display."""
     lines = [
         f"Monte Carlo Results ({result.num_simulations} simulations)",
-        "=" * 50,
+        "=" * 80,
         "",
         f"Success Rate: {result.success_rate * 100:.1f}%",
         f"Failure Rate: {result.failure_rate * 100:.1f}%",
         "",
-        "Final Balance Distribution:",
-        f"  5th Percentile:  ${result.percentile_5:,.0f}",
-        f"  25th Percentile: ${result.percentile_25:,.0f}",
-        f"  Median:          ${result.median_final_balance:,.0f}",
-        f"  75th Percentile: ${result.percentile_75:,.0f}",
-        f"  95th Percentile: ${result.percentile_95:,.0f}",
     ]
 
     if result.depletion_ages:
-        lines.extend(
-            [
-                "",
-                "Risk of Depletion Before Age:",
-            ]
-        )
+        lines.append("Risk of Depletion Before Age:")
         start_age = portfolio.config.current_age_primary
         for target_age in [80, 85, 90, 95]:
             if target_age > start_age:
                 risk = result.depletion_risk_by_age(target_age)
                 lines.append(f"  Age {target_age}: {risk * 100:.1f}%")
+        lines.append("")
+
+    # Year-by-year percentile table
+    lines.append("Year-by-Year Balance Distribution:")
+    lines.append("-" * 80)
+    lines.append(
+        f"{'Age':<5} {'5th %ile':>12} {'25th %ile':>12} {'Median':>12} "
+        f"{'75th %ile':>12} {'95th %ile':>12}"
+    )
+    lines.append("-" * 80)
+
+    for yp in result.yearly_percentiles:
+        lines.append(
+            f"{yp.age:<5} {_format_currency(yp.percentile_5):>12} "
+            f"{_format_currency(yp.percentile_25):>12} {_format_currency(yp.median):>12} "
+            f"{_format_currency(yp.percentile_75):>12} {_format_currency(yp.percentile_95):>12}"
+        )
+
+    lines.append("-" * 80)
 
     return "\n".join(lines)

@@ -189,14 +189,41 @@ class TestMonteCarloResult:
         assert result.depletion_risk_by_age(90) == 0.0
 
 
+class TestYearlyPercentiles:
+    def test_yearly_percentiles_populated(self, simple_portfolio: Portfolio):
+        result = run_monte_carlo(simple_portfolio, num_simulations=50, seed=42)
+        assert len(result.yearly_percentiles) == simple_portfolio.config.simulation_years
+
+    def test_yearly_percentiles_ages_correct(self, simple_portfolio: Portfolio):
+        result = run_monte_carlo(simple_portfolio, num_simulations=50, seed=42)
+        start_age = simple_portfolio.config.current_age_primary
+        for i, yp in enumerate(result.yearly_percentiles):
+            assert yp.age == start_age + i
+
+    def test_yearly_percentiles_ordered(self, simple_portfolio: Portfolio):
+        result = run_monte_carlo(simple_portfolio, num_simulations=50, seed=42)
+        for yp in result.yearly_percentiles:
+            assert yp.percentile_5 <= yp.percentile_25
+            assert yp.percentile_25 <= yp.median
+            assert yp.median <= yp.percentile_75
+            assert yp.percentile_75 <= yp.percentile_95
+
+
 class TestFormatMonteCarloResult:
     def test_format_includes_key_info(self, simple_portfolio: Portfolio):
         result = run_monte_carlo(simple_portfolio, num_simulations=50, seed=42)
         formatted = format_monte_carlo_result(result, simple_portfolio)
         assert "Monte Carlo" in formatted
         assert "Success Rate" in formatted
+
+    def test_format_includes_yearly_table(self, simple_portfolio: Portfolio):
+        result = run_monte_carlo(simple_portfolio, num_simulations=50, seed=42)
+        formatted = format_monte_carlo_result(result, simple_portfolio)
+        assert "Year-by-Year" in formatted
+        assert "Age" in formatted
+        assert "5th %ile" in formatted
         assert "Median" in formatted
-        assert "Percentile" in formatted
+        assert "95th %ile" in formatted
 
     def test_format_includes_depletion_risk(self, simple_portfolio: Portfolio):
         simple_portfolio.config.annual_spend_net = 200000
