@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from retirement_model.models import SimulationResult, WithdrawalStrategy, YearResult
+from retirement_model.models import ConversionStrategy, SimulationResult, YearResult
 from retirement_model.output import (
     OutputFormat,
     compare_results,
@@ -61,25 +61,25 @@ def sample_result() -> SimulationResult:
             brokerage_balance=570000,
         ),
     ]
-    return SimulationResult(strategy=WithdrawalStrategy.IRMAA_TIER_1, years=years)
+    return SimulationResult(strategy=ConversionStrategy.IRMAA_TIER_1, years=years)
 
 
 class TestGetStrategyDescription:
     def test_bracket_24(self):
-        desc = get_strategy_description(WithdrawalStrategy.BRACKET_24)
+        desc = get_strategy_description(ConversionStrategy.BRACKET_24)
         assert "24%" in desc
         assert "383,900" in desc
 
     def test_bracket_22(self):
-        desc = get_strategy_description(WithdrawalStrategy.BRACKET_22)
+        desc = get_strategy_description(ConversionStrategy.BRACKET_22)
         assert "22%" in desc
 
     def test_irmaa_tier_1(self):
-        desc = get_strategy_description(WithdrawalStrategy.IRMAA_TIER_1)
+        desc = get_strategy_description(ConversionStrategy.IRMAA_TIER_1)
         assert "IRMAA" in desc
 
     def test_standard(self):
-        desc = get_strategy_description(WithdrawalStrategy.STANDARD)
+        desc = get_strategy_description(ConversionStrategy.STANDARD)
         assert "Standard" in desc
 
 
@@ -150,11 +150,21 @@ class TestFormatSummary:
         assert "Roth" in summary
         assert "Brokerage" in summary
 
+    def test_summary_shows_roth_conversions(self, sample_result: SimulationResult):
+        summary = format_summary(sample_result)
+        assert "Roth Conversions" in summary
+
+
+class TestSimulationResultProperties:
+    def test_total_roth_conversions(self, sample_result: SimulationResult):
+        # Sample result has 50000 + 45000 = 95000 in conversions
+        assert sample_result.total_roth_conversions == 95000
+
 
 class TestCompareResults:
     def test_compare_multiple_results(self, sample_result: SimulationResult):
         result2 = SimulationResult(
-            strategy=WithdrawalStrategy.STANDARD,
+            strategy=ConversionStrategy.STANDARD,
             years=sample_result.years,
         )
         comparison = compare_results([sample_result, result2])
@@ -164,9 +174,17 @@ class TestCompareResults:
 
     def test_compare_shows_all_strategies(self, sample_result: SimulationResult):
         result2 = SimulationResult(
-            strategy=WithdrawalStrategy.STANDARD,
+            strategy=ConversionStrategy.STANDARD,
             years=sample_result.years,
         )
         comparison = compare_results([sample_result, result2])
         # Should contain truncated strategy names
         assert "IRMAA" in comparison or "Standard" in comparison
+
+    def test_compare_shows_roth_conversions(self, sample_result: SimulationResult):
+        result2 = SimulationResult(
+            strategy=ConversionStrategy.STANDARD,
+            years=sample_result.years,
+        )
+        comparison = compare_results([sample_result, result2])
+        assert "Roth Conversions" in comparison

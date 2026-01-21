@@ -101,6 +101,7 @@ def format_summary(result: SimulationResult) -> str:
         "",
         f"Total Taxes Paid: ${result.total_taxes_paid:,.0f}",
         f"Total IRMAA Paid: ${result.total_irmaa_paid:,.0f}",
+        f"Total Roth Conversions: ${result.total_roth_conversions:,.0f}",
         "",
         "Balance by Account Type (Final Year):",
         f"  Pre-Tax: ${result.years[-1].pretax_balance:,.0f}",
@@ -153,8 +154,10 @@ def compare_results(results: list[SimulationResult]) -> str:
         ["Final Balance"] + [f"${r.final_balance:,.0f}" for r in results],
         ["Total Taxes"] + [f"${r.total_taxes_paid:,.0f}" for r in results],
         ["Total IRMAA"] + [f"${r.total_irmaa_paid:,.0f}" for r in results],
+        ["Roth Conversions"] + [f"${r.total_roth_conversions:,.0f}" for r in results],
         ["Final Roth"] + [f"${r.years[-1].roth_balance:,.0f}" for r in results],
         ["Final PreTax"] + [f"${r.years[-1].pretax_balance:,.0f}" for r in results],
+        ["Final Brokerage"] + [f"${r.years[-1].brokerage_balance:,.0f}" for r in results],
     ]
 
     col_widths = [max(len(str(row[i])) for row in [headers] + rows) for i in range(len(headers))]

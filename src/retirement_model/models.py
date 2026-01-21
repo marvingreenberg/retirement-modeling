@@ -201,3 +201,7 @@ class SimulationResult(BaseModel):
     @property
     def total_irmaa_paid(self) -> float:
         return sum(y.irmaa_cost for y in self.years)
+
+    @property
+    def total_roth_conversions(self) -> float:
+        return sum(y.roth_conversion for y in self.years)
