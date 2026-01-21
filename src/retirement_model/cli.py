@@ -1,12 +1,12 @@
 """Command-line interface for retirement simulation."""
 
-import json
 import sys
 from pathlib import Path
 
 import click
 
-from retirement_model.models import ConversionStrategy, Portfolio, SpendingStrategy
+from retirement_model.loader import load_portfolio
+from retirement_model.models import ConversionStrategy, SpendingStrategy
 from retirement_model.monte_carlo import format_monte_carlo_result, run_monte_carlo
 from retirement_model.output import OutputFormat, compare_results, print_results
 from retirement_model.simulation import run_simulation
@@ -70,16 +70,9 @@ def run(
 ) -> None:
     """Run the retirement simulation on a portfolio file."""
     try:
-        with open(portfolio_file) as f:
-            data = json.load(f)
-    except json.JSONDecodeError as e:
-        click.echo(f"Error: Invalid JSON in {portfolio_file}: {e}", err=True)
-        sys.exit(1)
-
-    try:
-        portfolio = Portfolio(**data)
+        portfolio = load_portfolio(str(portfolio_file))
     except Exception as e:
-        click.echo(f"Error: Invalid portfolio data: {e}", err=True)
+        click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
     if strategy:
@@ -125,16 +118,9 @@ def compare(
 ) -> None:
     """Compare multiple strategies."""
     try:
-        with open(portfolio_file) as f:
-            data = json.load(f)
-    except json.JSONDecodeError as e:
-        click.echo(f"Error: Invalid JSON in {portfolio_file}: {e}", err=True)
-        sys.exit(1)
-
-    try:
-        Portfolio(**data)
+        base_portfolio = load_portfolio(str(portfolio_file))
     except Exception as e:
-        click.echo(f"Error: Invalid portfolio data: {e}", err=True)
+        click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
     conv_strategies = (
@@ -149,16 +135,9 @@ def compare(
     results = []
     for conv_strat in conv_strategies:
         for spend_strat in spend_strategies:
-            portfolio = Portfolio.model_validate(
-                {
-                    **data,
-                    "config": {
-                        **data["config"],
-                        "strategy_target": conv_strat.value,
-                        "spending_strategy": spend_strat.value,
-                    },
-                }
-            )
+            portfolio = base_portfolio.model_copy(deep=True)
+            portfolio.config.strategy_target = conv_strat
+            portfolio.config.spending_strategy = spend_strat
             results.append(run_simulation(portfolio))
 
     click.echo(compare_results(results))
@@ -169,14 +148,7 @@ def compare(
 def validate(portfolio_file: Path) -> None:
     """Validate a portfolio file without running simulation."""
     try:
-        with open(portfolio_file) as f:
-            data = json.load(f)
-    except json.JSONDecodeError as e:
-        click.echo(f"Error: Invalid JSON: {e}", err=True)
-        sys.exit(1)
-
-    try:
-        portfolio = Portfolio(**data)
+        portfolio = load_portfolio(str(portfolio_file))
         click.echo("Portfolio is valid.")
         click.echo(f"  Accounts: {len(portfolio.accounts)}")
         click.echo(f"  Total Balance: ${sum(a.balance for a in portfolio.accounts):,.0f}")
@@ -184,7 +156,7 @@ def validate(portfolio_file: Path) -> None:
         click.echo(f"  Spending Strategy: {portfolio.config.spending_strategy.value}")
         click.echo(f"  Simulation Years: {portfolio.config.simulation_years}")
     except Exception as e:
-        click.echo(f"Error: Invalid portfolio: {e}", err=True)
+        click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
 
@@ -260,16 +232,9 @@ def monte_carlo(
 ) -> None:
     """Run Monte Carlo simulation to assess portfolio survival probability."""
     try:
-        with open(portfolio_file) as f:
-            data = json.load(f)
-    except json.JSONDecodeError as e:
-        click.echo(f"Error: Invalid JSON in {portfolio_file}: {e}", err=True)
-        sys.exit(1)
-
-    try:
-        portfolio = Portfolio(**data)
+        portfolio = load_portfolio(str(portfolio_file))
     except Exception as e:
-        click.echo(f"Error: Invalid portfolio data: {e}", err=True)
+        click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
     if spending_strategy:
