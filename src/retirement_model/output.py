@@ -1,13 +1,12 @@
 """Output formatting and display logic for simulation results."""
 
-import json
 from enum import Enum
 from io import StringIO
 from typing import TextIO
 
 import pandas as pd
 
-from retirement_model.models import SimulationResult, WithdrawalStrategy
+from retirement_model.models import ConversionStrategy, SimulationResult, SpendingStrategy
 
 
 class OutputFormat(str, Enum):
@@ -17,17 +16,34 @@ class OutputFormat(str, Enum):
     SUMMARY = "summary"
 
 
-def get_strategy_description(strategy: WithdrawalStrategy) -> str:
-    """Get a human-readable description of the withdrawal strategy."""
+def get_strategy_description(strategy: ConversionStrategy) -> str:
+    """Get a human-readable description of the conversion strategy."""
     match strategy:
-        case WithdrawalStrategy.BRACKET_24:
+        case ConversionStrategy.BRACKET_24:
             return "Filling to Top of 24% Bracket (~$383,900)"
-        case WithdrawalStrategy.BRACKET_22:
+        case ConversionStrategy.BRACKET_22:
             return "Filling to Top of 22% Bracket (~$201,050)"
-        case WithdrawalStrategy.IRMAA_TIER_1:
+        case ConversionStrategy.IRMAA_TIER_1:
             return "Capping at IRMAA Tier 1 (~$206,000)"
-        case WithdrawalStrategy.STANDARD:
-            return "Standard Spending (No voluntary conversions)"
+        case ConversionStrategy.STANDARD:
+            return "Standard (No voluntary conversions)"
+        case _:
+            return str(strategy.value)
+
+
+def get_spending_strategy_description(strategy: SpendingStrategy) -> str:
+    """Get a human-readable description of the spending strategy."""
+    match strategy:
+        case SpendingStrategy.FIXED_DOLLAR:
+            return "Fixed Dollar (inflation-adjusted)"
+        case SpendingStrategy.PERCENT_OF_PORTFOLIO:
+            return "Percent of Portfolio"
+        case SpendingStrategy.GUARDRAILS:
+            return "Guardrails (Guyton-Klinger)"
+        case SpendingStrategy.RMD_BASED:
+            return "RMD-Based"
+        case _:
+            return str(strategy.value)
 
 
 def results_to_dataframe(result: SimulationResult) -> pd.DataFrame:
@@ -76,9 +92,10 @@ def format_json(result: SimulationResult) -> str:
 def format_summary(result: SimulationResult) -> str:
     """Format a brief summary of results."""
     lines = [
-        f"Strategy: {get_strategy_description(result.strategy)}",
+        f"Conversion Strategy: {get_strategy_description(result.strategy)}",
+        f"Spending Strategy: {get_spending_strategy_description(result.spending_strategy)}",
         "",
-        f"Simulation Period: {result.years[0].age_primary} - {result.years[-1].age_primary}",
+        f"Simulation Period: Age {result.years[0].age_primary} - {result.years[-1].age_primary}",
         f"Starting Balance: ${result.years[0].total_balance:,.0f}",
         f"Final Balance: ${result.final_balance:,.0f}",
         "",
@@ -120,11 +137,18 @@ def print_results(
         print(output.getvalue())
 
 
+def get_result_label(result: SimulationResult) -> str:
+    """Get a short label for a result combining both strategies."""
+    conv = result.strategy.value[:10]
+    spend = result.spending_strategy.value[:10]
+    return f"{conv}/{spend}"
+
+
 def compare_results(results: list[SimulationResult]) -> str:
     """Compare multiple simulation results side by side."""
     lines = ["Strategy Comparison", "=" * 60, ""]
 
-    headers = ["Metric"] + [get_strategy_description(r.strategy)[:20] for r in results]
+    headers = ["Metric"] + [get_result_label(r) for r in results]
     rows = [
         ["Final Balance"] + [f"${r.final_balance:,.0f}" for r in results],
         ["Total Taxes"] + [f"${r.total_taxes_paid:,.0f}" for r in results],

@@ -3,16 +3,16 @@
 import copy
 
 from retirement_model.models import (
-    Account,
     AccountType,
+    ConversionStrategy,
     Owner,
     PlannedExpense,
     Portfolio,
-    SimulationConfig,
     SimulationResult,
-    WithdrawalStrategy,
+    SpendingStrategy,
     YearResult,
 )
+from retirement_model.strategies import calculate_spending_target, create_initial_state
 from retirement_model.taxes import (
     calculate_capital_gains_tax,
     calculate_irmaa_cost,
@@ -29,16 +29,18 @@ from retirement_model.withdrawals import (
 )
 
 
-def get_conversion_ceiling(strategy: WithdrawalStrategy, irmaa_tier_1_limit: float) -> float:
+def get_conversion_ceiling(strategy: ConversionStrategy, irmaa_tier_1_limit: float) -> float:
     """Get the AGI ceiling for Roth conversions based on strategy."""
     match strategy:
-        case WithdrawalStrategy.BRACKET_24:
+        case ConversionStrategy.BRACKET_24:
             return 383900
-        case WithdrawalStrategy.BRACKET_22:
+        case ConversionStrategy.BRACKET_22:
             return 201050
-        case WithdrawalStrategy.IRMAA_TIER_1:
+        case ConversionStrategy.IRMAA_TIER_1:
             return irmaa_tier_1_limit
-        case WithdrawalStrategy.STANDARD:
+        case ConversionStrategy.STANDARD:
+            return 0
+        case _:
             return 0
 
 
@@ -76,8 +78,23 @@ def run_simulation(portfolio: Portfolio) -> SimulationResult:
     accounts = copy.deepcopy(portfolio.accounts)
     results: list[YearResult] = []
 
-    current_spend_net = cfg.annual_spend_net
     conversion_ceiling = get_conversion_ceiling(cfg.strategy_target, cfg.irmaa_limit_tier_1)
+
+    initial_balance = sum(a.balance for a in accounts)
+    spending_state = create_initial_state(
+        initial_spending=cfg.annual_spend_net,
+        initial_balance=initial_balance,
+        guardrails_config=(
+            cfg.guardrails_config if cfg.spending_strategy == SpendingStrategy.GUARDRAILS else None
+        ),
+    )
+    # For percent_of_portfolio, set the rate from config
+    if cfg.spending_strategy == SpendingStrategy.PERCENT_OF_PORTFOLIO:
+        from retirement_model.models import GuardrailsConfig
+
+        spending_state.guardrails_config = GuardrailsConfig(
+            initial_withdrawal_rate=cfg.withdrawal_rate
+        )
 
     for year_idx in range(cfg.simulation_years):
         age_primary = cfg.current_age_primary + year_idx
@@ -85,14 +102,24 @@ def run_simulation(portfolio: Portfolio) -> SimulationResult:
         current_year = cfg.start_year + year_idx
         age_map = {"primary": age_primary, "spouse": age_spouse, "joint": age_primary}
 
-        if year_idx > 0:
-            current_spend_net *= 1 + cfg.inflation_rate
+        # Calculate current total balance for spending strategies that need it
+        current_total_balance = sum(a.balance for a in accounts)
+
+        # Calculate spending target based on strategy
+        base_spending, spending_state = calculate_spending_target(
+            cfg.spending_strategy,
+            year_idx,
+            current_total_balance,
+            age_primary,
+            cfg.inflation_rate,
+            spending_state,
+        )
 
         inflation_factor = (1 + cfg.inflation_rate) ** year_idx
         planned_expense_amount = calculate_planned_expenses(
             cfg.planned_expenses, current_year, age_primary, inflation_factor
         )
-        total_spend_needed = current_spend_net + planned_expense_amount
+        total_spend_needed = base_spending + planned_expense_amount
 
         # Social Security income
         ss_income = 0.0
@@ -247,10 +274,15 @@ def run_simulation(portfolio: Portfolio) -> SimulationResult:
                 total_tax=round(total_tax),
                 irmaa_cost=irmaa_cost,
                 total_balance=round(total_balance),
+                spending_target=round(total_spend_needed),
                 pretax_balance=round(get_total_balance_by_type(accounts, AccountType.PRETAX)),
                 roth_balance=round(get_total_balance_by_type(accounts, AccountType.ROTH)),
                 brokerage_balance=round(get_total_balance_by_type(accounts, AccountType.BROKERAGE)),
             )
         )
 
-    return SimulationResult(strategy=cfg.strategy_target, years=results)
+    return SimulationResult(
+        strategy=cfg.strategy_target,
+        spending_strategy=cfg.spending_strategy,
+        years=results,
+    )

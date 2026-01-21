@@ -25,11 +25,35 @@ class Owner(str, Enum):
     JOINT = "joint"
 
 
-class WithdrawalStrategy(str, Enum):
+class ConversionStrategy(str, Enum):
+    """Controls Roth conversion ceiling - how aggressively to convert pre-tax to Roth."""
+
     STANDARD = "standard"
     IRMAA_TIER_1 = "irmaa_tier_1"
     BRACKET_22 = "22_percent_bracket"
     BRACKET_24 = "24_percent_bracket"
+
+
+class SpendingStrategy(str, Enum):
+    """Controls annual spending calculation method."""
+
+    FIXED_DOLLAR = "fixed_dollar"
+    PERCENT_OF_PORTFOLIO = "percent_of_portfolio"
+    GUARDRAILS = "guardrails"
+    RMD_BASED = "rmd_based"
+
+
+# Backwards compatibility alias
+WithdrawalStrategy = ConversionStrategy
+
+
+class GuardrailsConfig(BaseModel):
+    """Configuration for guardrails (Guyton-Klinger) spending strategy."""
+
+    initial_withdrawal_rate: float = Field(default=0.05, ge=0.01, le=0.15)
+    floor_percent: float = Field(default=0.80, ge=0.5, le=1.0)
+    ceiling_percent: float = Field(default=1.20, ge=1.0, le=2.0)
+    adjustment_percent: float = Field(default=0.10, ge=0.01, le=0.25)
 
 
 class Account(BaseModel):
@@ -96,7 +120,13 @@ class SimulationConfig(BaseModel):
     inflation_rate: float = Field(default=DEFAULT_INFLATION_RATE, ge=0, le=0.5)
     investment_growth_rate: float = Field(default=DEFAULT_GROWTH_RATE, ge=-0.5, le=0.5)
 
-    strategy_target: WithdrawalStrategy = WithdrawalStrategy.IRMAA_TIER_1
+    # Conversion strategy (Roth conversion ceiling)
+    strategy_target: ConversionStrategy = ConversionStrategy.IRMAA_TIER_1
+
+    # Spending strategy (annual withdrawal calculation)
+    spending_strategy: SpendingStrategy = SpendingStrategy.FIXED_DOLLAR
+    withdrawal_rate: float = Field(default=0.04, ge=0.01, le=0.15)
+    guardrails_config: GuardrailsConfig = Field(default_factory=GuardrailsConfig)
 
     tax_brackets_federal: list[TaxBracket] = Field(default_factory=list)
     tax_rate_state: float = Field(default=DEFAULT_STATE_TAX_RATE, ge=0, le=0.2)
@@ -144,6 +174,9 @@ class YearResult(BaseModel):
     irmaa_cost: float
     total_balance: float
 
+    # Spending info
+    spending_target: float = 0.0
+
     # Account balances by type
     pretax_balance: float = 0.0
     roth_balance: float = 0.0
@@ -153,7 +186,8 @@ class YearResult(BaseModel):
 class SimulationResult(BaseModel):
     """Complete results from a simulation run."""
 
-    strategy: WithdrawalStrategy
+    strategy: ConversionStrategy
+    spending_strategy: SpendingStrategy = SpendingStrategy.FIXED_DOLLAR
     years: list[YearResult]
 
     @property

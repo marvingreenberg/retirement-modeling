@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from retirement_model.models import Portfolio, WithdrawalStrategy
+from retirement_model.models import ConversionStrategy, Portfolio, SpendingStrategy
 from retirement_model.output import OutputFormat, compare_results, print_results
 from retirement_model.simulation import run_simulation
 
@@ -22,9 +22,21 @@ def main() -> None:
 @click.argument("portfolio_file", type=click.Path(exists=True, path_type=Path))
 @click.option(
     "--strategy",
-    type=click.Choice([s.value for s in WithdrawalStrategy]),
+    type=click.Choice([s.value for s in ConversionStrategy]),
     default=None,
-    help="Override the withdrawal strategy from the portfolio file.",
+    help="Override the conversion strategy (controls Roth conversion ceiling).",
+)
+@click.option(
+    "--spending-strategy",
+    type=click.Choice([s.value for s in SpendingStrategy]),
+    default=None,
+    help="Override the spending strategy (controls annual withdrawal calculation).",
+)
+@click.option(
+    "--withdrawal-rate",
+    type=float,
+    default=None,
+    help="Override withdrawal rate for percent_of_portfolio strategy (e.g., 0.04 for 4%).",
 )
 @click.option(
     "--output-format",
@@ -49,6 +61,8 @@ def main() -> None:
 def run(
     portfolio_file: Path,
     strategy: str | None,
+    spending_strategy: str | None,
+    withdrawal_rate: float | None,
     output_format: str,
     capital_gains_rate: float | None,
     output_file: Path | None,
@@ -68,7 +82,13 @@ def run(
         sys.exit(1)
 
     if strategy:
-        portfolio.config.strategy_target = WithdrawalStrategy(strategy)
+        portfolio.config.strategy_target = ConversionStrategy(strategy)
+
+    if spending_strategy:
+        portfolio.config.spending_strategy = SpendingStrategy(spending_strategy)
+
+    if withdrawal_rate is not None:
+        portfolio.config.withdrawal_rate = withdrawal_rate
 
     if capital_gains_rate is not None:
         portfolio.config.tax_rate_capital_gains = capital_gains_rate
@@ -89,12 +109,20 @@ def run(
 @click.option(
     "--strategy",
     "-s",
-    type=click.Choice([s.value for s in WithdrawalStrategy]),
+    type=click.Choice([s.value for s in ConversionStrategy]),
     multiple=True,
-    help="Strategies to compare (can specify multiple).",
+    help="Conversion strategies to compare (can specify multiple).",
 )
-def compare(portfolio_file: Path, strategy: tuple[str, ...]) -> None:
-    """Compare multiple withdrawal strategies."""
+@click.option(
+    "--spending-strategy",
+    type=click.Choice([s.value for s in SpendingStrategy]),
+    multiple=True,
+    help="Spending strategies to compare (can specify multiple).",
+)
+def compare(
+    portfolio_file: Path, strategy: tuple[str, ...], spending_strategy: tuple[str, ...]
+) -> None:
+    """Compare multiple strategies."""
     try:
         with open(portfolio_file) as f:
             data = json.load(f)
@@ -103,23 +131,34 @@ def compare(portfolio_file: Path, strategy: tuple[str, ...]) -> None:
         sys.exit(1)
 
     try:
-        portfolio = Portfolio(**data)
+        Portfolio(**data)
     except Exception as e:
         click.echo(f"Error: Invalid portfolio data: {e}", err=True)
         sys.exit(1)
 
-    strategies = [WithdrawalStrategy(s) for s in strategy] if strategy else list(WithdrawalStrategy)
+    conv_strategies = (
+        [ConversionStrategy(s) for s in strategy] if strategy else [ConversionStrategy.IRMAA_TIER_1]
+    )
+    spend_strategies = (
+        [SpendingStrategy(s) for s in spending_strategy]
+        if spending_strategy
+        else [SpendingStrategy.FIXED_DOLLAR]
+    )
 
     results = []
-    for strat in strategies:
-        portfolio.config.strategy_target = strat
-        results.append(run_simulation(Portfolio(**data)))
-        portfolio.config.strategy_target = strat
-        results[-1] = run_simulation(
-            Portfolio.model_validate(
-                {**data, "config": {**data["config"], "strategy_target": strat.value}}
+    for conv_strat in conv_strategies:
+        for spend_strat in spend_strategies:
+            portfolio = Portfolio.model_validate(
+                {
+                    **data,
+                    "config": {
+                        **data["config"],
+                        "strategy_target": conv_strat.value,
+                        "spending_strategy": spend_strat.value,
+                    },
+                }
             )
-        )
+            results.append(run_simulation(portfolio))
 
     click.echo(compare_results(results))
 
@@ -137,10 +176,11 @@ def validate(portfolio_file: Path) -> None:
 
     try:
         portfolio = Portfolio(**data)
-        click.echo(f"Portfolio is valid.")
+        click.echo("Portfolio is valid.")
         click.echo(f"  Accounts: {len(portfolio.accounts)}")
         click.echo(f"  Total Balance: ${sum(a.balance for a in portfolio.accounts):,.0f}")
-        click.echo(f"  Strategy: {portfolio.config.strategy_target.value}")
+        click.echo(f"  Conversion Strategy: {portfolio.config.strategy_target.value}")
+        click.echo(f"  Spending Strategy: {portfolio.config.spending_strategy.value}")
         click.echo(f"  Simulation Years: {portfolio.config.simulation_years}")
     except Exception as e:
         click.echo(f"Error: Invalid portfolio: {e}", err=True)
@@ -149,19 +189,35 @@ def validate(portfolio_file: Path) -> None:
 
 @main.command()
 def strategies() -> None:
-    """List available withdrawal strategies."""
-    click.echo("Available Withdrawal Strategies:")
+    """List available strategies."""
+    click.echo("Conversion Strategies (control Roth conversion ceiling):")
     click.echo()
-    for strat in WithdrawalStrategy:
+    for strat in ConversionStrategy:
         match strat:
-            case WithdrawalStrategy.STANDARD:
-                desc = "Standard spending, no voluntary Roth conversions"
-            case WithdrawalStrategy.IRMAA_TIER_1:
+            case ConversionStrategy.STANDARD:
+                desc = "No voluntary Roth conversions"
+            case ConversionStrategy.IRMAA_TIER_1:
                 desc = "Cap AGI at IRMAA Tier 1 threshold to avoid Medicare surcharges"
-            case WithdrawalStrategy.BRACKET_22:
+            case ConversionStrategy.BRACKET_22:
                 desc = "Fill up to top of 22% federal tax bracket"
-            case WithdrawalStrategy.BRACKET_24:
+            case ConversionStrategy.BRACKET_24:
                 desc = "Fill up to top of 24% federal tax bracket"
+        click.echo(f"  {strat.value}")
+        click.echo(f"    {desc}")
+        click.echo()
+
+    click.echo("Spending Strategies (control annual withdrawal amount):")
+    click.echo()
+    for strat in SpendingStrategy:
+        match strat:
+            case SpendingStrategy.FIXED_DOLLAR:
+                desc = "Fixed dollar amount adjusted for inflation (traditional approach)"
+            case SpendingStrategy.PERCENT_OF_PORTFOLIO:
+                desc = "Withdraw fixed percentage of current portfolio value"
+            case SpendingStrategy.GUARDRAILS:
+                desc = "Guyton-Klinger: adjust spending when withdrawal rate crosses thresholds"
+            case SpendingStrategy.RMD_BASED:
+                desc = "Withdraw based on RMD percentages from IRS tables"
         click.echo(f"  {strat.value}")
         click.echo(f"    {desc}")
         click.echo()
