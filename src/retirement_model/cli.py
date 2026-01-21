@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from retirement_model.models import ConversionStrategy, Portfolio, SpendingStrategy
+from retirement_model.monte_carlo import format_monte_carlo_result, run_monte_carlo
 from retirement_model.output import OutputFormat, compare_results, print_results
 from retirement_model.simulation import run_simulation
 
@@ -221,6 +222,66 @@ def strategies() -> None:
         click.echo(f"  {strat.value}")
         click.echo(f"    {desc}")
         click.echo()
+
+
+@main.command("monte-carlo")
+@click.argument("portfolio_file", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--simulations",
+    "-n",
+    type=int,
+    default=1000,
+    help="Number of simulations to run (default: 1000).",
+)
+@click.option(
+    "--seed",
+    type=int,
+    default=None,
+    help="Random seed for reproducibility.",
+)
+@click.option(
+    "--spending-strategy",
+    type=click.Choice([s.value for s in SpendingStrategy]),
+    default=None,
+    help="Override the spending strategy.",
+)
+@click.option(
+    "--withdrawal-rate",
+    type=float,
+    default=None,
+    help="Override withdrawal rate (e.g., 0.04 for 4%).",
+)
+def monte_carlo(
+    portfolio_file: Path,
+    simulations: int,
+    seed: int | None,
+    spending_strategy: str | None,
+    withdrawal_rate: float | None,
+) -> None:
+    """Run Monte Carlo simulation to assess portfolio survival probability."""
+    try:
+        with open(portfolio_file) as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        click.echo(f"Error: Invalid JSON in {portfolio_file}: {e}", err=True)
+        sys.exit(1)
+
+    try:
+        portfolio = Portfolio(**data)
+    except Exception as e:
+        click.echo(f"Error: Invalid portfolio data: {e}", err=True)
+        sys.exit(1)
+
+    if spending_strategy:
+        portfolio.config.spending_strategy = SpendingStrategy(spending_strategy)
+
+    if withdrawal_rate is not None:
+        portfolio.config.withdrawal_rate = withdrawal_rate
+
+    click.echo(f"Running {simulations} Monte Carlo simulations...")
+    result = run_monte_carlo(portfolio, num_simulations=simulations, seed=seed)
+    click.echo()
+    click.echo(format_monte_carlo_result(result, portfolio))
 
 
 if __name__ == "__main__":
