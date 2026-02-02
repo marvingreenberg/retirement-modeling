@@ -1,14 +1,17 @@
-.PHONY: help setup test lint format build clean run
+.PHONY: help setup test lint format build clean run ui-setup ui-dev ui-build
 
 help:
 	@echo "Available targets:"
-	@echo "  setup   - Create venv and install dependencies"
-	@echo "  test    - Run tests with coverage"
-	@echo "  lint    - Run linters (black, isort, mypy)"
-	@echo "  format  - Format code with black and isort"
-	@echo "  build   - Build distribution packages"
-	@echo "  clean   - Remove build artifacts"
-	@echo "  run     - Run simulation with input.json"
+	@echo "  setup     - Create venv and install dependencies"
+	@echo "  test      - Run tests with coverage"
+	@echo "  lint      - Run linters (black, isort, mypy)"
+	@echo "  format    - Format code with black and isort"
+	@echo "  build     - Build distribution packages"
+	@echo "  clean     - Remove build artifacts"
+	@echo "  run       - Run simulation with input.json"
+	@echo "  ui-setup  - Install UI dependencies (pnpm)"
+	@echo "  ui-dev    - Start UI dev server"
+	@echo "  ui-build  - Build UI for production"
 
 setup:
 	python3 -m venv .venv && \
@@ -41,3 +44,12 @@ clean:
 run:
 	. .venv/bin/activate && \
 	  retirement-model run input.json
+
+ui-setup:
+	cd ui && pnpm install
+
+ui-dev:
+	cd ui && pnpm dev
+
+ui-build:
+	cd ui && pnpm build

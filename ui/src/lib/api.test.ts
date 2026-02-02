@@ -1,0 +1,145 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { fetchStrategies, runSimulation, runMonteCarlo, runCompare } from './api';
+import type { Portfolio } from './types';
+
+const mockPortfolio: Portfolio = {
+	config: {
+		current_age_primary: 65,
+		current_age_spouse: 62,
+		simulation_years: 30,
+		start_year: 2026,
+		annual_spend_net: 100000,
+		inflation_rate: 0.03,
+		investment_growth_rate: 0.06,
+		strategy_target: 'irmaa_tier_1',
+		spending_strategy: 'fixed_dollar',
+		withdrawal_rate: 0.04,
+		guardrails_config: {
+			initial_withdrawal_rate: 0.05,
+			floor_percent: 0.80,
+			ceiling_percent: 1.20,
+			adjustment_percent: 0.10,
+		},
+		tax_brackets_federal: [],
+		tax_rate_state: 0.0575,
+		tax_rate_capital_gains: 0.15,
+		irmaa_limit_tier_1: 206000,
+		social_security: {
+			primary_benefit: 36000,
+			primary_start_age: 70,
+			spouse_benefit: 18000,
+			spouse_start_age: 67,
+		},
+		rmd_start_age: 73,
+		planned_expenses: [],
+	},
+	accounts: [
+		{
+			id: 'ira_1',
+			name: 'IRA',
+			balance: 500000,
+			type: 'pretax',
+			owner: 'primary',
+			cost_basis_ratio: 1.0,
+			available_at_age: 0,
+		},
+	],
+};
+
+beforeEach(() => {
+	vi.restoreAllMocks();
+});
+
+describe('fetchStrategies', () => {
+	it('calls GET /api/strategies', async () => {
+		const mockResponse = {
+			conversion_strategies: [{ value: 'standard', description: 'No conversions' }],
+			spending_strategies: [{ value: 'fixed_dollar', description: 'Fixed dollar' }],
+		};
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve(mockResponse),
+		}));
+
+		const result = await fetchStrategies();
+		expect(fetch).toHaveBeenCalledWith('/api/strategies');
+		expect(result).toEqual(mockResponse);
+	});
+
+	it('throws on API error', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+			ok: false,
+			status: 500,
+		}));
+
+		await expect(fetchStrategies()).rejects.toThrow('API error: 500');
+	});
+});
+
+describe('runSimulation', () => {
+	it('calls POST /api/simulate with portfolio', async () => {
+		const mockResult = { result: {}, summary: {} };
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve(mockResult),
+		}));
+
+		await runSimulation(mockPortfolio);
+		expect(fetch).toHaveBeenCalledWith('/api/simulate', expect.objectContaining({
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+		}));
+	});
+
+	it('passes optional strategy overrides', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({}),
+		}));
+
+		await runSimulation(mockPortfolio, 'standard', 'guardrails', 0.05);
+		const callBody = JSON.parse((fetch as any).mock.calls[0][1].body);
+		expect(callBody.strategy).toBe('standard');
+		expect(callBody.spending_strategy).toBe('guardrails');
+		expect(callBody.withdrawal_rate).toBe(0.05);
+	});
+
+	it('throws with detail message on 400', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+			ok: false,
+			status: 400,
+			json: () => Promise.resolve({ detail: 'Invalid portfolio' }),
+		}));
+
+		await expect(runSimulation(mockPortfolio)).rejects.toThrow('Invalid portfolio');
+	});
+});
+
+describe('runMonteCarlo', () => {
+	it('calls POST /api/monte-carlo with simulation count', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({}),
+		}));
+
+		await runMonteCarlo(mockPortfolio, 500, 42);
+		const callBody = JSON.parse((fetch as any).mock.calls[0][1].body);
+		expect(callBody.num_simulations).toBe(500);
+		expect(callBody.seed).toBe(42);
+	});
+});
+
+describe('runCompare', () => {
+	it('passes strategies as query params', async () => {
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ comparisons: [] }),
+		}));
+
+		await runCompare(mockPortfolio, ['irmaa_tier_1', 'standard'], ['fixed_dollar']);
+		const callUrl = (fetch as any).mock.calls[0][0] as string;
+		expect(callUrl).toContain('conversion_strategies=irmaa_tier_1');
+		expect(callUrl).toContain('conversion_strategies=standard');
+		expect(callUrl).toContain('spending_strategies=fixed_dollar');
+	});
+});

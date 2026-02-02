@@ -3,11 +3,12 @@ schema: spec-driven
 context: |
   Domain: Retirement financial planning — tax-aware withdrawal, Roth conversion, and spending simulation
   Backend: Python 3.11+, FastAPI, click CLI
-  Frontend: React, Vite
-  Testing: pytest with coverage, fixtures in conftest.py
+  Frontend: SvelteKit, TypeScript, Chart.js, Zod (in ui/ directory)
+  Package manager: pnpm for frontend (ui/)
+  Testing: pytest with coverage, fixtures in conftest.py; Vitest for frontend
   Style: Black (line-length 100), isort, mypy strict, type hints on all functions
-  Build: Makefile, pyproject.toml, pip editable install
-  Structure: src/retirement_model/ for source, tests/ for tests
+  Build: Makefile, pyproject.toml, pip editable install; pnpm for ui/
+  Structure: src/retirement_model/ for source, tests/ for tests, ui/ for frontend
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

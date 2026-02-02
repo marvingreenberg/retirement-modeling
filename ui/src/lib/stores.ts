@@ -1,0 +1,50 @@
+import { writable } from 'svelte/store';
+import type { Portfolio } from './types';
+import type { FieldErrors } from './validation';
+
+export const defaultPortfolio: Portfolio = {
+	config: {
+		current_age_primary: 65,
+		current_age_spouse: 62,
+		simulation_years: 30,
+		start_year: new Date().getFullYear(),
+		annual_spend_net: 100000,
+		inflation_rate: 0.03,
+		investment_growth_rate: 0.06,
+		strategy_target: 'irmaa_tier_1',
+		spending_strategy: 'fixed_dollar',
+		withdrawal_rate: 0.04,
+		guardrails_config: {
+			initial_withdrawal_rate: 0.05,
+			floor_percent: 0.80,
+			ceiling_percent: 1.20,
+			adjustment_percent: 0.10,
+		},
+		tax_brackets_federal: [],
+		tax_rate_state: 0.0575,
+		tax_rate_capital_gains: 0.15,
+		irmaa_limit_tier_1: 206000,
+		social_security: {
+			primary_benefit: 36000,
+			primary_start_age: 70,
+			spouse_benefit: 18000,
+			spouse_start_age: 67,
+		},
+		rmd_start_age: 73,
+		planned_expenses: [],
+	},
+	accounts: [
+		{
+			id: 'account_1',
+			name: 'Traditional IRA',
+			balance: 500000,
+			type: 'pretax',
+			owner: 'primary',
+			cost_basis_ratio: 1.0,
+			available_at_age: 0,
+		},
+	],
+};
+
+export const portfolio = writable<Portfolio>(structuredClone(defaultPortfolio));
+export const validationErrors = writable<FieldErrors>({});
