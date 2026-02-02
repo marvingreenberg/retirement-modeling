@@ -2,9 +2,7 @@
 
 ## Purpose
 Define the year-by-year simulation loop that coordinates all retirement calculations.
-
 ## Requirements
-
 ### Requirement: Year-by-Year Processing Order
 The system SHALL process each simulation year in a specific sequence.
 
@@ -16,16 +14,15 @@ The system SHALL process each simulation year in a specific sequence.
   3. Calculate spending target (via spending strategy)
   4. Add planned expenses for this year
   5. Calculate Social Security income (if age threshold met)
-  6. Calculate and execute RMDs (if age threshold met)
-  7. Determine cash available vs. spending needed
-  8. Execute withdrawals to meet spending shortfall
-  9. Execute Roth conversions (if pre-RMD age and strategy permits)
-  10. Reinvest surplus cash (if any)
-  11. Calculate all taxes
-  12. Apply investment growth to all accounts
-  13. Record year results
-
----
+  6. Calculate income from additional income streams (if age threshold met)
+  7. Calculate and execute RMDs (if age threshold met)
+  8. Determine cash available vs. spending needed
+  9. Execute withdrawals to meet spending shortfall
+  10. Execute Roth conversions (if pre-RMD age and strategy permits)
+  11. Reinvest surplus cash (if any)
+  12. Calculate all taxes
+  13. Apply investment growth to all accounts
+  14. Record year results
 
 ### Requirement: Social Security Income
 The system SHALL add Social Security income when age thresholds are met.
@@ -67,7 +64,7 @@ The system SHALL incorporate planned one-time and recurring expenses.
 The system SHALL reconcile income against spending needs.
 
 #### Scenario: Income exceeds spending
-- WHEN (SS_income + RMD) net of taxes > spending_target
+- WHEN (SS_income + income_streams + RMD) net of taxes > spending_target
 - THEN surplus_cash = income - spending
 - AND surplus is deposited to brokerage
 
@@ -75,8 +72,6 @@ The system SHALL reconcile income against spending needs.
 - WHEN spending_target > available income
 - THEN remaining_spend = spending_target - income
 - AND withdrawals are executed per withdrawal ordering spec
-
----
 
 ### Requirement: Tax Estimation for Withholding
 The system SHALL estimate taxes for withdrawal gross-up calculations.
