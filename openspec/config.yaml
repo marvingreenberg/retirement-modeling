@@ -1,0 +1,20 @@
+schema: spec-driven
+
+context: |
+  Domain: Retirement financial planning — tax-aware withdrawal, Roth conversion, and spending simulation
+  Backend: Python 3.11+, FastAPI, click CLI
+  Frontend: React, Vite
+  Testing: pytest with coverage, fixtures in conftest.py
+  Style: Black (line-length 100), isort, mypy strict, type hints on all functions
+  Build: Makefile, pyproject.toml, pip editable install
+  Structure: src/retirement_model/ for source, tests/ for tests
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
