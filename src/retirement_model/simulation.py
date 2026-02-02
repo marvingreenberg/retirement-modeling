@@ -156,7 +156,18 @@ def run_simulation(
         if age_spouse >= cfg.social_security.spouse_start_age:
             ss_income += cfg.social_security.spouse_benefit
 
-        current_agi = ss_income * 0.85
+        # Additional income streams (pensions, annuities, rental income, etc.)
+        stream_income = 0.0
+        stream_taxable = 0.0
+        for stream in cfg.income_streams:
+            in_range = age_primary >= stream.start_age
+            if stream.end_age is not None:
+                in_range = in_range and age_primary <= stream.end_age
+            if in_range:
+                stream_income += stream.amount
+                stream_taxable += stream.amount * stream.taxable_pct
+
+        current_agi = ss_income * 0.85 + stream_taxable
 
         # Mandatory RMDs
         pretax_bal_primary = get_total_balance_by_owner(accounts, AccountType.PRETAX, Owner.PRIMARY)
@@ -175,10 +186,11 @@ def run_simulation(
             + cfg.tax_rate_state
         )
 
-        # Cash from SS and RMD (net of estimated tax)
+        # Cash from SS, income streams, and RMD (net of estimated tax)
         cash_from_ss = ss_income * (1 - est_tax_rate)
+        cash_from_streams = stream_income * (1 - est_tax_rate)
         cash_from_rmd = rmd_result.amount_withdrawn * (1 - est_tax_rate)
-        cash_in_hand = cash_from_ss + cash_from_rmd
+        cash_in_hand = cash_from_ss + cash_from_streams + cash_from_rmd
 
         remaining_spend = max(0, total_spend_needed - cash_in_hand)
         surplus_cash = max(0, cash_in_hand - total_spend_needed)

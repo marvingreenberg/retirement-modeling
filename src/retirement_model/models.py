@@ -108,6 +108,16 @@ class PlannedExpense(BaseModel):
         return v
 
 
+class IncomeStream(BaseModel):
+    """A periodic income source (e.g. pension, annuity, rental income)."""
+
+    name: str
+    amount: float = Field(ge=0)
+    start_age: int = Field(ge=0)
+    end_age: int | None = Field(default=None, ge=0)
+    taxable_pct: float = Field(default=1.0, ge=0.0, le=1.0)
+
+
 class SimulationConfig(BaseModel):
     """Configuration for the retirement simulation."""
 
@@ -139,6 +149,8 @@ class SimulationConfig(BaseModel):
     rmd_start_age: int = Field(default=73, ge=70, le=80)
 
     planned_expenses: list[PlannedExpense] = Field(default_factory=list)
+
+    income_streams: list[IncomeStream] = Field(default_factory=list)
 
 
 class Portfolio(BaseModel):
