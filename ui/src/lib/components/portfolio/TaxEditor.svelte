@@ -4,52 +4,25 @@
 	let { config = $bindable() }: { config: SimulationConfig } = $props();
 </script>
 
-<div class="fields">
-	<div class="field-row">
-		<label>
+<div class="flex flex-col gap-3">
+	<div class="flex gap-6">
+		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 			State Tax Rate
-			<input type="number" bind:value={config.tax_rate_state} min="0" max="0.2" step="0.0025" />
+			<input type="number" class="input w-30" bind:value={config.tax_rate_state} min="0" max="0.2" step="0.0025" />
 		</label>
-		<label>
+		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 			Capital Gains Rate
-			<input type="number" bind:value={config.tax_rate_capital_gains} min="0" max="0.3" step="0.005" />
+			<input type="number" class="input w-30" bind:value={config.tax_rate_capital_gains} min="0" max="0.3" step="0.005" />
 		</label>
 	</div>
-	<div class="field-row">
-		<label>
+	<div class="flex gap-6">
+		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 			RMD Start Age
-			<input type="number" bind:value={config.rmd_start_age} min="70" max="80" />
+			<input type="number" class="input w-30" bind:value={config.rmd_start_age} min="70" max="80" />
 		</label>
-		<label>
+		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 			IRMAA Tier 1 Limit ($)
-			<input type="number" bind:value={config.irmaa_limit_tier_1} min="0" step="1000" />
+			<input type="number" class="input w-36" bind:value={config.irmaa_limit_tier_1} min="0" step="1000" />
 		</label>
 	</div>
 </div>
-
-<style>
-	.fields {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-	.field-row {
-		display: flex;
-		gap: 1.5rem;
-	}
-	label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-		font-size: 0.85rem;
-		font-weight: 500;
-		color: #475569;
-	}
-	input {
-		padding: 0.4rem 0.5rem;
-		border: 1px solid #cbd5e1;
-		border-radius: 4px;
-		font-size: 0.9rem;
-		width: 140px;
-	}
-</style>

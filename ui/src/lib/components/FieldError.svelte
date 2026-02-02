@@ -3,13 +3,5 @@
 </script>
 
 {#if message}
-	<span class="error">{message}</span>
+	<span class="text-error-500 text-xs mt-0.5">{message}</span>
 {/if}
-
-<style>
-	.error {
-		color: #dc2626;
-		font-size: 0.8rem;
-		margin-top: 0.15rem;
-	}
-</style>

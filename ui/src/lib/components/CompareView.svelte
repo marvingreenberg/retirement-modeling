@@ -42,6 +42,10 @@
 
 	let canRun = $derived(getSelectedConversion().length > 0 && getSelectedSpending().length > 0);
 
+	let bestBalance = $derived(result ? Math.max(...result.comparisons.map((c) => c.final_balance)) : 0);
+	let bestTax = $derived(result ? Math.min(...result.comparisons.map((c) => c.total_taxes_paid)) : 0);
+	let bestIrmaa = $derived(result ? Math.min(...result.comparisons.map((c) => c.total_irmaa_paid)) : 0);
+
 	async function handleRun() {
 		let p = $portfolio;
 		const errors = validatePortfolio(p);
@@ -61,73 +65,63 @@
 			loading = false;
 		}
 	}
-
-	let bestBalance = $derived(result ? Math.max(...result.comparisons.map((c) => c.final_balance)) : 0);
-	let bestTax = $derived(result ? Math.min(...result.comparisons.map((c) => c.total_taxes_paid)) : 0);
-	let bestIrmaa = $derived(result ? Math.min(...result.comparisons.map((c) => c.total_irmaa_paid)) : 0);
 </script>
 
-<div class="compare-view">
-	<div class="strategy-select">
-		<div class="group">
-			<h4>Conversion Strategies</h4>
+<div class="space-y-4">
+	<div class="flex gap-8">
+		<div>
+			<h4 class="text-sm font-semibold text-surface-900 dark:text-surface-50 mb-2">Conversion Strategies</h4>
 			{#each conversionOptions as opt}
-				<label>
-					<input type="checkbox" bind:checked={selectedConversion[opt.value]} />
+				<label class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-400 mb-1">
+					<input type="checkbox" class="checkbox" bind:checked={selectedConversion[opt.value]} />
 					{opt.description}
 				</label>
 			{/each}
 		</div>
-		<div class="group">
-			<h4>Spending Strategies</h4>
+		<div>
+			<h4 class="text-sm font-semibold text-surface-900 dark:text-surface-50 mb-2">Spending Strategies</h4>
 			{#each spendingOptions as opt}
-				<label>
-					<input type="checkbox" bind:checked={selectedSpending[opt.value]} />
+				<label class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-400 mb-1">
+					<input type="checkbox" class="checkbox" bind:checked={selectedSpending[opt.value]} />
 					{opt.description}
 				</label>
 			{/each}
 		</div>
 	</div>
 
-	<div class="controls">
-		<button onclick={handleRun} disabled={loading || !canRun}>
+	<div class="flex items-center gap-4">
+		<button class="btn preset-filled" onclick={handleRun} disabled={loading || !canRun}>
 			{loading ? 'Comparing...' : 'Run Comparison'}
 		</button>
 		{#if !canRun}
-			<span class="hint">Select at least one of each strategy type.</span>
+			<span class="text-xs text-surface-400">Select at least one of each strategy type.</span>
 		{/if}
 	</div>
 
 	{#if error}
-		<div class="error">{error}</div>
+		<div class="text-error-500 bg-error-50 dark:bg-error-950 p-3 rounded text-sm">{error}</div>
 	{/if}
 
 	{#if result}
 		<CompareChart comparisons={result.comparisons} />
 
-		<div class="table-wrap">
-			<table>
+		<div class="overflow-x-auto">
+			<table class="table table-sm">
 				<thead>
 					<tr>
-						<th>Conversion</th>
-						<th>Spending</th>
-						<th>Final Balance</th>
-						<th>Total Taxes</th>
-						<th>Total IRMAA</th>
-						<th>Roth Conversions</th>
-						<th>Pre-tax</th>
-						<th>Roth</th>
-						<th>Brokerage</th>
+						<th class="text-left">Conversion</th><th class="text-left">Spending</th>
+						<th>Final Balance</th><th>Total Taxes</th><th>Total IRMAA</th>
+						<th>Roth Conv.</th><th>Pre-tax</th><th>Roth</th><th>Brokerage</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each result.comparisons as row}
 						<tr>
-							<td>{row.conversion_strategy}</td>
-							<td>{row.spending_strategy}</td>
-							<td class:best={row.final_balance === bestBalance}>{currency(row.final_balance)}</td>
-							<td class:best={row.total_taxes_paid === bestTax}>{currency(row.total_taxes_paid)}</td>
-							<td class:best={row.total_irmaa_paid === bestIrmaa}>{currency(row.total_irmaa_paid)}</td>
+							<td class="text-left">{row.conversion_strategy}</td>
+							<td class="text-left">{row.spending_strategy}</td>
+							<td class:font-bold={row.final_balance === bestBalance} class:text-success-600={row.final_balance === bestBalance}>{currency(row.final_balance)}</td>
+							<td class:font-bold={row.total_taxes_paid === bestTax} class:text-success-600={row.total_taxes_paid === bestTax}>{currency(row.total_taxes_paid)}</td>
+							<td class:font-bold={row.total_irmaa_paid === bestIrmaa} class:text-success-600={row.total_irmaa_paid === bestIrmaa}>{currency(row.total_irmaa_paid)}</td>
 							<td>{currency(row.total_roth_conversions)}</td>
 							<td>{currency(row.final_pretax_balance)}</td>
 							<td>{currency(row.final_roth_balance)}</td>
@@ -139,86 +133,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	.strategy-select {
-		display: flex;
-		gap: 2rem;
-		margin-bottom: 1rem;
-	}
-	.group h4 {
-		margin: 0 0 0.5rem;
-		font-size: 0.9rem;
-		color: #334155;
-	}
-	.group label {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		font-size: 0.85rem;
-		color: #475569;
-		margin-bottom: 0.3rem;
-	}
-	.controls {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		margin-bottom: 1rem;
-	}
-	.hint {
-		font-size: 0.8rem;
-		color: #94a3b8;
-	}
-	button {
-		padding: 0.6rem 1.5rem;
-		background: #1e40af;
-		color: white;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 0.9rem;
-	}
-	button:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-	.error {
-		color: #dc2626;
-		background: #fef2f2;
-		padding: 0.5rem 0.75rem;
-		border-radius: 4px;
-		margin-bottom: 1rem;
-		font-size: 0.9rem;
-	}
-	.table-wrap {
-		overflow-x: auto;
-		margin-top: 1.5rem;
-	}
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		font-size: 0.85rem;
-	}
-	th, td {
-		padding: 0.5rem 0.75rem;
-		text-align: right;
-		border-bottom: 1px solid #e2e8f0;
-		white-space: nowrap;
-	}
-	th {
-		background: #f8fafc;
-		font-weight: 600;
-		color: #475569;
-	}
-	td:first-child, td:nth-child(2) {
-		text-align: left;
-	}
-	th:first-child, th:nth-child(2) {
-		text-align: left;
-	}
-	.best {
-		font-weight: 700;
-		color: #166534;
-		background: #f0fdf4;
-	}
-</style>

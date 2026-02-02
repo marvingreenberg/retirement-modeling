@@ -38,53 +38,58 @@
 	}
 </script>
 
-<div class="mc-view">
-	<div class="controls">
-		<label>
+<div class="space-y-4">
+	<div class="flex gap-4 items-end">
+		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 			Simulations
-			<input type="number" bind:value={numSimulations} min="1" max="10000" />
+			<input type="number" class="input w-28" bind:value={numSimulations} min="1" max="10000" />
 		</label>
-		<label>
+		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 			Seed (optional)
-			<input type="number" bind:value={seed} placeholder="random" />
+			<input type="number" class="input w-28" bind:value={seed} placeholder="random" />
 		</label>
-		<button onclick={handleRun} disabled={loading}>
+		<button class="btn preset-filled" onclick={handleRun} disabled={loading}>
 			{loading ? 'Running...' : 'Run Monte Carlo'}
 		</button>
 	</div>
 
 	{#if error}
-		<div class="error">{error}</div>
+		<div class="text-error-500 bg-error-50 dark:bg-error-950 p-3 rounded text-sm">{error}</div>
 	{/if}
 
 	{#if result}
-		<div class="success-rate" class:good={result.success_rate >= 0.9} class:warn={result.success_rate >= 0.7 && result.success_rate < 0.9} class:bad={result.success_rate < 0.7}>
+		<div class="text-center p-4 rounded-lg text-2xl font-bold"
+			class:bg-success-100={result.success_rate >= 0.9}
+			class:dark:bg-success-900={result.success_rate >= 0.9}
+			class:text-success-700={result.success_rate >= 0.9}
+			class:dark:text-success-300={result.success_rate >= 0.9}
+			class:bg-warning-100={result.success_rate >= 0.7 && result.success_rate < 0.9}
+			class:dark:bg-warning-900={result.success_rate >= 0.7 && result.success_rate < 0.9}
+			class:text-warning-700={result.success_rate >= 0.7 && result.success_rate < 0.9}
+			class:dark:text-warning-300={result.success_rate >= 0.7 && result.success_rate < 0.9}
+			class:bg-error-100={result.success_rate < 0.7}
+			class:dark:bg-error-900={result.success_rate < 0.7}
+			class:text-error-700={result.success_rate < 0.7}
+			class:dark:text-error-300={result.success_rate < 0.7}
+		>
 			{pct(result.success_rate)} Success Rate
 		</div>
 
-		<div class="summary">
-			<h3>Final Balance Percentiles</h3>
-			<div class="stats">
-				<div class="stat">
-					<span class="label">5th</span>
-					<span class="value">{currency(result.percentile_5)}</span>
-				</div>
-				<div class="stat">
-					<span class="label">25th</span>
-					<span class="value">{currency(result.percentile_25)}</span>
-				</div>
-				<div class="stat">
-					<span class="label">Median</span>
-					<span class="value">{currency(result.median_final_balance)}</span>
-				</div>
-				<div class="stat">
-					<span class="label">75th</span>
-					<span class="value">{currency(result.percentile_75)}</span>
-				</div>
-				<div class="stat">
-					<span class="label">95th</span>
-					<span class="value">{currency(result.percentile_95)}</span>
-				</div>
+		<div class="card bg-surface-100 dark:bg-surface-800 p-4">
+			<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3">Final Balance Percentiles</h3>
+			<div class="flex gap-6 flex-wrap">
+				{#each [
+					['5th', result.percentile_5],
+					['25th', result.percentile_25],
+					['Median', result.median_final_balance],
+					['75th', result.percentile_75],
+					['95th', result.percentile_95],
+				] as [label, value]}
+					<div class="flex flex-col gap-0.5">
+						<span class="text-xs text-surface-500">{label}</span>
+						<span class="text-base font-bold text-surface-900 dark:text-surface-50">{currency(value as number)}</span>
+					</div>
+				{/each}
 			</div>
 		</div>
 
@@ -92,117 +97,30 @@
 			<FanChart percentiles={result.yearly_percentiles} />
 		{/if}
 
-		<div class="depletion">
-			<h3>Portfolio Depletion</h3>
+		<div class="card bg-surface-100 dark:bg-surface-800 p-4">
+			<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3">Portfolio Depletion</h3>
 			{#if result.depletion_ages.length === 0}
-				<p class="no-depletion">No simulations resulted in portfolio depletion.</p>
+				<p class="text-success-600 dark:text-success-400 text-sm">No simulations resulted in portfolio depletion.</p>
 			{:else}
-				<div class="stats">
-					<div class="stat">
-						<span class="label">Earliest</span>
-						<span class="value">Age {Math.min(...result.depletion_ages)}</span>
+				<div class="flex gap-6 flex-wrap">
+					<div class="flex flex-col gap-0.5">
+						<span class="text-xs text-surface-500">Earliest</span>
+						<span class="text-base font-bold">Age {Math.min(...result.depletion_ages)}</span>
 					</div>
-					<div class="stat">
-						<span class="label">Median</span>
-						<span class="value">Age {medianDepletion(result.depletion_ages)}</span>
+					<div class="flex flex-col gap-0.5">
+						<span class="text-xs text-surface-500">Median</span>
+						<span class="text-base font-bold">Age {medianDepletion(result.depletion_ages)}</span>
 					</div>
-					<div class="stat">
-						<span class="label">Latest</span>
-						<span class="value">Age {Math.max(...result.depletion_ages)}</span>
+					<div class="flex flex-col gap-0.5">
+						<span class="text-xs text-surface-500">Latest</span>
+						<span class="text-base font-bold">Age {Math.max(...result.depletion_ages)}</span>
 					</div>
-					<div class="stat">
-						<span class="label">Depleted</span>
-						<span class="value">{result.depletion_ages.length} of {result.num_simulations}</span>
+					<div class="flex flex-col gap-0.5">
+						<span class="text-xs text-surface-500">Depleted</span>
+						<span class="text-base font-bold">{result.depletion_ages.length} of {result.num_simulations}</span>
 					</div>
 				</div>
 			{/if}
 		</div>
 	{/if}
 </div>
-
-<style>
-	.controls {
-		display: flex;
-		gap: 1rem;
-		align-items: flex-end;
-		margin-bottom: 1rem;
-	}
-	.controls label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-		font-size: 0.85rem;
-		font-weight: 500;
-		color: #475569;
-	}
-	.controls input {
-		padding: 0.4rem 0.5rem;
-		border: 1px solid #cbd5e1;
-		border-radius: 4px;
-		font-size: 0.9rem;
-		width: 100px;
-	}
-	button {
-		padding: 0.6rem 1.5rem;
-		background: #1e40af;
-		color: white;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 0.9rem;
-	}
-	button:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-	.error {
-		color: #dc2626;
-		background: #fef2f2;
-		padding: 0.5rem 0.75rem;
-		border-radius: 4px;
-		margin-bottom: 1rem;
-		font-size: 0.9rem;
-	}
-	.success-rate {
-		font-size: 1.5rem;
-		font-weight: 700;
-		margin-bottom: 1rem;
-		padding: 0.75rem 1rem;
-		border-radius: 6px;
-		text-align: center;
-	}
-	.success-rate.good { background: #f0fdf4; color: #166534; }
-	.success-rate.warn { background: #fefce8; color: #854d0e; }
-	.success-rate.bad { background: #fef2f2; color: #991b1b; }
-	.summary, .depletion {
-		margin-bottom: 1.5rem;
-	}
-	h3 {
-		margin: 0 0 0.75rem;
-		font-size: 1rem;
-		color: #334155;
-	}
-	.stats {
-		display: flex;
-		gap: 1.5rem;
-		flex-wrap: wrap;
-	}
-	.stat {
-		display: flex;
-		flex-direction: column;
-		gap: 0.2rem;
-	}
-	.stat .label {
-		font-size: 0.8rem;
-		color: #64748b;
-	}
-	.stat .value {
-		font-size: 1rem;
-		font-weight: 600;
-		color: #1e293b;
-	}
-	.no-depletion {
-		color: #166534;
-		font-size: 0.9rem;
-	}
-</style>

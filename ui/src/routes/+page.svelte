@@ -1,6 +1,7 @@
 <script lang="ts">
 	import TabNav from '$lib/components/TabNav.svelte';
 	import type { Tab } from '$lib/components/TabNav.svelte';
+	import DarkModeToggle from '$lib/components/DarkModeToggle.svelte';
 	import PortfolioEditor from '$lib/components/portfolio/PortfolioEditor.svelte';
 	import SimulateView from '$lib/components/SimulateView.svelte';
 	import MonteCarloView from '$lib/components/MonteCarloView.svelte';
@@ -9,14 +10,15 @@
 	let activeTab: Tab = $state('Portfolio');
 </script>
 
-<div class="app">
-	<header>
-		<h1>Retirement Simulator</h1>
+<div class="max-w-6xl mx-auto p-4 sm:p-8">
+	<header class="flex items-center justify-between mb-4">
+		<h1 class="text-2xl font-bold text-surface-900 dark:text-surface-50">Retirement Simulator</h1>
+		<DarkModeToggle />
 	</header>
 
 	<TabNav bind:active={activeTab} />
 
-	<main>
+	<main class="mt-6">
 		{#if activeTab === 'Portfolio'}
 			<PortfolioEditor />
 		{:else if activeTab === 'Simulate'}
@@ -28,18 +30,3 @@
 		{/if}
 	</main>
 </div>
-
-<style>
-	.app {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 1rem 2rem;
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-	}
-	header h1 {
-		font-size: 1.5rem;
-		font-weight: 600;
-		color: #1e293b;
-		margin-bottom: 1rem;
-	}
-</style>

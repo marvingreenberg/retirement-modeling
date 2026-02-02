@@ -17,7 +17,7 @@
 	let strategyOpen = $state(false);
 </script>
 
-<div class="editor">
+<div class="space-y-2">
 	<FileControls />
 
 	<CollapsibleSection title="People & Timeline" bind:open={peopleOpen}>

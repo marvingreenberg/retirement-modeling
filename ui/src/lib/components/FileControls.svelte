@@ -48,40 +48,11 @@
 	}
 </script>
 
-<div class="controls">
+<div class="flex gap-3 mb-4">
 	<input type="file" accept=".json" bind:this={fileInput} onchange={handleFile} hidden />
-	<button onclick={loadFile}>Load Portfolio</button>
-	<button onclick={saveFile}>Save Portfolio</button>
+	<button class="btn preset-tonal" onclick={loadFile}>Load Portfolio</button>
+	<button class="btn preset-tonal" onclick={saveFile}>Save Portfolio</button>
 </div>
 {#if loadError}
-	<pre class="error">{loadError}</pre>
+	<pre class="text-sm text-error-500 bg-error-50 dark:bg-error-950 p-3 rounded mb-4 whitespace-pre-wrap">{loadError}</pre>
 {/if}
-
-<style>
-	.controls {
-		display: flex;
-		gap: 0.75rem;
-		margin-bottom: 1rem;
-	}
-	button {
-		padding: 0.5rem 1rem;
-		border: 1px solid #cbd5e1;
-		background: #fff;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 0.85rem;
-		color: #334155;
-	}
-	button:hover {
-		background: #f1f5f9;
-	}
-	.error {
-		color: #dc2626;
-		font-size: 0.8rem;
-		background: #fef2f2;
-		padding: 0.5rem;
-		border-radius: 4px;
-		white-space: pre-wrap;
-		margin-bottom: 1rem;
-	}
-</style>
