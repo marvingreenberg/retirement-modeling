@@ -49,6 +49,22 @@ describe('accountSchema', () => {
 		expect(accountSchema.safeParse(validAccount).success).toBe(true);
 	});
 
+	it('applies defaults for optional fields', () => {
+		const minimalAccount = {
+			id: 'test_1',
+			name: 'Test Account',
+			balance: 100000,
+			type: 'pretax' as const,
+			owner: 'primary' as const,
+		};
+		const result = accountSchema.safeParse(minimalAccount);
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.cost_basis_ratio).toBe(1.0);
+			expect(result.data.available_at_age).toBe(0);
+		}
+	});
+
 	it('rejects negative balance', () => {
 		const result = accountSchema.safeParse({ ...validAccount, balance: -100 });
 		expect(result.success).toBe(false);
@@ -134,6 +150,38 @@ describe('plannedExpenseSchema', () => {
 describe('simulationConfigSchema', () => {
 	it('accepts valid config', () => {
 		expect(simulationConfigSchema.safeParse(validConfig).success).toBe(true);
+	});
+
+	it('applies defaults for optional fields', () => {
+		const minimalConfig = {
+			current_age_primary: 65,
+			current_age_spouse: 62,
+			simulation_years: 30,
+			start_year: 2026,
+			annual_spend_net: 100000,
+			inflation_rate: 0.03,
+			investment_growth_rate: 0.06,
+			strategy_target: 'irmaa_tier_1' as const,
+			tax_brackets_federal: [],
+			tax_rate_state: 0.0575,
+			tax_rate_capital_gains: 0.15,
+			irmaa_limit_tier_1: 206000,
+			social_security: validSocialSecurity,
+			rmd_start_age: 73,
+		};
+		const result = simulationConfigSchema.safeParse(minimalConfig);
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.spending_strategy).toBe('fixed_dollar');
+			expect(result.data.withdrawal_rate).toBe(0.04);
+			expect(result.data.planned_expenses).toEqual([]);
+			expect(result.data.guardrails_config).toEqual({
+				initial_withdrawal_rate: 0.05,
+				floor_percent: 0.80,
+				ceiling_percent: 1.20,
+				adjustment_percent: 0.10,
+			});
+		}
 	});
 
 	it('rejects age above 120', () => {

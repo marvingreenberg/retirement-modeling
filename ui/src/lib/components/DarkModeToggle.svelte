@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import { onMount } from 'svelte';
 
 	let dark = $state(false);
@@ -17,16 +16,16 @@
 		localStorage.setItem('color-scheme', dark ? 'dark' : 'light');
 	}
 
-	$effect(() => {
+	function toggle() {
+		dark = !dark;
 		applyMode();
-	});
+	}
 </script>
 
-<div class="flex items-center gap-2">
-	<span class="text-sm text-surface-600 dark:text-surface-400">{dark ? 'Dark' : 'Light'}</span>
-	<Switch bind:checked={dark}>
-		<Switch.Control>
-			<Switch.Thumb />
-		</Switch.Control>
-	</Switch>
-</div>
+<button
+	onclick={toggle}
+	class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-200 dark:bg-surface-700 hover:bg-surface-300 dark:hover:bg-surface-600 transition-colors"
+	aria-label="Toggle dark mode"
+>
+	<span class="text-sm text-surface-700 dark:text-surface-200">{dark ? '🌙 Dark' : '☀️ Light'}</span>
+</button>

@@ -1,5 +1,12 @@
 <script lang="ts">
-	import { portfolio } from '$lib/stores';
+	import { portfolio, validationErrors, formTouched, markFormTouched } from '$lib/stores';
+
+	function handleFocusOut() {
+		markFormTouched();
+		// Force store update to trigger re-validation
+		portfolio.update((p) => ({ ...p }));
+	}
+	import { validatePortfolio } from '$lib/validation';
 	import CollapsibleSection from '$lib/components/CollapsibleSection.svelte';
 	import FileControls from '$lib/components/FileControls.svelte';
 	import PeopleTimeline from './PeopleTimeline.svelte';
@@ -15,10 +22,71 @@
 	let spendingOpen = $state(false);
 	let taxOpen = $state(false);
 	let strategyOpen = $state(false);
+
+	// Live validation as user edits
+	let errors = $derived(validatePortfolio($portfolio));
+	$effect(() => {
+		validationErrors.set(errors);
+	});
+
+	// Only show errors once form has been interacted with
+	let errorList = $derived(
+		$formTouched ? Object.entries(errors) : []
+	);
+
+	// Convert paths like "accounts.1.balance" to "Account 2 - Balance"
+	function friendlyPath(path: string): string {
+		const fieldLabels: Record<string, string> = {
+			balance: 'Balance',
+			amount: 'Amount',
+			year: 'Year',
+			start_age: 'Start Age',
+			end_age: 'End Age',
+			cost_basis_ratio: 'Cost Basis %',
+			available_at_age: 'Available Age',
+		};
+		const accountMatch = path.match(/^accounts\.(\d+)\.(\w+)$/);
+		if (accountMatch) {
+			const idx = parseInt(accountMatch[1]);
+			const field = accountMatch[2];
+			const name = $portfolio.accounts[idx]?.name || `Account ${idx + 1}`;
+			const fieldName = fieldLabels[field] || field;
+			return `${name} - ${fieldName}`;
+		}
+		const expenseMatch = path.match(/^config\.planned_expenses\.(\d+)\.(\w+)$/);
+		if (expenseMatch) {
+			const idx = parseInt(expenseMatch[1]);
+			const field = expenseMatch[2];
+			const name = $portfolio.config.planned_expenses?.[idx]?.name || `Expense ${idx + 1}`;
+			const fieldName = fieldLabels[field] || field;
+			return `${name} - ${fieldName}`;
+		}
+		return path;
+	}
+
+	// Auto-expand sections with errors (once form is touched)
+	$effect(() => {
+		if (!$formTouched) return;
+		const keys = Object.keys(errors);
+		if (keys.some((k) => k.startsWith('accounts'))) accountsOpen = true;
+		if (keys.some((k) => k.startsWith('config.planned_expenses'))) spendingOpen = true;
+		if (keys.some((k) => k.startsWith('config.social_security'))) incomeOpen = true;
+	});
 </script>
 
-<div class="space-y-2">
+<div class="space-y-2" onfocusout={handleFocusOut}>
 	<FileControls />
+
+	{#if errorList.length > 0}
+		<div class="bg-error-50 dark:bg-error-950 border border-error-200 dark:border-error-800 rounded p-3">
+			<p class="text-error-700 dark:text-error-300 text-sm font-medium mb-2">Validation errors:</p>
+			<ul class="text-error-600 dark:text-error-400 text-sm list-disc list-inside space-y-1">
+				{#each errorList as [path, message]}
+					<li><strong>{friendlyPath(path)}</strong>: {message}</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 
 	<CollapsibleSection title="People & Timeline" bind:open={peopleOpen}>
 		<PeopleTimeline bind:config={$portfolio.config} />
@@ -33,7 +101,7 @@
 	</CollapsibleSection>
 
 	<CollapsibleSection title="Spending" bind:open={spendingOpen}>
-		<SpendingEditor bind:config={$portfolio.config} />
+		<SpendingEditor bind:config={$portfolio.config} bind:plannedExpenses={$portfolio.config.planned_expenses} />
 	</CollapsibleSection>
 
 	<CollapsibleSection title="Taxes" bind:open={taxOpen}>

@@ -1,4 +1,23 @@
 @import 'tailwindcss';
+@custom-variant dark (&:where(.dark, .dark *));
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton-svelte';
-@import '@skeletonlabs/skeleton/themes/cerberus';
+@import '@skeletonlabs/skeleton/themes/seafoam';
+
+/* Hide number input spinners */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+.no-spinner {
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+/* Style placeholder text */
+input::placeholder {
+	color: #9ca3af;
+	opacity: 0.7;
+	font-style: italic;
+}

@@ -10,10 +10,10 @@ export const spendingStrategySchema = z.enum([
 ]);
 
 export const guardrailsConfigSchema = z.object({
-	initial_withdrawal_rate: z.number().min(0.01).max(0.15),
-	floor_percent: z.number().min(0.5).max(1.0),
-	ceiling_percent: z.number().min(1.0).max(2.0),
-	adjustment_percent: z.number().min(0.01).max(0.25),
+	initial_withdrawal_rate: z.number().min(0.01).max(0.15).default(0.05),
+	floor_percent: z.number().min(0.5).max(1.0).default(0.80),
+	ceiling_percent: z.number().min(1.0).max(2.0).default(1.20),
+	adjustment_percent: z.number().min(0.01).max(0.25).default(0.10),
 });
 
 export const accountSchema = z.object({
@@ -22,8 +22,8 @@ export const accountSchema = z.object({
 	balance: z.number().min(0),
 	type: accountTypeSchema,
 	owner: ownerSchema,
-	cost_basis_ratio: z.number().min(0).max(1),
-	available_at_age: z.number().int().min(0),
+	cost_basis_ratio: z.number().min(0).max(1).default(1.0),
+	available_at_age: z.number().int().min(0).default(0),
 });
 
 export const socialSecuritySchema = z.object({
@@ -42,7 +42,7 @@ export const plannedExpenseSchema = z.object({
 	name: z.string().min(1),
 	amount: z.number().positive(),
 	expense_type: z.enum(['one_time', 'recurring']),
-	year: z.number().int().min(0).optional(),
+	year: z.number().int().min(2000).max(2100).optional(),
 	start_age: z.number().int().min(0).optional(),
 	end_age: z.number().int().min(0).optional(),
 	inflation_adjusted: z.boolean(),
@@ -57,16 +57,21 @@ export const simulationConfigSchema = z.object({
 	inflation_rate: z.number().min(0).max(0.5),
 	investment_growth_rate: z.number().min(-0.5).max(0.5),
 	strategy_target: conversionStrategySchema,
-	spending_strategy: spendingStrategySchema,
-	withdrawal_rate: z.number().min(0.01).max(0.15),
-	guardrails_config: guardrailsConfigSchema,
+	spending_strategy: spendingStrategySchema.default('fixed_dollar'),
+	withdrawal_rate: z.number().min(0.01).max(0.15).default(0.04),
+	guardrails_config: guardrailsConfigSchema.default({
+		initial_withdrawal_rate: 0.05,
+		floor_percent: 0.80,
+		ceiling_percent: 1.20,
+		adjustment_percent: 0.10,
+	}),
 	tax_brackets_federal: z.array(taxBracketSchema),
 	tax_rate_state: z.number().min(0).max(0.2),
 	tax_rate_capital_gains: z.number().min(0).max(0.3),
 	irmaa_limit_tier_1: z.number().positive(),
 	social_security: socialSecuritySchema,
 	rmd_start_age: z.number().int().min(70).max(80),
-	planned_expenses: z.array(plannedExpenseSchema),
+	planned_expenses: z.array(plannedExpenseSchema).default([]),
 });
 
 export const portfolioSchema = z.object({

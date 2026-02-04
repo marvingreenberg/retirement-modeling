@@ -48,3 +48,13 @@ export const defaultPortfolio: Portfolio = {
 
 export const portfolio = writable<Portfolio>(structuredClone(defaultPortfolio));
 export const validationErrors = writable<FieldErrors>({});
+export const touchedFields = writable<Set<string>>(new Set());
+export const formTouched = writable<boolean>(false);
+
+export function markTouched(path: string) {
+	touchedFields.update((s) => new Set([...s, path]));
+}
+
+export function markFormTouched() {
+	formTouched.set(true);
+}

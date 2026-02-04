@@ -1,19 +1,38 @@
 <script lang="ts">
-	import type { SimulationConfig } from '$lib/types';
+	import type { SimulationConfig, PlannedExpense } from '$lib/types';
+	import { validationErrors, formTouched } from '$lib/stores';
 
-	let { config = $bindable() }: { config: SimulationConfig } = $props();
+	let {
+		config = $bindable(),
+		plannedExpenses = $bindable(),
+	}: {
+		config: SimulationConfig;
+		plannedExpenses: PlannedExpense[];
+	} = $props();
+
+	let nextExpenseId = $state(plannedExpenses.length + 1);
 
 	function addExpense() {
-		config.planned_expenses = [...config.planned_expenses, {
-			name: '',
-			amount: 0,
-			expense_type: 'one_time',
-			inflation_adjusted: true,
-		}];
+		const num = nextExpenseId++;
+		plannedExpenses = [
+			...plannedExpenses,
+			{
+				name: `Expense ${num}`,
+				amount: 1000,
+				expense_type: 'one_time' as const,
+				year: new Date().getFullYear(),
+				inflation_adjusted: true,
+			},
+		];
 	}
 
 	function removeExpense(index: number) {
-		config.planned_expenses = config.planned_expenses.filter((_, i) => i !== index);
+		plannedExpenses = plannedExpenses.filter((_, i) => i !== index);
+	}
+
+	function hasError(path: string): boolean {
+		if (!$formTouched) return false;
+		return Object.keys($validationErrors).some((k) => k.startsWith(path));
 	}
 </script>
 
@@ -76,15 +95,23 @@
 	</div>
 
 	<h4 class="text-sm text-surface-500 dark:text-surface-400 font-medium mt-2">Planned Expenses</h4>
-	{#each config.planned_expenses as expense, i}
+	{#each plannedExpenses as expense, i}
+		{@const amountError = hasError(`config.planned_expenses.${i}.amount`)}
+		{@const yearError = hasError(`config.planned_expenses.${i}.year`)}
 		<div class="flex gap-3 items-end p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap">
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 				Name
-				<input type="text" class="input w-36" bind:value={expense.name} placeholder="Expense name" />
+				<input type="text" class="input w-36 no-spinner" bind:value={expense.name} placeholder="Expense name" />
 			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
+			<label class="flex flex-col gap-1 text-sm font-medium {amountError ? 'text-error-600 dark:text-error-400' : 'text-surface-600 dark:text-surface-400'}">
 				Amount ($)
-				<input type="number" class="input w-28" bind:value={expense.amount} min="0" step="100" />
+				<input
+					type="number"
+					class="input w-28 no-spinner {amountError ? 'ring-2 ring-error-500 border-error-500' : ''}"
+					bind:value={expense.amount}
+					min="1"
+					step="100"
+				/>
 			</label>
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 				Type
@@ -94,9 +121,9 @@
 				</select>
 			</label>
 			{#if expense.expense_type === 'one_time'}
-				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
+				<label class="flex flex-col gap-1 text-sm font-medium {yearError ? 'text-error-600 dark:text-error-400' : 'text-surface-600 dark:text-surface-400'}">
 					Year
-					<input type="number" class="input w-24" bind:value={expense.year} min="2000" />
+					<input type="number" class="input w-24 no-spinner {yearError ? 'ring-2 ring-error-500 border-error-500' : ''}" bind:value={expense.year} min="2000" />
 				</label>
 			{:else}
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
@@ -112,7 +139,7 @@
 				<input type="checkbox" class="checkbox" bind:checked={expense.inflation_adjusted} />
 				Inflation Adj.
 			</label>
-			<button class="btn preset-outlined-error-500 btn-sm" onclick={() => removeExpense(i)}>✕</button>
+			<button class="btn preset-outlined btn-sm" onclick={() => removeExpense(i)}>✕</button>
 		</div>
 	{/each}
 	<button class="btn preset-tonal self-start" onclick={addExpense}>+ Add Expense</button>

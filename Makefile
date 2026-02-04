@@ -1,4 +1,6 @@
-.PHONY: help setup test lint format build clean run ui-setup ui-dev ui-build
+.PHONY: help setup test lint format build clean run-api run-cli ui-setup ui-dev ui-build
+
+FILE ?= input.json
 
 help:
 	@echo "Available targets:"
@@ -8,7 +10,8 @@ help:
 	@echo "  format    - Format code with black and isort"
 	@echo "  build     - Build distribution packages"
 	@echo "  clean     - Remove build artifacts"
-	@echo "  run       - Run simulation with input.json"
+	@echo "  run-api   - Start API server (port 8000)"
+	@echo "  run-cli   - Run CLI simulation (FILE=input.json)"
 	@echo "  ui-setup  - Install UI dependencies (pnpm)"
 	@echo "  ui-dev    - Start UI dev server"
 	@echo "  ui-build  - Build UI for production"
@@ -41,9 +44,13 @@ clean:
 	rm -rf dist/ build/ *.egg-info src/*.egg-info .coverage htmlcov/ .pytest_cache/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
-run:
+run-api:
 	. .venv/bin/activate && \
-	  retirement-model run input.json
+	  uvicorn retirement_model.api:app --reload
+
+run-cli:
+	. .venv/bin/activate && \
+	  retirement-model run $(FILE)
 
 ui-setup:
 	cd ui && pnpm install

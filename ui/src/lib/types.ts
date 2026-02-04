@@ -16,8 +16,8 @@ export interface Account {
 	balance: number;
 	type: AccountType;
 	owner: Owner;
-	cost_basis_ratio: number;
-	available_at_age: number;
+	cost_basis_ratio?: number;
+	available_at_age?: number;
 }
 
 export interface SocialSecurityConfig {
@@ -51,16 +51,16 @@ export interface SimulationConfig {
 	inflation_rate: number;
 	investment_growth_rate: number;
 	strategy_target: ConversionStrategy;
-	spending_strategy: SpendingStrategy;
-	withdrawal_rate: number;
-	guardrails_config: GuardrailsConfig;
+	spending_strategy?: SpendingStrategy;
+	withdrawal_rate?: number;
+	guardrails_config?: GuardrailsConfig;
 	tax_brackets_federal: TaxBracket[];
 	tax_rate_state: number;
 	tax_rate_capital_gains: number;
 	irmaa_limit_tier_1: number;
 	social_security: SocialSecurityConfig;
 	rmd_start_age: number;
-	planned_expenses: PlannedExpense[];
+	planned_expenses?: PlannedExpense[];
 }
 
 export interface Portfolio {

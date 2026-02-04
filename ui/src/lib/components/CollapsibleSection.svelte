@@ -10,11 +10,11 @@
 	let value = $derived(open ? ['item'] : []);
 </script>
 
-<Accordion {value} onValueChange={(detail) => (open = detail.value.includes('item'))}>
+<Accordion collapsible {value} onValueChange={(d) => (open = d.value.includes('item'))}>
 	<Accordion.Item value="item">
-		<Accordion.ItemTrigger>
-			{title}
-			<Accordion.ItemIndicator />
+		<Accordion.ItemTrigger class="flex items-center justify-between w-full">
+			<span>{title}</span>
+			<span class="text-surface-500 transition-transform duration-200" class:rotate-90={open}>▶</span>
 		</Accordion.ItemTrigger>
 		<Accordion.ItemContent>
 			{@render children()}
