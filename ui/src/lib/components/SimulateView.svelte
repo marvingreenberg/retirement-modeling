@@ -8,6 +8,7 @@
 	import CollapsibleSection from './CollapsibleSection.svelte';
 	import SimulateSettings from './SimulateSettings.svelte';
 	import type { SimulationResponse, MonteCarloResponse, SpendingStrategy, ConversionStrategy } from '$lib/types';
+	import { BarChart3, TrendingUp, TableProperties, ShieldCheck, PlusCircle } from 'lucide-svelte';
 
 	let loading = $state(false);
 	let error = $state('');
@@ -133,7 +134,7 @@
 
 	{#if lastRunMode === 'single' && singleResult}
 		<div class="card bg-surface-100 dark:bg-surface-800 p-4">
-			<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3">Summary</h3>
+			<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"><BarChart3 size={18} class="text-primary-500" /> Summary</h3>
 			<div class="flex gap-6 flex-wrap">
 				<div class="flex flex-col gap-0.5">
 					<span class="text-xs text-surface-500">Final Balance</span>
@@ -161,6 +162,7 @@
 		<BalanceChart years={singleResult.result.years} />
 
 		<CollapsibleSection title="Year-by-Year Detail" bind:open={tableOpen}>
+			{#snippet icon()}<TableProperties size={16} class="text-surface-500" />{/snippet}
 			<div class="overflow-x-auto">
 				<table class="table table-sm">
 					<thead>
@@ -186,8 +188,9 @@
 			</div>
 		</CollapsibleSection>
 
-		<button class="btn preset-tonal" onclick={addToComparison}>
-			{addedFeedback ? '✓ Added!' : '+ Add to Comparison'}
+		<button class="btn preset-tonal flex items-center gap-2" onclick={addToComparison}>
+			<PlusCircle size={16} />
+			{addedFeedback ? 'Added!' : 'Add to Comparison'}
 		</button>
 	{/if}
 
@@ -210,7 +213,7 @@
 		</div>
 
 		<div class="card bg-surface-100 dark:bg-surface-800 p-4">
-			<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3">Final Balance Percentiles</h3>
+			<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"><TrendingUp size={18} class="text-tertiary-500" /> Final Balance Percentiles</h3>
 			<div class="flex gap-6 flex-wrap">
 				{#each [
 					['5th', mcResult.percentile_5],
@@ -232,7 +235,7 @@
 		{/if}
 
 		<div class="card bg-surface-100 dark:bg-surface-800 p-4">
-			<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3">Portfolio Depletion</h3>
+			<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"><ShieldCheck size={18} class="text-warning-500" /> Portfolio Depletion</h3>
 			{#if mcResult.depletion_ages.length === 0}
 				<p class="text-success-600 dark:text-success-400 text-sm">No simulations resulted in portfolio depletion.</p>
 			{:else}
@@ -257,8 +260,9 @@
 			{/if}
 		</div>
 
-		<button class="btn preset-tonal" onclick={addToComparison}>
-			{addedFeedback ? '✓ Added!' : '+ Add to Comparison (median)'}
+		<button class="btn preset-tonal flex items-center gap-2" onclick={addToComparison}>
+			<PlusCircle size={16} />
+			{addedFeedback ? 'Added!' : 'Add to Comparison (median)'}
 		</button>
 	{/if}
 </div>

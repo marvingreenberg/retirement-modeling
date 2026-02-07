@@ -2,6 +2,7 @@
 	import { portfolio } from '$lib/stores';
 	import type { SpendingStrategy, ConversionStrategy } from '$lib/types';
 	import InfoPopover from './InfoPopover.svelte';
+	import { Play, Shuffle } from 'lucide-svelte';
 
 	let {
 		runMode = $bindable<'single' | 'monte_carlo'>('single'),
@@ -136,11 +137,11 @@
 		<div class="flex items-center gap-4 pt-1">
 			<label class="flex items-center gap-1.5 text-sm text-surface-600 dark:text-surface-400 cursor-pointer">
 				<input type="radio" name="runMode" value="single" bind:group={runMode} class="radio" />
-				Single run
+				<Play size={14} /> Single run
 			</label>
 			<label class="flex items-center gap-1.5 text-sm text-surface-600 dark:text-surface-400 cursor-pointer">
 				<input type="radio" name="runMode" value="monte_carlo" bind:group={runMode} class="radio" />
-				Monte Carlo
+				<Shuffle size={14} /> Monte Carlo
 			</label>
 			<InfoPopover text="Runs the simulation many times with investment returns sampled from historical market data (1928-2023). Shows how your plan holds up across a range of market conditions, not just the single average return assumed above." />
 			{#if runMode === 'monte_carlo'}

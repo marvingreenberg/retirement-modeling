@@ -11,6 +11,9 @@ importers:
       chart.js:
         specifier: ^4.5.1
         version: 4.5.1
+      lucide-svelte:
+        specifier: ^0.563.0
+        version: 0.563.0(svelte@5.49.1)
       svelte-chartjs:
         specifier: ^3.1.5
         version: 3.1.5(chart.js@4.5.1)(svelte@5.49.1)
@@ -1115,6 +1118,11 @@ packages:
   lru-cache@11.2.5:
     resolution: {integrity: sha512-vFrFJkWtJvJnD5hg+hJvVE8Lh/TcMzKnTgCWmtBipwI5yLX/iX+5UB2tfuyODF5E7k9xEzMdYgGqaSb1c0c5Yw==}
     engines: {node: 20 || >=22}
+
+  lucide-svelte@0.563.0:
+    resolution: {integrity: sha512-pjZKw7TpQcamfQrx7YdbOHgmrcNeKiGGMD0tKZQaVktwSsbqw28CsKc2Q97ttwjytiCWkJyOa8ij2Q+Og0nPfQ==}
+    peerDependencies:
+      svelte: ^3 || ^4 || ^5.0.0-next.42
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -2491,6 +2499,10 @@ snapshots:
   locate-character@3.0.0: {}
 
   lru-cache@11.2.5: {}
+
+  lucide-svelte@0.563.0(svelte@5.49.1):
+    dependencies:
+      svelte: 5.49.1
 
   lz-string@1.5.0: {}
 

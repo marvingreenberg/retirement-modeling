@@ -2,6 +2,7 @@
 	import type { Account } from '$lib/types';
 	import { validationErrors, formTouched } from '$lib/stores';
 	import InfoPopover from '$lib/components/InfoPopover.svelte';
+	import { ShieldCheck, Sprout, TrendingUp } from 'lucide-svelte';
 
 	let { accounts = $bindable() }: { accounts: Account[] } = $props();
 
@@ -34,6 +35,15 @@
 	{#each accounts as account, i}
 		{@const balanceError = hasError(`accounts.${i}.balance`)}
 		<div class="flex gap-3 items-end p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap">
+			<div class="flex items-center self-center pb-0.5">
+				{#if account.type === 'pretax'}
+					<ShieldCheck size={18} class="text-blue-500" />
+				{:else if account.type === 'roth'}
+					<Sprout size={18} class="text-green-500" />
+				{:else}
+					<TrendingUp size={18} class="text-amber-500" />
+				{/if}
+			</div>
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 				Name
 				<input type="text" class="input w-36" bind:value={account.name} placeholder="Account name" />

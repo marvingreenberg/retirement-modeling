@@ -12,6 +12,7 @@
 	import AccountsEditor from './AccountsEditor.svelte';
 	import IncomeEditor from './IncomeEditor.svelte';
 	import SpendingEditor from './SpendingEditor.svelte';
+	import { Users, Landmark, Briefcase, Wallet } from 'lucide-svelte';
 
 	let peopleOpen = $state(true);
 	let accountsOpen = $state(false);
@@ -80,18 +81,22 @@
 	{/if}
 
 	<CollapsibleSection title="People & Timeline" bind:open={peopleOpen}>
+		{#snippet icon()}<Users size={16} class="text-primary-500" />{/snippet}
 		<PeopleTimeline bind:config={$portfolio.config} />
 	</CollapsibleSection>
 
 	<CollapsibleSection title="Accounts" bind:open={accountsOpen}>
+		{#snippet icon()}<Landmark size={16} class="text-tertiary-500" />{/snippet}
 		<AccountsEditor bind:accounts={$portfolio.accounts} />
 	</CollapsibleSection>
 
 	<CollapsibleSection title="Income" bind:open={incomeOpen}>
+		{#snippet icon()}<Briefcase size={16} class="text-success-500" />{/snippet}
 		<IncomeEditor bind:socialSecurity={$portfolio.config.social_security} />
 	</CollapsibleSection>
 
 	<CollapsibleSection title="Spending Plan" bind:open={spendingOpen}>
+		{#snippet icon()}<Wallet size={16} class="text-warning-500" />{/snippet}
 		<SpendingEditor bind:config={$portfolio.config} bind:plannedExpenses={$portfolio.config.planned_expenses} />
 	</CollapsibleSection>
 </div>

@@ -52,11 +52,11 @@
 
 ## 7. Visual Polish — Lucide Icons
 
-- [ ] 7.1 Install lucide-svelte package
-- [ ] 7.2 Add icons to Portfolio tab section headers (People, Accounts, Income, Spending)
-- [ ] 7.3 Add colored account type indicators with icons in AccountsEditor
-- [ ] 7.4 Add icons to Simulate tab run mode options and result sections
-- [ ] 7.5 Verify build succeeds and icons render correctly in light/dark mode
+- [x] 7.1 Install lucide-svelte package
+- [x] 7.2 Add icons to Portfolio tab section headers (People, Accounts, Income, Spending)
+- [x] 7.3 Add colored account type indicators with icons in AccountsEditor
+- [x] 7.4 Add icons to Simulate tab run mode options and result sections
+- [x] 7.5 Verify build succeeds and icons render correctly in light/dark mode
 
 ## 8. Cleanup & Verification
 
