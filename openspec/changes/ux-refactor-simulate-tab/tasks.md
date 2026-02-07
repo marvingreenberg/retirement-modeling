@@ -45,10 +45,10 @@
 
 ## 6. Info Popovers
 
-- [ ] 6.1 Create InfoPopover.svelte reusable component (click to open, click-outside to dismiss, only one open at a time)
-- [ ] 6.2 Add info popovers to Simulate tab assumptions (inflation, growth, spending strategy, conversion strategy, Monte Carlo)
-- [ ] 6.3 Add info popovers to Portfolio tab inputs (cost basis ratio, IRMAA limit, RMD start age)
-- [ ] 6.4 Write tests for InfoPopover open/close/dismiss behavior
+- [x] 6.1 Create InfoPopover.svelte reusable component (click to open, click-outside to dismiss, only one open at a time)
+- [x] 6.2 Add info popovers to Simulate tab assumptions (inflation, growth, spending strategy, conversion strategy, Monte Carlo)
+- [x] 6.3 Add info popovers to Portfolio tab inputs (cost basis ratio, IRMAA limit, RMD start age)
+- [x] 6.4 Write tests for InfoPopover open/close/dismiss behavior
 
 ## 7. Visual Polish — Lucide Icons
 

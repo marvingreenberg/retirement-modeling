@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Account } from '$lib/types';
 	import { validationErrors, formTouched } from '$lib/stores';
+	import InfoPopover from '$lib/components/InfoPopover.svelte';
 
 	let { accounts = $bindable() }: { accounts: Account[] } = $props();
 
@@ -64,7 +65,7 @@
 				</select>
 			</label>
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Cost Basis %
+				<span class="flex items-center gap-1">Cost Basis % <InfoPopover text="The portion of the account that represents original contributions (not gains). Affects capital gains tax on brokerage withdrawals." /></span>
 				<input
 					type="number"
 					class="input w-24 no-spinner"

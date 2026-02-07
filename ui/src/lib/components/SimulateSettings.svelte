@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { portfolio } from '$lib/stores';
 	import type { SpendingStrategy, ConversionStrategy } from '$lib/types';
+	import InfoPopover from './InfoPopover.svelte';
 
 	let {
 		runMode = $bindable<'single' | 'monte_carlo'>('single'),
@@ -56,15 +57,15 @@
 	<div class="bg-surface-100 dark:bg-surface-800 rounded p-3 space-y-2">
 		<div class="flex gap-4 flex-wrap items-end">
 			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				Inflation %
+				<span class="flex items-center gap-1">Inflation % <InfoPopover text="Assumed annual rate at which prices increase, reducing the purchasing power of fixed withdrawals over time." /></span>
 				<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.inflation_rate} min="0" max="0.5" step="0.005" />
 			</label>
 			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				Growth %
+				<span class="flex items-center gap-1">Growth % <InfoPopover text="Assumed annual return on investments before inflation. In Monte Carlo mode, this is overridden by historically-sampled returns." /></span>
 				<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.investment_growth_rate} min="-0.5" max="0.5" step="0.005" />
 			</label>
 			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				Withdrawal
+				<span class="flex items-center gap-1">Withdrawal <InfoPopover text="How annual withdrawals are calculated. Fixed Dollar adjusts for inflation. % of Portfolio takes a fixed percentage each year. Guardrails adjusts spending when withdrawal rate drifts. RMD-Based uses IRS Required Minimum Distribution tables." /></span>
 				<select class="select w-40 text-sm" bind:value={$portfolio.config.spending_strategy}>
 					<option value="fixed_dollar">Fixed Dollar</option>
 					<option value="percent_of_portfolio">% of Portfolio</option>
@@ -73,7 +74,7 @@
 				</select>
 			</label>
 			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				Conversion
+				<span class="flex items-center gap-1">Conversion <InfoPopover text="Controls Roth conversion aggressiveness. Standard does no conversions. Other strategies convert pre-tax to Roth up to a tax bracket or IRMAA threshold to reduce future taxes." /></span>
 				<select class="select w-40 text-sm" bind:value={$portfolio.config.strategy_target}>
 					<option value="standard">Standard</option>
 					<option value="irmaa_tier_1">IRMAA Tier 1</option>
@@ -123,11 +124,11 @@
 				<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.tax_rate_capital_gains} min="0" max="0.3" step="0.005" />
 			</label>
 			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				RMD Age
+				<span class="flex items-center gap-1">RMD Age <InfoPopover text="Age at which Required Minimum Distributions from pre-tax accounts begin. Currently 73 under the SECURE 2.0 Act." /></span>
 				<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.rmd_start_age} min="70" max="80" />
 			</label>
 			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				IRMAA Limit ($)
+				<span class="flex items-center gap-1">IRMAA Limit ($) <InfoPopover text="Income threshold above which Medicare Part B/D premiums increase. Roth conversions that push income above this trigger surcharges." /></span>
 				<input type="number" class="input w-28 text-sm" bind:value={$portfolio.config.irmaa_limit_tier_1} min="0" step="1000" />
 			</label>
 		</div>
@@ -141,6 +142,7 @@
 				<input type="radio" name="runMode" value="monte_carlo" bind:group={runMode} class="radio" />
 				Monte Carlo
 			</label>
+			<InfoPopover text="Runs the simulation many times with investment returns sampled from historical market data (1928-2023). Shows how your plan holds up across a range of market conditions, not just the single average return assumed above." />
 			{#if runMode === 'monte_carlo'}
 				<input type="number" class="input w-20 text-sm" bind:value={numSimulations} min="1" max="10000" />
 				<span class="text-xs text-surface-500">iterations</span>
