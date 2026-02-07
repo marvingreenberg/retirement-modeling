@@ -11,9 +11,12 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"test:e2e": "playwright test",
+		"test:e2e:install": "playwright install chromium"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.58.2",
 		"@skeletonlabs/skeleton": "^4.11.0",
 		"@skeletonlabs/skeleton-svelte": "^4.11.0",
 		"@sveltejs/adapter-auto": "^7.0.0",

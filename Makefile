@@ -1,62 +1,90 @@
-.PHONY: help setup test lint format build clean run-api run-cli ui-setup ui-dev ui-build
+.PHONY: help setup build test e2e clean lint format \
+       setup-api setup-ui build-api build-ui test-api test-ui \
+       run-api run-cli run-ui compose-up compose-down
 
+PKG_NAME := retirement-model
+ACTIVATE := . .venv/bin/activate
+GITCLN := git clean -fdx
 FILE ?= input.json
 
+# ── Standard targets ────────────────────────────────────────────
+
 help:
-	@echo "Available targets:"
-	@echo "  setup     - Create venv and install dependencies"
-	@echo "  test      - Run tests with coverage"
-	@echo "  lint      - Run linters (black, isort, mypy)"
-	@echo "  format    - Format code with black and isort"
-	@echo "  build     - Build distribution packages"
-	@echo "  clean     - Remove build artifacts"
-	@echo "  run-api   - Start API server (port 8000)"
-	@echo "  run-cli   - Run CLI simulation (FILE=input.json)"
-	@echo "  ui-setup  - Install UI dependencies (pnpm)"
-	@echo "  ui-dev    - Start UI dev server"
-	@echo "  ui-build  - Build UI for production"
+	@echo "Standard targets:"
+	@echo "  setup   - Install all dependencies (API + UI)"
+	@echo "  build   - Build all packages (API + UI)"
+	@echo "  test    - Run all tests (API + UI)"
+	@echo "  e2e     - Run E2E tests against containerized stack"
+	@echo "  clean   - Remove all build artifacts and generated files"
+	@echo "  lint    - Run linters (black, isort, mypy)"
+	@echo "  format  - Auto-format code (black, isort)"
+	@echo ""
+	@echo "Component targets: setup-api, setup-ui, build-api, build-ui,"
+	@echo "  test-api, test-ui, run-api, run-ui, run-cli,"
+	@echo "  compose-up, compose-down"
 
-setup:
-	python3 -m venv .venv && \
-	  . .venv/bin/activate && \
-	  pip install -e ".[dev]"
+setup: setup-api setup-ui
 
-test:
-	. .venv/bin/activate && \
-	  pytest tests/ -v
+build: build-api build-ui
+
+test: test-api test-ui
+
+clean:
+	@[[ ! -e .venv ]] || ($(ACTIVATE); pip3 uninstall -q -y $(PKG_NAME) 2>/dev/null || true)
+	@text=$$($(GITCLN) -n .); echo "$$text"; \
+	  [[ -z "$$text" ]] || { read -p 'Delete? (y/N): ' -n1 -r YN; echo; \
+	  [[ "$$YN" == y || "$$YN" == Y ]] && (set -x; $(GITCLN) .); }
+
+e2e: compose-up
+	cd ui && npx playwright test; \
+	  status=$$?; \
+	  cd .. && docker compose down; \
+	  exit $$status
 
 lint:
-	. .venv/bin/activate && \
+	$(ACTIVATE) && \
 	  black --check src/ tests/ && \
 	  isort --check-only src/ tests/ && \
 	  mypy src/
 
 format:
-	. .venv/bin/activate && \
+	$(ACTIVATE) && \
 	  black src/ tests/ && \
 	  isort src/ tests/
 
-build:
-	. .venv/bin/activate && \
-	  python -m build
+# ── Component targets ───────────────────────────────────────────
 
-clean:
-	rm -rf dist/ build/ *.egg-info src/*.egg-info .coverage htmlcov/ .pytest_cache/
-	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+setup-api:
+	python3 -m venv .venv && \
+	  $(ACTIVATE) && \
+	  pip install -e ".[dev]"
 
-run-api:
-	. .venv/bin/activate && \
-	  uvicorn retirement_model.api:app --reload
-
-run-cli:
-	. .venv/bin/activate && \
-	  retirement-model run $(FILE)
-
-ui-setup:
+setup-ui:
 	cd ui && pnpm install
 
-ui-dev:
+build-api:
+	$(ACTIVATE) && python -m build
+
+build-ui:
+	cd ui && pnpm build
+
+test-api:
+	$(ACTIVATE) && pytest tests/ -v
+
+test-ui:
+	cd ui && pnpm test
+
+run-api:
+	$(ACTIVATE) && uvicorn retirement_model.api:app --reload
+
+run-ui:
 	cd ui && pnpm dev
 
-ui-build:
-	cd ui && pnpm build
+run-cli:
+	$(ACTIVATE) && retirement-model run $(FILE)
+
+compose-up:
+	docker compose up -d --build
+
+compose-down:
+	docker compose down
