@@ -120,6 +120,85 @@ ui/
    load/save
 ```
 
+## Testing Strategy
+
+### Layers
+
+```
+Unit Tests              Component Tests           E2E Tests
+───────────             ───────────────           ─────────
+vitest                  vitest +                  Playwright
+pure functions          @testing-library/svelte   full app + real API
+                        + jsdom
+
+schemas ✅              accounts CRUD             proxy → FastAPI
+api client ✅           accounts validation       simulate flow
+stores ✅               simulate flow (mocked)
+
+◄── Fast, isolated ──────────────────── Slow, integrated ──►
+```
+
+### Resilient test design
+
+The UI is early and will evolve. Tests should break only when **user-visible behavior** changes, not when layout or styling changes.
+
+**Query by role/label, not DOM structure.** Use `getByRole`, `getByText`, `getByLabelText` — never CSS selectors or DOM tree position. If a button moves from top to bottom of a panel, tests should still pass.
+
+**Assert on outcomes, not structure.** "After clicking Add Account, the user sees two account rows" — not "the container has two children with class `.account-row`". "After entering a negative balance, an error is visible" — not "an element with class `.error` has specific text".
+
+**Use test helpers as an abstraction layer.** Locator logic lives in shared helpers (one per component area). When the UI evolves, update the helper — not every test.
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────┐
+│  Test Files  │────▶│  Helpers     │────▶│  Actual   │
+│              │     │              │     │  DOM      │
+│ "add account │     │ knows how to │     │          │
+│  shows row"  │     │ find things  │     │ (can     │
+│              │     │              │     │  change)  │
+│ "negative    │     │ single place │     │          │
+│  shows error"│     │ to update    │     │          │
+└──────────────┘     └──────────────┘     └──────────┘
+```
+
+**Use `data-testid` sparingly.** Only when no semantic query exists (no role, label, or text). Prefer improving accessibility markup over adding testids — it helps real users too.
+
+**Don't assert on exact API values.** Verify that results render (chart exists, summary region exists), not that specific dollar amounts match.
+
+### Component test scope (minimal, evolution-safe)
+
+Focus on stable interaction patterns, not volatile field-level details:
+
+**Accounts section:**
+- Renders with default account
+- Add account → new row appears
+- Remove account → row disappears
+- Field values bind correctly (name, type, balance)
+- Empty name → validation error visible
+- Negative balance → validation error visible
+- Fix invalid value → error clears
+
+**Simulate tab:**
+- Run button triggers API call (mocked)
+- Loading state shows while waiting
+- Results render after response (chart canvas, summary region)
+- Error state displays on API failure
+
+Income, Spending, Tax, and Strategy sections are deliberately excluded — these fields are likely to evolve as the retirement model matures. Add coverage for them once they stabilize.
+
+### E2E scope (minimal)
+
+One Playwright test proving the full stack works:
+- Load app in real browser
+- Navigate to Simulate tab
+- Click Run Simulation with default portfolio
+- Verify results appear (via proxy to real FastAPI)
+
+No assertions on specific values — just that the plumbing connects.
+
+### Future: containerization for CI
+
+E2E tests currently require a running FastAPI backend. A future change will add Docker/Podman Compose to start both services, run Playwright, and tear down — making E2E tests reproducible in CI without manual setup.
+
 ## Risks / Trade-offs
 
 - **Zod/Pydantic drift** → If backend models change, Zod schemas must be updated manually. Mitigation: keep schemas in one file (`schema.ts`), add a comment noting the Pydantic source models.

@@ -4,6 +4,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	resolve: {
+		conditions: ['browser'],
+	},
 	server: {
 		proxy: {
 			'/api': {

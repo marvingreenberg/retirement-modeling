@@ -50,5 +50,5 @@
 - [x] 7.1 Add unit tests for Zod schemas (valid/invalid portfolio data, edge cases)
 - [x] 7.2 Add unit tests for API client (mock fetch, verify request/response handling)
 - [x] 7.3 Add unit tests for validation module (valid/invalid portfolios, field error lookup)
-- [ ] 7.4 Add component tests for portfolio editor sections (field rendering, validation display, add/remove accounts)
-- [ ] 7.5 Verify dev proxy works end-to-end with running FastAPI backend
+- [x] 7.4 Add component tests for portfolio editor sections (field rendering, validation display, add/remove accounts)
+- [x] 7.5 Verify dev proxy works end-to-end with running FastAPI backend
