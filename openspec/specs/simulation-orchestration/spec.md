@@ -117,6 +117,35 @@ The system SHALL record detailed results for each year.
 
 ---
 
+### Requirement: Simulation Configuration (UI Assembly)
+The system SHALL process simulation configuration assembled from both Portfolio and Simulate tab inputs.
+
+#### Scenario: Portfolio tab provides base data
+- GIVEN a simulation request
+- THEN the Portfolio object includes:
+  - People & Timeline fields (ages, years, start_year)
+  - Account balances and types
+  - Social Security configuration
+  - Annual spending amount and planned expenses
+
+#### Scenario: Simulate tab provides assumptions
+- GIVEN a simulation request
+- THEN the Portfolio config also includes assumption fields set from the Simulate tab:
+  - inflation_rate
+  - investment_growth_rate
+  - spending_strategy (and conditional params: withdrawal_rate, guardrails_config)
+  - strategy_target (conversion strategy)
+  - tax_rate_state
+  - tax_rate_capital_gains
+  - rmd_start_age
+  - irmaa_limit_tier_1
+
+#### Scenario: Single Portfolio object sent to API
+- WHEN the UI submits a simulation request
+- THEN the API receives a single `Portfolio` JSON containing both portfolio data and simulation assumptions
+
+---
+
 ## Simulation Configuration
 
 ### Required Inputs

@@ -133,6 +133,28 @@ The system SHALL support reproducible results via random seed.
 
 ---
 
+### Requirement: Monte Carlo UI Integration
+The Monte Carlo simulation SHALL be accessible as a run mode within the Simulate tab.
+
+#### Scenario: Run mode selection
+- WHEN user wants to run Monte Carlo
+- THEN they select the "Monte Carlo" radio option on the Simulate tab
+- AND enter desired iteration count (default 1000)
+- AND click the "Simulate" button
+
+#### Scenario: Monte Carlo ignores configured growth rate
+- WHEN Monte Carlo mode is selected
+- THEN the configured `investment_growth_rate` is not used for simulation
+- AND returns are sampled from historical market data instead
+- AND the growth rate input shows a visual indicator that it is overridden
+
+#### Scenario: Monte Carlo results display
+- WHEN Monte Carlo simulation completes
+- THEN results are displayed in the Simulate tab results area
+- AND results include: success rate, final balance percentiles, fan chart, depletion analysis
+
+---
+
 ## Output Format
 
 ### Simplified Monte Carlo Output
