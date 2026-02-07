@@ -66,7 +66,7 @@
 				plugins: {
 					tooltip: {
 						callbacks: {
-							label: (ctx) => `${ctx.dataset.label}: $${Math.round(ctx.parsed.y).toLocaleString()}`,
+							label: (ctx) => `${ctx.dataset.label}: $${Math.round(ctx.parsed.y ?? 0).toLocaleString()}`,
 						},
 					},
 				},

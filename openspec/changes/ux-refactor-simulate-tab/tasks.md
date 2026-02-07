@@ -60,8 +60,8 @@
 
 ## 8. Cleanup & Verification
 
-- [ ] 8.1 Remove unused MonteCarloView.svelte component file (or keep as dead code if needed for reference)
-- [ ] 8.2 Remove unused strategy fetching and compare API calls from CompareView
-- [ ] 8.3 Run full test suite and verify all tests pass
-- [ ] 8.4 Run pnpm build and verify production build succeeds
-- [ ] 8.5 Verify pnpm check passes (TypeScript/Svelte checks)
+- [x] 8.1 Remove unused MonteCarloView.svelte component file (or keep as dead code if needed for reference)
+- [x] 8.2 Remove unused strategy fetching and compare API calls from CompareView
+- [x] 8.3 Run full test suite and verify all tests pass
+- [x] 8.4 Run pnpm build and verify production build succeeds
+- [x] 8.5 Verify pnpm check passes (TypeScript/Svelte checks)

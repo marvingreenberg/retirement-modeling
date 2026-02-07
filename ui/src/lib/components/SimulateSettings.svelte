@@ -61,9 +61,9 @@
 				<span class="flex items-center gap-1">Inflation % <InfoPopover text="Assumed annual rate at which prices increase, reducing the purchasing power of fixed withdrawals over time." /></span>
 				<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.inflation_rate} min="0" max="0.5" step="0.005" />
 			</label>
-			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				<span class="flex items-center gap-1">Growth % <InfoPopover text="Assumed annual return on investments before inflation. In Monte Carlo mode, this is overridden by historically-sampled returns." /></span>
-				<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.investment_growth_rate} min="-0.5" max="0.5" step="0.005" />
+			<label class="flex flex-col gap-0.5 text-xs font-medium {runMode === 'monte_carlo' ? 'text-surface-400 dark:text-surface-500' : 'text-surface-600 dark:text-surface-400'}">
+				<span class="flex items-center gap-1">Growth % {#if runMode === 'monte_carlo'}<span class="text-[10px] text-warning-500">(overridden)</span>{/if} <InfoPopover text="Assumed annual return on investments before inflation. In Monte Carlo mode, this is overridden by historically-sampled returns." /></span>
+				<input type="number" class="input w-20 text-sm {runMode === 'monte_carlo' ? 'opacity-50' : ''}" bind:value={$portfolio.config.investment_growth_rate} min="-0.5" max="0.5" step="0.005" />
 			</label>
 			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 				<span class="flex items-center gap-1">Withdrawal <InfoPopover text="How annual withdrawals are calculated. Fixed Dollar adjusts for inflation. % of Portfolio takes a fixed percentage each year. Guardrails adjusts spending when withdrawal rate drifts. RMD-Based uses IRS Required Minimum Distribution tables." /></span>

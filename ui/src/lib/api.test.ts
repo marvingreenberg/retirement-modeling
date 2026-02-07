@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchStrategies, runSimulation, runMonteCarlo, runCompare } from './api';
+import { runSimulation, runMonteCarlo } from './api';
 import type { Portfolio } from './types';
 
 const mockPortfolio: Portfolio = {
@@ -50,32 +50,6 @@ beforeEach(() => {
 	vi.restoreAllMocks();
 });
 
-describe('fetchStrategies', () => {
-	it('calls GET /api/strategies', async () => {
-		const mockResponse = {
-			conversion_strategies: [{ value: 'standard', description: 'No conversions' }],
-			spending_strategies: [{ value: 'fixed_dollar', description: 'Fixed dollar' }],
-		};
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-			ok: true,
-			json: () => Promise.resolve(mockResponse),
-		}));
-
-		const result = await fetchStrategies();
-		expect(fetch).toHaveBeenCalledWith('/api/strategies');
-		expect(result).toEqual(mockResponse);
-	});
-
-	it('throws on API error', async () => {
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-			ok: false,
-			status: 500,
-		}));
-
-		await expect(fetchStrategies()).rejects.toThrow('API error: 500');
-	});
-});
-
 describe('runSimulation', () => {
 	it('calls POST /api/simulate with portfolio', async () => {
 		const mockResult = { result: {}, summary: {} };
@@ -89,19 +63,8 @@ describe('runSimulation', () => {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 		}));
-	});
-
-	it('passes optional strategy overrides', async () => {
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-			ok: true,
-			json: () => Promise.resolve({}),
-		}));
-
-		await runSimulation(mockPortfolio, 'standard', 'guardrails', 0.05);
 		const callBody = JSON.parse((fetch as any).mock.calls[0][1].body);
-		expect(callBody.strategy).toBe('standard');
-		expect(callBody.spending_strategy).toBe('guardrails');
-		expect(callBody.withdrawal_rate).toBe(0.05);
+		expect(callBody.portfolio).toBeDefined();
 	});
 
 	it('throws with detail message on 400', async () => {
@@ -122,24 +85,8 @@ describe('runMonteCarlo', () => {
 			json: () => Promise.resolve({}),
 		}));
 
-		await runMonteCarlo(mockPortfolio, 500, 42);
+		await runMonteCarlo(mockPortfolio, 500);
 		const callBody = JSON.parse((fetch as any).mock.calls[0][1].body);
 		expect(callBody.num_simulations).toBe(500);
-		expect(callBody.seed).toBe(42);
-	});
-});
-
-describe('runCompare', () => {
-	it('passes strategies as query params', async () => {
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-			ok: true,
-			json: () => Promise.resolve({ comparisons: [] }),
-		}));
-
-		await runCompare(mockPortfolio, ['irmaa_tier_1', 'standard'], ['fixed_dollar']);
-		const callUrl = (fetch as any).mock.calls[0][0] as string;
-		expect(callUrl).toContain('conversion_strategies=irmaa_tier_1');
-		expect(callUrl).toContain('conversion_strategies=standard');
-		expect(callUrl).toContain('spending_strategies=fixed_dollar');
 	});
 });
