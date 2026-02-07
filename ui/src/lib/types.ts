@@ -60,7 +60,7 @@ export interface SimulationConfig {
 	irmaa_limit_tier_1: number;
 	social_security: SocialSecurityConfig;
 	rmd_start_age: number;
-	planned_expenses?: PlannedExpense[];
+	planned_expenses: PlannedExpense[];
 }
 
 export interface Portfolio {
@@ -155,4 +155,22 @@ export interface StrategyOption {
 export interface StrategiesResponse {
 	conversion_strategies: StrategyOption[];
 	spending_strategies: StrategyOption[];
+}
+
+export interface ComparisonSnapshot {
+	id: string;
+	name: string;
+	runType: 'single' | 'monte_carlo';
+	numSimulations?: number;
+	inflationRate: number;
+	growthRate: number;
+	spendingStrategy: string;
+	conversionStrategy: string;
+	taxRateState: number;
+	taxRateCapitalGains: number;
+	finalBalance: number;
+	totalTaxes: number;
+	totalIrmaa: number;
+	totalRothConversions: number;
+	successRate?: number;
 }

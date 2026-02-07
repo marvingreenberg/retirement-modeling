@@ -4,7 +4,6 @@
 	import DarkModeToggle from '$lib/components/DarkModeToggle.svelte';
 	import PortfolioEditor from '$lib/components/portfolio/PortfolioEditor.svelte';
 	import SimulateView from '$lib/components/SimulateView.svelte';
-	import MonteCarloView from '$lib/components/MonteCarloView.svelte';
 	import CompareView from '$lib/components/CompareView.svelte';
 
 	let activeTab: Tab = $state('Portfolio');
@@ -23,8 +22,6 @@
 			<PortfolioEditor />
 		{:else if activeTab === 'Simulate'}
 			<SimulateView />
-		{:else if activeTab === 'Monte Carlo'}
-			<MonteCarloView />
 		{:else if activeTab === 'Compare'}
 			<CompareView />
 		{/if}

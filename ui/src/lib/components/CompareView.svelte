@@ -1,131 +1,99 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { portfolio, validationErrors } from '$lib/stores';
-	import { validatePortfolio } from '$lib/validation';
-	import { fetchStrategies, runCompare } from '$lib/api';
-	import { currency } from '$lib/format';
-	import CompareChart from './charts/CompareChart.svelte';
-	import type { CompareResponse, StrategyOption, ConversionStrategy, SpendingStrategy } from '$lib/types';
+	import { comparisonSnapshots } from '$lib/stores';
+	import { currency, pct } from '$lib/format';
+	import type { ComparisonSnapshot } from '$lib/types';
 
-	let loading = $state(false);
-	let error = $state('');
-	let result = $state<CompareResponse | null>(null);
+	let snapshots = $derived($comparisonSnapshots);
 
-	let conversionOptions = $state<StrategyOption[]>([]);
-	let spendingOptions = $state<StrategyOption[]>([]);
-	let selectedConversion = $state<Record<string, boolean>>({});
-	let selectedSpending = $state<Record<string, boolean>>({});
+	let bestBalance = $derived(
+		snapshots.length > 0 ? Math.max(...snapshots.map((s) => s.finalBalance)) : 0
+	);
+	let bestTax = $derived(
+		snapshots.length > 0 ? Math.min(...snapshots.filter((s) => s.totalTaxes > 0).map((s) => s.totalTaxes)) : 0
+	);
+	let bestIrmaa = $derived(
+		snapshots.length > 0 ? Math.min(...snapshots.filter((s) => s.totalIrmaa >= 0).map((s) => s.totalIrmaa)) : 0
+	);
+	let bestSuccess = $derived(
+		snapshots.length > 0 ? Math.max(...snapshots.filter((s) => s.successRate != null).map((s) => s.successRate!)) : 0
+	);
 
-	onMount(async () => {
-		try {
-			const strats = await fetchStrategies();
-			conversionOptions = strats.conversion_strategies;
-			spendingOptions = strats.spending_strategies;
-			for (const s of conversionOptions) selectedConversion[s.value] = true;
-			for (const s of spendingOptions) selectedSpending[s.value] = s.value === 'fixed_dollar';
-		} catch (e: any) {
-			error = `Failed to load strategies: ${e.message}`;
-		}
-	});
-
-	function getSelectedConversion(): ConversionStrategy[] {
-		return Object.entries(selectedConversion)
-			.filter(([, v]) => v)
-			.map(([k]) => k as ConversionStrategy);
+	function removeSnapshot(id: string) {
+		comparisonSnapshots.update((snaps) => snaps.filter((s) => s.id !== id));
 	}
 
-	function getSelectedSpending(): SpendingStrategy[] {
-		return Object.entries(selectedSpending)
-			.filter(([, v]) => v)
-			.map(([k]) => k as SpendingStrategy);
-	}
-
-	let canRun = $derived(getSelectedConversion().length > 0 && getSelectedSpending().length > 0);
-
-	let bestBalance = $derived(result ? Math.max(...result.comparisons.map((c) => c.final_balance)) : 0);
-	let bestTax = $derived(result ? Math.min(...result.comparisons.map((c) => c.total_taxes_paid)) : 0);
-	let bestIrmaa = $derived(result ? Math.min(...result.comparisons.map((c) => c.total_irmaa_paid)) : 0);
-
-	async function handleRun() {
-		let p = $portfolio;
-		const errors = validatePortfolio(p);
-		validationErrors.set(errors);
-		if (Object.keys(errors).length > 0) {
-			error = 'Portfolio has validation errors. Check the Portfolio tab.';
-			return;
-		}
-
-		loading = true;
-		error = '';
-		try {
-			result = await runCompare(p, getSelectedConversion(), getSelectedSpending());
-		} catch (e: any) {
-			error = e.message || 'Comparison failed';
-		} finally {
-			loading = false;
-		}
+	function updateName(id: string, name: string) {
+		comparisonSnapshots.update((snaps) =>
+			snaps.map((s) => (s.id === id ? { ...s, name } : s))
+		);
 	}
 </script>
 
 <div class="space-y-4">
-	<div class="flex gap-8">
-		<div>
-			<h4 class="text-sm font-semibold text-surface-900 dark:text-surface-50 mb-2">Conversion Strategies</h4>
-			{#each conversionOptions as opt}
-				<label class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-400 mb-1">
-					<input type="checkbox" class="checkbox" bind:checked={selectedConversion[opt.value]} />
-					{opt.description}
-				</label>
-			{/each}
+	{#if snapshots.length === 0}
+		<div class="text-center py-12 text-surface-500">
+			<p class="text-lg font-medium mb-2">No comparisons yet</p>
+			<p class="text-sm">Run a simulation and click "Add to Comparison" to start comparing scenarios.</p>
 		</div>
-		<div>
-			<h4 class="text-sm font-semibold text-surface-900 dark:text-surface-50 mb-2">Spending Strategies</h4>
-			{#each spendingOptions as opt}
-				<label class="flex items-center gap-2 text-sm text-surface-600 dark:text-surface-400 mb-1">
-					<input type="checkbox" class="checkbox" bind:checked={selectedSpending[opt.value]} />
-					{opt.description}
-				</label>
-			{/each}
-		</div>
-	</div>
-
-	<div class="flex items-center gap-4">
-		<button class="btn preset-filled" onclick={handleRun} disabled={loading || !canRun}>
-			{loading ? 'Comparing...' : 'Run Comparison'}
-		</button>
-		{#if !canRun}
-			<span class="text-xs text-surface-400">Select at least one of each strategy type.</span>
-		{/if}
-	</div>
-
-	{#if error}
-		<div class="text-error-500 bg-error-50 dark:bg-error-950 p-3 rounded text-sm">{error}</div>
-	{/if}
-
-	{#if result}
-		<CompareChart comparisons={result.comparisons} />
-
+	{:else}
 		<div class="overflow-x-auto">
 			<table class="table table-sm">
 				<thead>
 					<tr>
-						<th class="text-left">Conversion</th><th class="text-left">Spending</th>
-						<th>Final Balance</th><th>Total Taxes</th><th>Total IRMAA</th>
-						<th>Roth Conv.</th><th>Pre-tax</th><th>Roth</th><th>Brokerage</th>
+						<th class="text-left">Name</th>
+						<th>Type</th>
+						<th>Inflation</th>
+						<th>Growth</th>
+						<th class="text-left">Withdrawal</th>
+						<th class="text-left">Conversion</th>
+						<th>Final Balance</th>
+						<th>Total Taxes</th>
+						<th>Total IRMAA</th>
+						<th>Success Rate</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
-					{#each result.comparisons as row}
+					{#each snapshots as snap}
 						<tr>
-							<td class="text-left">{row.conversion_strategy}</td>
-							<td class="text-left">{row.spending_strategy}</td>
-							<td class:font-bold={row.final_balance === bestBalance} class:text-success-600={row.final_balance === bestBalance}>{currency(row.final_balance)}</td>
-							<td class:font-bold={row.total_taxes_paid === bestTax} class:text-success-600={row.total_taxes_paid === bestTax}>{currency(row.total_taxes_paid)}</td>
-							<td class:font-bold={row.total_irmaa_paid === bestIrmaa} class:text-success-600={row.total_irmaa_paid === bestIrmaa}>{currency(row.total_irmaa_paid)}</td>
-							<td>{currency(row.total_roth_conversions)}</td>
-							<td>{currency(row.final_pretax_balance)}</td>
-							<td>{currency(row.final_roth_balance)}</td>
-							<td>{currency(row.final_brokerage_balance)}</td>
+							<td class="text-left">
+								<input
+									type="text"
+									class="input text-sm w-48 bg-transparent border-none p-0"
+									value={snap.name}
+									onchange={(e) => updateName(snap.id, (e.target as HTMLInputElement).value)}
+								/>
+							</td>
+							<td class="text-xs">
+								{#if snap.runType === 'monte_carlo'}
+									MC ({snap.numSimulations})
+								{:else}
+									Single
+								{/if}
+							</td>
+							<td>{pct(snap.inflationRate)}</td>
+							<td>{pct(snap.growthRate)}</td>
+							<td class="text-left">{snap.spendingStrategy}</td>
+							<td class="text-left">{snap.conversionStrategy}</td>
+							<td
+								class:font-bold={snap.finalBalance === bestBalance}
+								class:text-success-600={snap.finalBalance === bestBalance}
+							>{currency(snap.finalBalance)}</td>
+							<td
+								class:font-bold={snap.totalTaxes > 0 && snap.totalTaxes === bestTax}
+								class:text-success-600={snap.totalTaxes > 0 && snap.totalTaxes === bestTax}
+							>{snap.totalTaxes > 0 ? currency(snap.totalTaxes) : '—'}</td>
+							<td
+								class:font-bold={snap.totalIrmaa === bestIrmaa}
+								class:text-success-600={snap.totalIrmaa === bestIrmaa}
+							>{snap.totalIrmaa >= 0 ? currency(snap.totalIrmaa) : '—'}</td>
+							<td
+								class:font-bold={snap.successRate != null && snap.successRate === bestSuccess}
+								class:text-success-600={snap.successRate != null && snap.successRate === bestSuccess}
+							>{snap.successRate != null ? pct(snap.successRate) : '—'}</td>
+							<td>
+								<button class="btn preset-outlined btn-sm" onclick={() => removeSnapshot(snap.id)}>✕</button>
+							</td>
 						</tr>
 					{/each}
 				</tbody>

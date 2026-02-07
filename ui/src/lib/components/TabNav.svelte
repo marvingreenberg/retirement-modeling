@@ -1,8 +1,10 @@
+<script lang="ts" module>
+	export const tabs = ['Portfolio', 'Simulate', 'Compare'] as const;
+	export type Tab = (typeof tabs)[number];
+</script>
+
 <script lang="ts">
 	import { Tabs } from '@skeletonlabs/skeleton-svelte';
-
-	const tabs = ['Portfolio', 'Simulate', 'Monte Carlo', 'Compare'] as const;
-	export type Tab = (typeof tabs)[number];
 
 	let { active = $bindable<Tab>('Portfolio') }: { active: Tab } = $props();
 </script>

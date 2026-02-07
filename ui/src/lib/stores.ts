@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { Portfolio } from './types';
+import type { Portfolio, ComparisonSnapshot } from './types';
 import type { FieldErrors } from './validation';
 
 export const defaultPortfolio: Portfolio = {
@@ -50,6 +50,7 @@ export const portfolio = writable<Portfolio>(structuredClone(defaultPortfolio));
 export const validationErrors = writable<FieldErrors>({});
 export const touchedFields = writable<Set<string>>(new Set());
 export const formTouched = writable<boolean>(false);
+export const comparisonSnapshots = writable<ComparisonSnapshot[]>([]);
 
 export function markTouched(path: string) {
 	touchedFields.update((s) => new Set([...s, path]));

@@ -3,7 +3,6 @@
 
 	function handleFocusOut() {
 		markFormTouched();
-		// Force store update to trigger re-validation
 		portfolio.update((p) => ({ ...p }));
 	}
 	import { validatePortfolio } from '$lib/validation';
@@ -13,28 +12,21 @@
 	import AccountsEditor from './AccountsEditor.svelte';
 	import IncomeEditor from './IncomeEditor.svelte';
 	import SpendingEditor from './SpendingEditor.svelte';
-	import TaxEditor from './TaxEditor.svelte';
-	import StrategyEditor from './StrategyEditor.svelte';
 
 	let peopleOpen = $state(true);
 	let accountsOpen = $state(false);
 	let incomeOpen = $state(false);
 	let spendingOpen = $state(false);
-	let taxOpen = $state(false);
-	let strategyOpen = $state(false);
 
-	// Live validation as user edits
 	let errors = $derived(validatePortfolio($portfolio));
 	$effect(() => {
 		validationErrors.set(errors);
 	});
 
-	// Only show errors once form has been interacted with
 	let errorList = $derived(
 		$formTouched ? Object.entries(errors) : []
 	);
 
-	// Convert paths like "accounts.1.balance" to "Account 2 - Balance"
 	function friendlyPath(path: string): string {
 		const fieldLabels: Record<string, string> = {
 			balance: 'Balance',
@@ -64,7 +56,6 @@
 		return path;
 	}
 
-	// Auto-expand sections with errors (once form is touched)
 	$effect(() => {
 		if (!$formTouched) return;
 		const keys = Object.keys(errors);
@@ -100,15 +91,7 @@
 		<IncomeEditor bind:socialSecurity={$portfolio.config.social_security} />
 	</CollapsibleSection>
 
-	<CollapsibleSection title="Spending" bind:open={spendingOpen}>
+	<CollapsibleSection title="Spending Plan" bind:open={spendingOpen}>
 		<SpendingEditor bind:config={$portfolio.config} bind:plannedExpenses={$portfolio.config.planned_expenses} />
-	</CollapsibleSection>
-
-	<CollapsibleSection title="Taxes" bind:open={taxOpen}>
-		<TaxEditor bind:config={$portfolio.config} />
-	</CollapsibleSection>
-
-	<CollapsibleSection title="Strategy" bind:open={strategyOpen}>
-		<StrategyEditor bind:config={$portfolio.config} />
 	</CollapsibleSection>
 </div>

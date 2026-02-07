@@ -42,56 +42,6 @@
 			Annual Spending ($/yr)
 			<input type="number" class="input w-36" bind:value={config.annual_spend_net} min="0" step="1000" />
 		</label>
-		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-			Spending Strategy
-			<select class="select w-44" bind:value={config.spending_strategy}>
-				<option value="fixed_dollar">Fixed Dollar</option>
-				<option value="percent_of_portfolio">Percent of Portfolio</option>
-				<option value="guardrails">Guardrails</option>
-				<option value="rmd_based">RMD-Based</option>
-			</select>
-		</label>
-	</div>
-
-	{#if config.spending_strategy === 'percent_of_portfolio'}
-		<div class="flex gap-3">
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Withdrawal Rate
-				<input type="number" class="input w-30" bind:value={config.withdrawal_rate} min="0.01" max="0.15" step="0.005" />
-			</label>
-		</div>
-	{/if}
-
-	{#if config.spending_strategy === 'guardrails'}
-		<div class="flex gap-3 flex-wrap">
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Initial Withdrawal Rate
-				<input type="number" class="input w-30" bind:value={config.guardrails_config.initial_withdrawal_rate} min="0.01" max="0.15" step="0.005" />
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Floor %
-				<input type="number" class="input w-24" bind:value={config.guardrails_config.floor_percent} min="0.5" max="1.0" step="0.05" />
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Ceiling %
-				<input type="number" class="input w-24" bind:value={config.guardrails_config.ceiling_percent} min="1.0" max="2.0" step="0.05" />
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Adjustment %
-				<input type="number" class="input w-24" bind:value={config.guardrails_config.adjustment_percent} min="0.01" max="0.25" step="0.01" />
-			</label>
-		</div>
-	{/if}
-
-	<div class="flex gap-6">
-		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-			Inflation Rate
-			<input type="number" class="input w-30" bind:value={config.inflation_rate} min="0" max="0.5" step="0.005" />
-		</label>
-		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-			Investment Growth Rate
-			<input type="number" class="input w-30" bind:value={config.investment_growth_rate} min="-0.5" max="0.5" step="0.005" />
-		</label>
 	</div>
 
 	<h4 class="text-sm text-surface-500 dark:text-surface-400 font-medium mt-2">Planned Expenses</h4>
