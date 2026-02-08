@@ -8,11 +8,15 @@ The UI SHALL use Skeleton v4 with Tailwind v4 as its design system. The global s
 - **THEN** the Skeleton theme is applied and all components render with themed colors, typography, and spacing
 
 ### Requirement: Theme configuration
-The app SHALL use a Skeleton built-in theme (cerberus) configured via the `data-theme` attribute on the `<html>` element.
+The app SHALL use the Skeleton built-in theme `pine` configured via the `data-theme` attribute on the `<html>` element. The global stylesheet SHALL import the pine theme.
 
 #### Scenario: Theme attribute set
 - **WHEN** the app.html file is loaded
-- **THEN** the `<html>` tag has `data-theme="cerberus"` set
+- **THEN** the `<html>` tag has `data-theme="pine"` set
+
+#### Scenario: Theme stylesheet imported
+- **WHEN** the app.css file is loaded
+- **THEN** it imports `@skeletonlabs/skeleton/themes/pine`
 
 ### Requirement: Light/dark mode toggle
 The UI SHALL display a light/dark mode toggle in the app header. The toggle SHALL switch between light and dark color schemes. The user's preference SHALL persist across page reloads via localStorage.

@@ -2,7 +2,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton-svelte';
-@import '@skeletonlabs/skeleton/themes/seafoam';
+@import '@skeletonlabs/skeleton/themes/pine';
 
 /* Hide number input spinners */
 .no-spinner::-webkit-outer-spin-button,

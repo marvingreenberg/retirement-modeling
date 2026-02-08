@@ -11,20 +11,20 @@ The UI SHALL be a SvelteKit project in the `ui/` directory at the repository roo
 - **WHEN** a developer runs `npm run dev` in the `ui/` directory
 - **THEN** the SvelteKit dev server starts on port 5173
 
-### Requirement: Tab navigation
-The UI SHALL display a tab bar with three tabs: Portfolio, Simulate, and Compare. Clicking a tab SHALL display the corresponding view content.
+### Requirement: Route-based navigation
+The UI SHALL use route-based navigation via the AppBar. Navigating between routes SHALL preserve application state via Svelte stores.
 
-#### Scenario: Default tab on load
-- **WHEN** the user opens the application
-- **THEN** the Portfolio tab is active and the portfolio editor is displayed
+#### Scenario: Default view on load
+- **WHEN** the user opens the application at `/`
+- **THEN** the home page is displayed with the portfolio editor and simulation controls
 
-#### Scenario: Switch between tabs
-- **WHEN** the user clicks the "Simulate" tab
-- **THEN** the Simulate view is displayed and the tab is visually marked as active
+#### Scenario: Switch between views
+- **WHEN** the user clicks "Compare" in the AppBar navigation
+- **THEN** the browser navigates to `/compare` and the comparison view is displayed
 
-#### Scenario: Portfolio state persists across tabs
-- **WHEN** the user edits portfolio fields, switches to Simulate, then switches back to Portfolio
-- **THEN** the previously entered values are preserved
+#### Scenario: Portfolio state persists across navigation
+- **WHEN** the user edits portfolio fields, navigates to `/compare`, then navigates back to `/`
+- **THEN** the previously entered values are preserved (via Svelte stores)
 
 ### Requirement: API proxy configuration
 The SvelteKit dev server SHALL proxy requests with path prefix `/api` to the FastAPI backend at `http://localhost:8000`, stripping the `/api` prefix.

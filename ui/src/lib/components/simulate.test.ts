@@ -1,20 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { tabs } from './TabNav.svelte';
 import type { ComparisonSnapshot } from '$lib/types';
 import { get } from 'svelte/store';
 import { comparisonSnapshots, defaultPortfolio } from '$lib/stores';
 
-describe('TabNav', () => {
-	it('has exactly 3 tabs: Portfolio, Simulate, Compare', () => {
-		expect(tabs).toEqual(['Portfolio', 'Simulate', 'Compare']);
-	});
-
-	it('does not include Monte Carlo tab', () => {
-		expect(tabs).not.toContain('Monte Carlo');
-	});
-});
-
-describe('Portfolio tab slimming', () => {
+describe('Portfolio defaults', () => {
 	it('default portfolio config still has simulation params for API compatibility', () => {
 		const config = defaultPortfolio.config;
 		expect(config.inflation_rate).toBeDefined();
