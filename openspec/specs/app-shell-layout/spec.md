@@ -28,14 +28,14 @@ The app SHALL use SvelteKit routes for page navigation. Clicking a navigation li
 
 ### Requirement: Route definitions
 The app SHALL define the following routes:
-- `/` — Home page (portfolio editor and simulation)
+- `/` — Home page (two-panel layout: portfolio editor with simulation controls on the left, results on the right)
 - `/spending` — Spending strategies
 - `/compare` — Snapshot comparison
 - `/details` — Detailed results (placeholder)
 
 #### Scenario: Home route content
 - **WHEN** the user navigates to `/`
-- **THEN** the portfolio editor and simulation controls are displayed
+- **THEN** the two-panel landing page is displayed with the portfolio editor on the left and the results area on the right
 
 #### Scenario: Spending route content
 - **WHEN** the user navigates to `/spending`

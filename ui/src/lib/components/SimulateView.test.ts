@@ -1,19 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte';
 import { portfolio, validationErrors, comparisonSnapshots } from '$lib/stores';
 import { defaultPortfolio } from '$lib/stores';
 import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
-
-vi.mock('$lib/api', () => ({
-	runSimulation: vi.fn(),
-	runMonteCarlo: vi.fn(),
-}));
 
 vi.mock('$lib/components/charts/BalanceChart.svelte', () => import('$lib/test-helpers/MockChart.svelte'));
 vi.mock('$lib/components/charts/FanChart.svelte', () => import('$lib/test-helpers/MockChart.svelte'));
 
 import SimulateView from './SimulateView.svelte';
-import { runSimulation, runMonteCarlo } from '$lib/api';
 
 const mockSingleResult: SimulationResponse = {
 	result: {
@@ -41,7 +35,7 @@ const mockMCResult: MonteCarloResponse = {
 	depletion_ages: [], yearly_percentiles: [],
 };
 
-describe('SimulateView', () => {
+describe('SimulateView (results-only)', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		portfolio.set(structuredClone(defaultPortfolio));
@@ -49,94 +43,67 @@ describe('SimulateView', () => {
 		comparisonSnapshots.set([]);
 	});
 
-	it('renders simulate button', () => {
-		render(SimulateView);
-		expect(screen.getByRole('button', { name: /simulate/i })).toBeInTheDocument();
+	it('renders nothing when no results and no error', () => {
+		render(SimulateView, {
+			singleResult: null, mcResult: null, lastRunMode: null, error: '',
+		});
+		expect(screen.queryByText('Summary')).not.toBeInTheDocument();
+		expect(screen.queryByText('Success Rate')).not.toBeInTheDocument();
 	});
 
-	it('calls runSimulation on click in single mode', async () => {
-		vi.mocked(runSimulation).mockResolvedValue(mockSingleResult);
-		render(SimulateView);
-		await fireEvent.click(screen.getByRole('button', { name: /simulate/i }));
-		expect(runSimulation).toHaveBeenCalledTimes(1);
+	it('shows error message when error prop is set', () => {
+		render(SimulateView, {
+			singleResult: null, mcResult: null, lastRunMode: null, error: 'Server error',
+		});
+		expect(screen.getByText('Server error')).toBeInTheDocument();
 	});
 
-	it('shows loading state while simulation runs', async () => {
-		let resolveApi!: (v: SimulationResponse) => void;
-		vi.mocked(runSimulation).mockReturnValue(
-			new Promise((resolve) => { resolveApi = resolve; }),
-		);
-		render(SimulateView);
-		await fireEvent.click(screen.getByRole('button', { name: /simulate/i }));
-
-		await waitFor(() => {
-			expect(screen.getByRole('button', { name: /running/i })).toBeDisabled();
+	it('shows summary for single run results', () => {
+		render(SimulateView, {
+			singleResult: mockSingleResult, mcResult: null, lastRunMode: 'single', error: '',
 		});
-
-		resolveApi(mockSingleResult);
-		await waitFor(() => {
-			expect(screen.queryByRole('button', { name: /running/i })).not.toBeInTheDocument();
-		});
+		expect(screen.getByText('Final Balance')).toBeInTheDocument();
+		expect(screen.getByText('Total Taxes')).toBeInTheDocument();
+		expect(screen.getByText('Total IRMAA')).toBeInTheDocument();
+		expect(screen.getByText('Roth Conversions')).toBeInTheDocument();
 	});
 
-	it('shows summary after single simulation succeeds', async () => {
-		vi.mocked(runSimulation).mockResolvedValue(mockSingleResult);
-		render(SimulateView);
-		await fireEvent.click(screen.getByRole('button', { name: /simulate/i }));
-
-		await waitFor(() => {
-			expect(screen.getByText('Final Balance')).toBeInTheDocument();
-			expect(screen.getByText('Total Taxes')).toBeInTheDocument();
+	it('shows Add to Comparison button for single results', () => {
+		render(SimulateView, {
+			singleResult: mockSingleResult, mcResult: null, lastRunMode: 'single', error: '',
 		});
+		expect(screen.getByRole('button', { name: /add to comparison/i })).toBeInTheDocument();
 	});
 
-	it('shows error on API failure', async () => {
-		vi.mocked(runSimulation).mockRejectedValue(new Error('Server error'));
-		render(SimulateView);
-		await fireEvent.click(screen.getByRole('button', { name: /simulate/i }));
-
-		await waitFor(() => {
-			expect(screen.getByText('Server error')).toBeInTheDocument();
+	it('shows success rate for monte carlo results', () => {
+		render(SimulateView, {
+			singleResult: null, mcResult: mockMCResult, lastRunMode: 'monte_carlo', error: '',
 		});
+		expect(screen.getByText(/92\.0% Success Rate/)).toBeInTheDocument();
 	});
 
-	it('shows validation error when portfolio is invalid', async () => {
-		portfolio.update((p) => {
-			p.accounts[0].balance = -100;
-			return p;
+	it('shows final balance percentiles for monte carlo results', () => {
+		render(SimulateView, {
+			singleResult: null, mcResult: mockMCResult, lastRunMode: 'monte_carlo', error: '',
 		});
-		render(SimulateView);
-		await fireEvent.click(screen.getByRole('button', { name: /simulate/i }));
-
-		await waitFor(() => {
-			expect(screen.getByText(/validation errors/i)).toBeInTheDocument();
-		});
+		expect(screen.getByText('5th')).toBeInTheDocument();
+		expect(screen.getByText('Median')).toBeInTheDocument();
+		expect(screen.getByText('95th')).toBeInTheDocument();
 	});
 
-	it('shows success rate for monte carlo results', async () => {
-		vi.mocked(runMonteCarlo).mockResolvedValue(mockMCResult);
-		render(SimulateView);
-
-		const mcRadio = screen.getByLabelText(/monte carlo/i);
-		await fireEvent.click(mcRadio);
-		await fireEvent.click(screen.getByRole('button', { name: /simulate/i }));
-
-		await waitFor(() => {
-			expect(screen.getByText(/92\.0% Success Rate/)).toBeInTheDocument();
+	it('shows depletion info when depletion ages exist', () => {
+		const mcWithDepletion = { ...mockMCResult, depletion_ages: [78, 82, 85] };
+		render(SimulateView, {
+			singleResult: null, mcResult: mcWithDepletion, lastRunMode: 'monte_carlo', error: '',
 		});
+		expect(screen.getByText('Age 78')).toBeInTheDocument();
+		expect(screen.getByText('Age 85')).toBeInTheDocument();
 	});
 
-	it('does not call API when portfolio has validation errors', async () => {
-		portfolio.update((p) => {
-			p.accounts[0].balance = -100;
-			return p;
+	it('shows no depletion message when depletion ages are empty', () => {
+		render(SimulateView, {
+			singleResult: null, mcResult: mockMCResult, lastRunMode: 'monte_carlo', error: '',
 		});
-		render(SimulateView);
-		await fireEvent.click(screen.getByRole('button', { name: /simulate/i }));
-
-		await waitFor(() => {
-			expect(screen.getByText(/validation errors/i)).toBeInTheDocument();
-		});
-		expect(runSimulation).not.toHaveBeenCalled();
+		expect(screen.getByText(/no simulations resulted in portfolio depletion/i)).toBeInTheDocument();
 	});
 });

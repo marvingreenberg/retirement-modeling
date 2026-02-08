@@ -2,6 +2,93 @@ import { writable } from 'svelte/store';
 import type { Portfolio, ComparisonSnapshot } from './types';
 import type { FieldErrors } from './validation';
 
+export const samplePortfolio: Portfolio = {
+	config: {
+		current_age_primary: 58,
+		current_age_spouse: 55,
+		simulation_years: 35,
+		start_year: new Date().getFullYear(),
+		annual_spend_net: 120000,
+		inflation_rate: 0.03,
+		investment_growth_rate: 0.07,
+		strategy_target: 'irmaa_tier_1',
+		spending_strategy: 'guardrails',
+		withdrawal_rate: 0.04,
+		guardrails_config: {
+			initial_withdrawal_rate: 0.045,
+			floor_percent: 0.80,
+			ceiling_percent: 1.20,
+			adjustment_percent: 0.10,
+		},
+		tax_brackets_federal: [],
+		tax_rate_state: 0.05,
+		tax_rate_capital_gains: 0.15,
+		irmaa_limit_tier_1: 206000,
+		social_security: {
+			primary_benefit: 42000,
+			primary_start_age: 70,
+			spouse_benefit: 24000,
+			spouse_start_age: 67,
+		},
+		rmd_start_age: 73,
+		planned_expenses: [
+			{
+				name: 'Kitchen remodel',
+				amount: 40000,
+				expense_type: 'one_time',
+				year: new Date().getFullYear() + 2,
+				inflation_adjusted: false,
+			},
+			{
+				name: 'Travel',
+				amount: 15000,
+				expense_type: 'recurring',
+				start_age: 62,
+				end_age: 75,
+				inflation_adjusted: true,
+			},
+		],
+	},
+	accounts: [
+		{
+			id: 'sample_pretax_p',
+			name: '401(k) - Primary',
+			balance: 850000,
+			type: 'pretax',
+			owner: 'primary',
+			cost_basis_ratio: 1.0,
+			available_at_age: 0,
+		},
+		{
+			id: 'sample_pretax_s',
+			name: '403(b) - Spouse',
+			balance: 420000,
+			type: 'pretax',
+			owner: 'spouse',
+			cost_basis_ratio: 1.0,
+			available_at_age: 0,
+		},
+		{
+			id: 'sample_roth_p',
+			name: 'Roth IRA - Primary',
+			balance: 180000,
+			type: 'roth',
+			owner: 'primary',
+			cost_basis_ratio: 1.0,
+			available_at_age: 0,
+		},
+		{
+			id: 'sample_brokerage',
+			name: 'Joint Brokerage',
+			balance: 350000,
+			type: 'brokerage',
+			owner: 'joint',
+			cost_basis_ratio: 0.65,
+			available_at_age: 0,
+		},
+	],
+};
+
 export const defaultPortfolio: Portfolio = {
 	config: {
 		current_age_primary: 65,

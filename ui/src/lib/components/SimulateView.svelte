@@ -1,26 +1,23 @@
 <script lang="ts">
-	import { portfolio, validationErrors, comparisonSnapshots } from '$lib/stores';
-	import { validatePortfolio } from '$lib/validation';
-	import { runSimulation, runMonteCarlo } from '$lib/api';
+	import { portfolio, comparisonSnapshots } from '$lib/stores';
 	import { currency, pct } from '$lib/format';
 	import BalanceChart from './charts/BalanceChart.svelte';
 	import FanChart from './charts/FanChart.svelte';
 	import CollapsibleSection from './CollapsibleSection.svelte';
-	import SimulateSettings from './SimulateSettings.svelte';
-	import type { SimulationResponse, MonteCarloResponse, SpendingStrategy, ConversionStrategy } from '$lib/types';
+	import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
 	import { BarChart3, TrendingUp, TableProperties, ShieldCheck, PlusCircle } from 'lucide-svelte';
 
-	let loading = $state(false);
-	let error = $state('');
-	let runMode = $state<'single' | 'monte_carlo'>('single');
-	let numSimulations = $state(1000);
-	let settingsCollapsed = $state(false);
-
-	let singleResult = $state<SimulationResponse | null>(null);
-	let mcResult = $state<MonteCarloResponse | null>(null);
-	let lastRunMode = $state<'single' | 'monte_carlo' | null>(null);
-	let tableOpen = $state(false);
-	let addedFeedback = $state(false);
+	let {
+		singleResult = null,
+		mcResult = null,
+		lastRunMode = null,
+		error = '',
+	}: {
+		singleResult: SimulationResponse | null;
+		mcResult: MonteCarloResponse | null;
+		lastRunMode: 'single' | 'monte_carlo' | null;
+		error: string;
+	} = $props();
 
 	const spendingLabels: Record<string, string> = {
 		fixed_dollar: 'Fixed Dollar',
@@ -36,6 +33,9 @@
 		'24_percent_bracket': '24% Bracket',
 	};
 
+	let tableOpen = $state(false);
+	let addedFeedback = $state(false);
+
 	function generateSnapshotName(): string {
 		const c = $portfolio.config;
 		const infl = (c.inflation_rate * 100).toFixed(1);
@@ -43,35 +43,6 @@
 		const spend = spendingLabels[c.spending_strategy ?? 'fixed_dollar'];
 		const conv = conversionLabels[c.strategy_target];
 		return `${infl}% infl, ${growth}% growth, ${spend}, ${conv}`;
-	}
-
-	async function handleRun() {
-		const p = $portfolio;
-		const errors = validatePortfolio(p);
-		validationErrors.set(errors);
-		if (Object.keys(errors).length > 0) {
-			error = 'Portfolio has validation errors. Check the Portfolio tab.';
-			return;
-		}
-
-		loading = true;
-		error = '';
-		singleResult = null;
-		mcResult = null;
-
-		try {
-			if (runMode === 'single') {
-				singleResult = await runSimulation(p);
-			} else {
-				mcResult = await runMonteCarlo(p, numSimulations);
-			}
-			lastRunMode = runMode;
-			settingsCollapsed = true;
-		} catch (e: any) {
-			error = e.message || 'Simulation failed';
-		} finally {
-			loading = false;
-		}
 	}
 
 	function addToComparison() {
@@ -120,14 +91,6 @@
 </script>
 
 <div class="space-y-4">
-	<SimulateSettings
-		bind:runMode
-		bind:numSimulations
-		bind:collapsed={settingsCollapsed}
-		onrun={handleRun}
-		{loading}
-	/>
-
 	{#if error}
 		<div class="text-error-500 bg-error-50 dark:bg-error-950 p-3 rounded text-sm">{error}</div>
 	{/if}

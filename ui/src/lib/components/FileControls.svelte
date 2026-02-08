@@ -1,7 +1,11 @@
 <script lang="ts">
-	import { portfolio } from '$lib/stores';
+	import { portfolio, samplePortfolio } from '$lib/stores';
 	import { portfolioSchema } from '$lib/schema';
 	import type { Portfolio } from '$lib/types';
+
+	function loadSample() {
+		portfolio.set(structuredClone(samplePortfolio));
+	}
 
 	let fileInput: HTMLInputElement;
 	let loadError = $state('');
@@ -50,6 +54,7 @@
 
 <div class="flex gap-3 mb-4">
 	<input type="file" accept=".json" bind:this={fileInput} onchange={handleFile} hidden />
+	<button class="btn preset-tonal" onclick={loadSample}>Load Sample Data</button>
 	<button class="btn preset-tonal" onclick={loadFile}>Load Portfolio</button>
 	<button class="btn preset-tonal" onclick={saveFile}>Save Portfolio</button>
 </div>
