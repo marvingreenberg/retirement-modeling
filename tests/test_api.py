@@ -173,3 +173,49 @@ class TestCompareEndpoint:
         assert "total_taxes_paid" in comparison
         assert "total_irmaa_paid" in comparison
         assert "total_roth_conversions" in comparison
+
+
+class TestNewIncomeFeatures:
+    def test_simulate_with_ss_auto_and_cola(self, client: TestClient) -> None:
+        portfolio = {
+            "config": {
+                "current_age_primary": 65,
+                "current_age_spouse": 62,
+                "simulation_years": 10,
+                "start_year": 2026,
+                "annual_spend_net": 80000,
+                "social_security": {
+                    "primary_benefit": 0, "primary_start_age": 70,
+                    "spouse_benefit": 0, "spouse_start_age": 70,
+                },
+                "ss_auto": {
+                    "primary_fra_amount": 36000,
+                    "primary_start_age": 67,
+                    "spouse_fra_amount": 18000,
+                    "spouse_start_age": 65,
+                },
+                "income_streams": [
+                    {
+                        "name": "Pension",
+                        "amount": 24000,
+                        "start_age": 65,
+                        "cola_rate": 0.02,
+                    }
+                ],
+            },
+            "accounts": [
+                {
+                    "id": "ira", "name": "IRA", "balance": 500000,
+                    "type": "pretax", "owner": "primary",
+                },
+                {
+                    "id": "brokerage", "name": "Brokerage", "balance": 300000,
+                    "type": "brokerage", "owner": "joint", "cost_basis_ratio": 0.5,
+                },
+            ],
+        }
+        response = client.post("/simulate", json={"portfolio": portfolio})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["summary"]["simulation_years"] == 10
+        assert data["summary"]["final_balance"] > 0

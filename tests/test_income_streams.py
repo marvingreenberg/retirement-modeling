@@ -10,6 +10,7 @@ from retirement_model.models import (
     Owner,
     Portfolio,
     SimulationConfig,
+    SSAutoConfig,
     SocialSecurityConfig,
 )
 from retirement_model.simulation import run_simulation
@@ -185,3 +186,149 @@ class TestNoIncomeStreams:
         for i in range(len(result_default.years)):
             assert result_default.years[i].agi == result_empty.years[i].agi
             assert result_default.years[i].total_balance == result_empty.years[i].total_balance
+
+
+class TestIncomeStreamCOLA:
+    def test_cola_grows_over_years(self) -> None:
+        streams = [IncomeStream(name="Pension", amount=24000, start_age=65, cola_rate=0.03)]
+        portfolio = _make_portfolio(age=65, years=5, streams=streams)
+        result = run_simulation(portfolio)
+        # With 3% COLA, later years should have higher AGI than earlier years
+        # (all else equal, more income means more AGI)
+        assert result.years[4].agi > result.years[0].agi
+
+    def test_no_cola_stays_fixed(self) -> None:
+        with_cola = [IncomeStream(name="Pension", amount=24000, start_age=65, cola_rate=0.03)]
+        no_cola = [IncomeStream(name="Pension", amount=24000, start_age=65)]
+        result_cola = run_simulation(_make_portfolio(age=65, years=5, streams=with_cola))
+        result_fixed = run_simulation(_make_portfolio(age=65, years=5, streams=no_cola))
+        # Year 0: both same (years_active=0, COLA factor=1.0)
+        assert result_cola.years[0].agi == result_fixed.years[0].agi
+        # Year 4: COLA version should have higher AGI
+        assert result_cola.years[4].agi > result_fixed.years[4].agi
+
+    def test_first_year_no_cola_applied(self) -> None:
+        with_cola = [IncomeStream(name="Pension", amount=24000, start_age=65, cola_rate=0.05)]
+        no_cola = [IncomeStream(name="Pension", amount=24000, start_age=65)]
+        result_cola = run_simulation(_make_portfolio(age=65, years=1, streams=with_cola))
+        result_fixed = run_simulation(_make_portfolio(age=65, years=1, streams=no_cola))
+        # First year (years_active=0): COLA factor is 1.0, so identical
+        assert result_cola.years[0].agi == result_fixed.years[0].agi
+
+    def test_zero_cola_same_as_none(self) -> None:
+        zero = [IncomeStream(name="Pension", amount=24000, start_age=65, cola_rate=0.0)]
+        none = [IncomeStream(name="Pension", amount=24000, start_age=65)]
+        result_zero = run_simulation(_make_portfolio(age=65, years=5, streams=zero))
+        result_none = run_simulation(_make_portfolio(age=65, years=5, streams=none))
+        for i in range(5):
+            assert result_zero.years[i].agi == result_none.years[i].agi
+
+
+class TestSSAutoGeneration:
+    def _make_ss_auto_portfolio(
+        self,
+        ss_auto: SSAutoConfig,
+        age: int = 65,
+        years: int = 10,
+        streams: list[IncomeStream] | None = None,
+    ) -> Portfolio:
+        return Portfolio(
+            config=SimulationConfig(
+                current_age_primary=age,
+                current_age_spouse=age,
+                simulation_years=years,
+                start_year=2026,
+                annual_spend_net=50000,
+                strategy_target="standard",
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0, primary_start_age=70,
+                    spouse_benefit=0, spouse_start_age=70,
+                ),
+                income_streams=streams or [],
+                ss_auto=ss_auto,
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=1_000_000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                )
+            ],
+        )
+
+    def test_ss_auto_produces_income(self) -> None:
+        ss_auto = SSAutoConfig(primary_fra_amount=36000, primary_start_age=67)
+        portfolio = self._make_ss_auto_portfolio(ss_auto, age=67, years=3)
+        result = run_simulation(portfolio)
+        baseline = run_simulation(_make_portfolio(age=67, years=3))
+        # SS income should increase AGI vs no-income baseline
+        assert result.years[0].agi > baseline.years[0].agi
+
+    def test_legacy_ss_skipped_when_ss_auto_present(self) -> None:
+        # Legacy SS set to large amount, ss_auto set to small amount
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=67,
+                current_age_spouse=67,
+                simulation_years=3,
+                start_year=2026,
+                annual_spend_net=50000,
+                strategy_target="standard",
+                social_security=SocialSecurityConfig(
+                    primary_benefit=100000, primary_start_age=67,
+                    spouse_benefit=0, spouse_start_age=70,
+                ),
+                ss_auto=SSAutoConfig(primary_fra_amount=12000, primary_start_age=67),
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=1_000_000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                )
+            ],
+        )
+        # If legacy SS ($100k) were used, AGI would be much higher
+        # ss_auto generates $12k stream instead
+        result = run_simulation(portfolio)
+        # AGI should reflect the small ss_auto amount, not the large legacy amount
+        # $12k * 0.85 taxable = $10.2k from SS
+        assert result.years[0].agi < 50000  # would be >85k if legacy SS were used
+
+    def test_backward_compat_without_ss_auto(self) -> None:
+        # No ss_auto — legacy SS should work as before
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=67,
+                current_age_spouse=67,
+                simulation_years=3,
+                start_year=2026,
+                annual_spend_net=50000,
+                strategy_target="standard",
+                social_security=SocialSecurityConfig(
+                    primary_benefit=36000, primary_start_age=67,
+                    spouse_benefit=0, spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=1_000_000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                )
+            ],
+        )
+        result = run_simulation(portfolio)
+        # Legacy SS should produce income (36000 * 0.85 = 30600 in AGI)
+        baseline = run_simulation(_make_portfolio(age=67, years=3))
+        assert result.years[0].agi > baseline.years[0].agi
+
+    def test_ss_auto_with_spouse(self) -> None:
+        ss_auto = SSAutoConfig(
+            primary_fra_amount=36000, primary_start_age=67,
+            spouse_fra_amount=18000, spouse_start_age=65,
+        )
+        portfolio = self._make_ss_auto_portfolio(ss_auto, age=67, years=3)
+        primary_only = SSAutoConfig(primary_fra_amount=36000, primary_start_age=67)
+        portfolio_primary = self._make_ss_auto_portfolio(primary_only, age=67, years=3)
+        result_both = run_simulation(portfolio)
+        result_primary = run_simulation(portfolio_primary)
+        # With spouse SS, should have more income → higher AGI
+        assert result_both.years[0].agi > result_primary.years[0].agi

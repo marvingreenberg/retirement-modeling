@@ -13,13 +13,11 @@ Add URL-prefix versioning to the API: `/v1/simulate`, `/v1/monte-carlo`, etc. Fi
 
 New model fields should be optional with defaults matching current behavior so the existing UI continues to work against `/v1` without changes.
 
-## BE-1. Income Stream Model Expansion
+## ~~BE-1. Income Stream Model Expansion~~ ✓ DONE
 
-Backend support for richer income types: Annuity, Pension, Rental, SS, Alimony, Other. Each with properties: COLA adjustment, limited duration, taxability.
-
-SS auto-generation from profile info (age, spouse, full benefit amount, start age). Is the SS benefit formula something we can compute (reduction/increase for early/late claiming) instead of requiring separate amounts at 62/65/67?
-
-New fields optional — existing UI keeps working. FE-1 will need this for the Income section on the landing page.
+Implemented in `be-improvements` branch across two changes:
+- **add-income-streams**: Generic `IncomeStream` model with name, amount, start/end age, taxable_pct
+- **be1-cola-and-ss-features**: Per-stream COLA adjustment, SS actuarial benefit formula (early/late claiming), SS auto-generation from profile config (`ss_auto`)
 
 ## BE-2. Withdrawal Strategy Clarity
 

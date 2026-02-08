@@ -116,6 +116,17 @@ class IncomeStream(BaseModel):
     start_age: int = Field(ge=0)
     end_age: int | None = Field(default=None, ge=0)
     taxable_pct: float = Field(default=1.0, ge=0.0, le=1.0)
+    cola_rate: float | None = Field(default=None)
+
+
+class SSAutoConfig(BaseModel):
+    """Auto-generate Social Security income streams from profile data."""
+
+    primary_fra_amount: float = Field(ge=0)
+    primary_start_age: int = Field(ge=62, le=70)
+    spouse_fra_amount: float | None = Field(default=None, ge=0)
+    spouse_start_age: int | None = Field(default=None, ge=62, le=70)
+    fra_age: int = Field(default=67, ge=62, le=70)
 
 
 class SimulationConfig(BaseModel):
@@ -151,6 +162,8 @@ class SimulationConfig(BaseModel):
     planned_expenses: list[PlannedExpense] = Field(default_factory=list)
 
     income_streams: list[IncomeStream] = Field(default_factory=list)
+
+    ss_auto: SSAutoConfig | None = None
 
 
 class Portfolio(BaseModel):
