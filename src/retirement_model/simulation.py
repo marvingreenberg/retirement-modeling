@@ -335,6 +335,9 @@ def run_simulation(
             )
         )
 
+        if total_balance <= 0:
+            break
+
     return SimulationResult(
         strategy=cfg.strategy_target,
         spending_strategy=cfg.spending_strategy,

@@ -55,11 +55,9 @@ Add historical tax regime randomization to Monte Carlo simulations. Instead of u
 
 No dependencies. Complementary to BE-3 but independently useful.
 
-## BE-5. Stop Simulation After Fund Exhaustion
+## ~~BE-5. Stop Simulation After Fund Exhaustion~~ ✓ DONE
 
-The year-by-year details keep going after all accounts hit $0. Stop at depletion. Apply to both API response and CLI output.
-
-No FE dependency — API just returns fewer rows.
+Implemented in `be-improvements` branch. Simulation loop breaks after recording the depleted year. Monte Carlo percentile calculations handle variable-length results.
 
 ## BE-6. Multi-User Service
 
@@ -220,6 +218,8 @@ These could feed into Compare — run a what-if, it auto-adds to comparison.
 - IRA Conversion should be hidden/disabled when withdrawals exceed conversion income limits, or at least explain why conversions won't happen
 
 Monthly vs annual display for desired income — make it monthly, show annual as a note?
+
+- BE-2 adds `initial_monthly_spend` and `initial_annual_spend` to API summary — landing page summary area should display effective spending for the chosen strategy (e.g., "$6,667/mo via 4% rule")
 
 ## FE-2. E2E Testing Expansion
 

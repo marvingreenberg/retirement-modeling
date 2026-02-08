@@ -403,10 +403,22 @@ def run_full_monte_carlo(
     yearly_percentiles = []
 
     for year_idx in range(num_years):
-        balances = sorted([r.years[year_idx].total_balance for r in all_results])
-        agis = sorted([r.years[year_idx].agi for r in all_results])
-        taxes = sorted([r.years[year_idx].total_tax for r in all_results])
-        conversions = sorted([r.years[year_idx].roth_conversion for r in all_results])
+        active = [r for r in all_results if year_idx < len(r.years)]
+        if not active:
+            break
+        # Depleted simulations contribute $0 for years beyond their last recorded year
+        balances = sorted(
+            [r.years[year_idx].total_balance if year_idx < len(r.years) else 0 for r in all_results]
+        )
+        agis = sorted(
+            [r.years[year_idx].agi if year_idx < len(r.years) else 0 for r in all_results]
+        )
+        taxes = sorted(
+            [r.years[year_idx].total_tax if year_idx < len(r.years) else 0 for r in all_results]
+        )
+        conversions = sorted(
+            [r.years[year_idx].roth_conversion if year_idx < len(r.years) else 0 for r in all_results]
+        )
         n = len(balances)
 
         yearly_percentiles.append(
