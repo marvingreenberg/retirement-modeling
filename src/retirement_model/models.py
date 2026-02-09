@@ -165,6 +165,10 @@ class SimulationConfig(BaseModel):
 
     ss_auto: SSAutoConfig | None = None
 
+    @property
+    def monthly_spend(self) -> float:
+        return self.annual_spend_net / 12
+
 
 class Portfolio(BaseModel):
     """Complete portfolio with accounts and configuration."""

@@ -135,6 +135,21 @@ class TestSimulationConfig:
         assert cfg.inflation_rate == 0.03  # default
         assert cfg.investment_growth_rate == 0.06  # default
 
+    def test_monthly_spend_property(self):
+        cfg = SimulationConfig(
+            current_age_primary=65,
+            current_age_spouse=62,
+            start_year=2026,
+            annual_spend_net=120000,
+            social_security=SocialSecurityConfig(
+                primary_benefit=40000,
+                primary_start_age=70,
+                spouse_benefit=30000,
+                spouse_start_age=67,
+            ),
+        )
+        assert cfg.monthly_spend == 10000.0
+
 
 class TestPortfolio:
     def test_valid_portfolio(self, sample_portfolio: Portfolio):

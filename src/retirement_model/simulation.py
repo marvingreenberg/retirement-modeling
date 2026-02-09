@@ -148,6 +148,7 @@ def run_simulation(
             age_primary,
             year_inflation,
             spending_state,
+            withdrawal_rate=cfg.withdrawal_rate,
         )
 
         # Update cumulative inflation for this year

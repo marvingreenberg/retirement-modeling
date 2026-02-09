@@ -19,11 +19,14 @@ Implemented in `be-improvements` branch across two changes:
 - **add-income-streams**: Generic `IncomeStream` model with name, amount, start/end age, taxable_pct
 - **be1-cola-and-ss-features**: Per-stream COLA adjustment, SS actuarial benefit formula (early/late claiming), SS auto-generation from profile config (`ss_auto`)
 
-## BE-2. Withdrawal Strategy Clarity
+## ~~BE-2. Withdrawal Strategy Clarity~~ ✓ DONE
 
-Resolve what having a desired income (annual withdrawal) of $XXX means for the different strategies. If I say I want $150K, fixed withdrawals make sense. But what does "4% strategy" mean then? Should the % be derived from desired income (e.g., 2.75% for a large portfolio, 9% with a warning)?
-
-New fields optional — existing UI keeps working. FE-1 needs this resolved for the simplified Simulate/Configuration UI.
+Implemented in `be-improvements` branch:
+- Fixed `percent_of_portfolio` bug (was reading `guardrails_config` instead of `withdrawal_rate`)
+- Added `initial_annual_spend` and `initial_monthly_spend` to API simulation summary
+- Added `monthly_spend` convenience property to `SimulationConfig`
+- Enriched `/strategies` endpoint with `uses_fields`/`ignores_fields` metadata per strategy
+- Aligned version to 0.9.0 across `pyproject.toml` and API
 
 ## BE-3. Inflation-Index Tax Brackets and Thresholds
 
