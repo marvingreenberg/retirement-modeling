@@ -17,10 +17,10 @@ describe('Route pages render expected content', () => {
 		expect(screen.getByText('No comparisons yet')).toBeInTheDocument();
 	});
 
-	it('/spending page renders placeholder', async () => {
+	it('/spending page renders spending configuration', async () => {
 		const { default: SpendingPage } = await import('../../routes/spending/+page.svelte');
 		render(SpendingPage);
-		expect(screen.getByText('Spending Plan')).toBeInTheDocument();
+		expect(screen.getByText('Spending Configuration')).toBeInTheDocument();
 	});
 
 	it('/details page renders placeholder', async () => {

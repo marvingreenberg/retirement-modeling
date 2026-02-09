@@ -11,14 +11,11 @@
 	import PeopleTimeline from './PeopleTimeline.svelte';
 	import AccountsEditor from './AccountsEditor.svelte';
 	import IncomeEditor from './IncomeEditor.svelte';
-	import SpendingEditor from './SpendingEditor.svelte';
-	import { Users, Landmark, Briefcase, Wallet } from 'lucide-svelte';
+	import { Users, Landmark, Briefcase } from 'lucide-svelte';
 
 	let peopleOpen = $state(true);
 	let accountsOpen = $state(false);
 	let incomeOpen = $state(false);
-	let spendingOpen = $state(false);
-
 	let errors = $derived(validatePortfolio($portfolio));
 	$effect(() => {
 		validationErrors.set(errors);
@@ -61,7 +58,6 @@
 		if (!$formTouched) return;
 		const keys = Object.keys(errors);
 		if (keys.some((k) => k.startsWith('accounts'))) accountsOpen = true;
-		if (keys.some((k) => k.startsWith('config.planned_expenses'))) spendingOpen = true;
 		if (keys.some((k) => k.startsWith('config.social_security'))) incomeOpen = true;
 	});
 </script>
@@ -95,8 +91,4 @@
 		<IncomeEditor bind:socialSecurity={$portfolio.config.social_security} />
 	</CollapsibleSection>
 
-	<CollapsibleSection title="Spending Plan" bind:open={spendingOpen}>
-		{#snippet icon()}<Wallet size={16} class="text-warning-500" />{/snippet}
-		<SpendingEditor bind:config={$portfolio.config} bind:plannedExpenses={$portfolio.config.planned_expenses} />
-	</CollapsibleSection>
 </div>

@@ -1,7 +1,7 @@
 ## Requirements
 
 ### Requirement: Collapsible form sections
-The portfolio editor SHALL organize fields into collapsible sections: People & Timeline, Accounts, Income, Spending, Taxes, and Strategy. Each section SHALL be independently expandable/collapsible.
+The portfolio editor SHALL organize fields into collapsible sections: People & Timeline, Accounts, and Income. Each section SHALL be independently expandable/collapsible. Spending configuration is on the `/spending` page.
 
 #### Scenario: Sections start expanded
 - **WHEN** the user opens the portfolio editor
@@ -43,21 +43,6 @@ The editor SHALL provide fields for Social Security configuration: primary benef
 #### Scenario: Social Security configured
 - **WHEN** the user enters primary benefit $36,000 at age 70 and spouse benefit $18,000 at age 67
 - **THEN** the values are stored in the portfolio state
-
-### Requirement: Spending section
-The editor SHALL provide fields for annual spending amount, spending strategy selection, and conditional fields: withdrawal rate (visible when percent_of_portfolio selected), guardrails config (visible when guardrails selected). The editor SHALL support adding planned expenses with name, amount, type (one-time/recurring), and timing fields.
-
-#### Scenario: Strategy-dependent fields
-- **WHEN** the user selects "percent_of_portfolio" spending strategy
-- **THEN** the withdrawal rate input becomes visible
-
-#### Scenario: Guardrails config visible
-- **WHEN** the user selects "guardrails" spending strategy
-- **THEN** the guardrails configuration fields (initial withdrawal rate, floor, ceiling, adjustment) become visible
-
-#### Scenario: Add planned expense
-- **WHEN** the user clicks "Add Expense"
-- **THEN** a new planned expense row appears with fields for name, amount, type, and timing
 
 ### Requirement: Tax section
 The editor SHALL provide fields for state tax rate, capital gains rate, RMD start age, and IRMAA tier 1 limit.
