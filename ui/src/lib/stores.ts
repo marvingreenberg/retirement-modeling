@@ -48,6 +48,23 @@ export const samplePortfolio: Portfolio = {
 				inflation_adjusted: true,
 			},
 		],
+		income_streams: [
+			{
+				name: 'Pension',
+				amount: 24000,
+				start_age: 65,
+				end_age: null,
+				taxable_pct: 1.0,
+				cola_rate: 0.02,
+			},
+		],
+		ss_auto: {
+			primary_fra_amount: 42000,
+			primary_start_age: 70,
+			spouse_fra_amount: 24000,
+			spouse_start_age: 67,
+			fra_age: 67,
+		},
 	},
 	accounts: [
 		{
@@ -119,6 +136,8 @@ export const defaultPortfolio: Portfolio = {
 		},
 		rmd_start_age: 73,
 		planned_expenses: [],
+		income_streams: [],
+		ss_auto: null,
 	},
 	accounts: [],
 };

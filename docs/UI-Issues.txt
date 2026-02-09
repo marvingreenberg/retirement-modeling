@@ -14,3 +14,16 @@
   Second run passed cleanly. Likely machine load, not a code issue.
 - No other issues.
 
+## 2. ux-income-expansion
+
+- Decision: IncomeEditor now accepts full `config` prop (not just socialSecurity)
+  to access ss_auto, income_streams, and current_age_spouse for spouse visibility.
+- Decision: ss_auto syncs values to legacy social_security via $effect for backward
+  compat — older portfolio files still work.
+- Decision: Zod schema changed annual_spend_net from .positive() to .min(0) to
+  allow empty default portfolio (annual_spend_net: 0).
+- Issue: IncomeEditor tests initially tried to test add/remove via PortfolioEditor
+  with CollapsibleSection expansion. Section expansion didn't work reliably in jsdom.
+  Resolution: Test IncomeEditor directly with config prop for read-only checks.
+- No other issues.
+

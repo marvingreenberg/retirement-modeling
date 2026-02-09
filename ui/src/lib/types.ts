@@ -32,6 +32,23 @@ export interface TaxBracket {
 	rate: number;
 }
 
+export interface IncomeStream {
+	name: string;
+	amount: number;
+	start_age: number;
+	end_age: number | null;
+	taxable_pct: number;
+	cola_rate: number | null;
+}
+
+export interface SSAutoConfig {
+	primary_fra_amount: number;
+	primary_start_age: number;
+	spouse_fra_amount: number | null;
+	spouse_start_age: number | null;
+	fra_age: number;
+}
+
 export interface PlannedExpense {
 	name: string;
 	amount: number;
@@ -61,6 +78,8 @@ export interface SimulationConfig {
 	social_security: SocialSecurityConfig;
 	rmd_start_age: number;
 	planned_expenses: PlannedExpense[];
+	income_streams: IncomeStream[];
+	ss_auto: SSAutoConfig | null;
 }
 
 export interface Portfolio {

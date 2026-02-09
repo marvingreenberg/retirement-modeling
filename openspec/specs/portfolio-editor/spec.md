@@ -38,11 +38,15 @@ The editor SHALL allow adding, editing, and removing accounts. Each account has 
 - **THEN** the remove button is disabled or hidden
 
 ### Requirement: Income section
-The editor SHALL provide fields for Social Security configuration: primary benefit amount, primary start age (62-70), spouse benefit amount, and spouse start age (62-70).
+The editor SHALL provide the income editor component within the Income collapsible section. The income editor supports Social Security auto-generation and generic income streams (pensions, annuities, rental income, etc.).
 
-#### Scenario: Social Security configured
-- **WHEN** the user enters primary benefit $36,000 at age 70 and spouse benefit $18,000 at age 67
-- **THEN** the values are stored in the portfolio state
+#### Scenario: Income section content
+- **WHEN** the user expands the Income section
+- **THEN** the SS auto-generation inputs and income streams list are displayed
+
+#### Scenario: Income data binding
+- **WHEN** the user modifies SS or income stream values
+- **THEN** the changes are reflected in the shared portfolio store
 
 ### Requirement: Tax section
 The editor SHALL provide fields for state tax rate, capital gains rate, RMD start age, and IRMAA tier 1 limit.

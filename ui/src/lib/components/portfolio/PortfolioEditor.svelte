@@ -88,7 +88,7 @@
 
 	<CollapsibleSection title="Income" bind:open={incomeOpen}>
 		{#snippet icon()}<Briefcase size={16} class="text-success-500" />{/snippet}
-		<IncomeEditor bind:socialSecurity={$portfolio.config.social_security} />
+		<IncomeEditor bind:config={$portfolio.config} />
 	</CollapsibleSection>
 
 </div>

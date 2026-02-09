@@ -38,6 +38,23 @@ export const taxBracketSchema = z.object({
 	rate: z.number().min(0).max(1),
 });
 
+export const incomeStreamSchema = z.object({
+	name: z.string().min(1),
+	amount: z.number().min(0),
+	start_age: z.number().int().min(0),
+	end_age: z.number().int().min(0).nullable().default(null),
+	taxable_pct: z.number().min(0).max(1).default(1.0),
+	cola_rate: z.number().nullable().default(null),
+});
+
+export const ssAutoConfigSchema = z.object({
+	primary_fra_amount: z.number().min(0),
+	primary_start_age: z.number().int().min(62).max(70),
+	spouse_fra_amount: z.number().min(0).nullable().default(null),
+	spouse_start_age: z.number().int().min(62).max(70).nullable().default(null),
+	fra_age: z.number().int().min(62).max(70).default(67),
+});
+
 export const plannedExpenseSchema = z.object({
 	name: z.string().min(1),
 	amount: z.number().positive(),
@@ -53,7 +70,7 @@ export const simulationConfigSchema = z.object({
 	current_age_spouse: z.number().int().min(0).max(120),
 	simulation_years: z.number().int().min(1).max(100),
 	start_year: z.number().int().min(2000).max(2100),
-	annual_spend_net: z.number().positive(),
+	annual_spend_net: z.number().min(0),
 	inflation_rate: z.number().min(0).max(0.5),
 	investment_growth_rate: z.number().min(-0.5).max(0.5),
 	strategy_target: conversionStrategySchema,
@@ -72,6 +89,8 @@ export const simulationConfigSchema = z.object({
 	social_security: socialSecuritySchema,
 	rmd_start_age: z.number().int().min(70).max(80),
 	planned_expenses: z.array(plannedExpenseSchema).default([]),
+	income_streams: z.array(incomeStreamSchema).default([]),
+	ss_auto: ssAutoConfigSchema.nullable().default(null),
 });
 
 export const portfolioSchema = z.object({

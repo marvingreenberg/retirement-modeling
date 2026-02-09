@@ -29,6 +29,15 @@ describe('samplePortfolio', () => {
 	it('has planned expenses', () => {
 		expect(samplePortfolio.config.planned_expenses.length).toBeGreaterThanOrEqual(1);
 	});
+
+	it('has ss_auto configured', () => {
+		expect(samplePortfolio.config.ss_auto).not.toBeNull();
+		expect(samplePortfolio.config.ss_auto!.primary_fra_amount).toBeGreaterThan(0);
+	});
+
+	it('has income streams', () => {
+		expect(samplePortfolio.config.income_streams.length).toBeGreaterThanOrEqual(1);
+	});
 });
 
 describe('defaultPortfolio', () => {
@@ -44,5 +53,10 @@ describe('defaultPortfolio', () => {
 		expect(defaultPortfolio.config.investment_growth_rate).toBeDefined();
 		expect(defaultPortfolio.config.spending_strategy).toBeDefined();
 		expect(defaultPortfolio.config.strategy_target).toBeDefined();
+	});
+
+	it('has empty income streams and null ss_auto', () => {
+		expect(defaultPortfolio.config.income_streams).toEqual([]);
+		expect(defaultPortfolio.config.ss_auto).toBeNull();
 	});
 });
