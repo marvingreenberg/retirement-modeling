@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { Portfolio, ComparisonSnapshot } from './types';
+import type { Portfolio, ComparisonSnapshot, SimulationResponse, MonteCarloResponse } from './types';
 import type { FieldErrors } from './validation';
 
 export const samplePortfolio: Portfolio = {
@@ -147,6 +147,18 @@ export const validationErrors = writable<FieldErrors>({});
 export const touchedFields = writable<Set<string>>(new Set());
 export const formTouched = writable<boolean>(false);
 export const comparisonSnapshots = writable<ComparisonSnapshot[]>([]);
+
+export interface SimulationResultsState {
+	singleResult: SimulationResponse | null;
+	mcResult: MonteCarloResponse | null;
+	lastRunMode: 'single' | 'monte_carlo' | null;
+}
+
+export const simulationResults = writable<SimulationResultsState>({
+	singleResult: null,
+	mcResult: null,
+	lastRunMode: null,
+});
 
 export function markTouched(path: string) {
 	touchedFields.update((s) => new Set([...s, path]));

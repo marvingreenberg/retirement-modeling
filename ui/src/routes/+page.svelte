@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { portfolio, validationErrors } from '$lib/stores';
+	import { portfolio, validationErrors, simulationResults } from '$lib/stores';
 	import { validatePortfolio } from '$lib/validation';
 	import { runSimulation, runMonteCarlo } from '$lib/api';
 	import PortfolioEditor from '$lib/components/portfolio/PortfolioEditor.svelte';
@@ -34,6 +34,7 @@
 		error = '';
 		singleResult = null;
 		mcResult = null;
+		simulationResults.set({ singleResult: null, mcResult: null, lastRunMode: null });
 
 		try {
 			if (runMode === 'single') {
@@ -42,6 +43,7 @@
 				mcResult = await runMonteCarlo(p, numSimulations);
 			}
 			lastRunMode = runMode;
+			simulationResults.set({ singleResult, mcResult, lastRunMode });
 			settingsCollapsed = true;
 		} catch (e: any) {
 			error = e.message || 'Simulation failed';

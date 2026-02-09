@@ -3,9 +3,8 @@
 	import { currency, pct } from '$lib/format';
 	import BalanceChart from './charts/BalanceChart.svelte';
 	import FanChart from './charts/FanChart.svelte';
-	import CollapsibleSection from './CollapsibleSection.svelte';
 	import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
-	import { BarChart3, TrendingUp, TableProperties, ShieldCheck, PlusCircle } from 'lucide-svelte';
+	import { BarChart3, TrendingUp, ShieldCheck, PlusCircle } from 'lucide-svelte';
 
 	let {
 		singleResult = null,
@@ -33,7 +32,6 @@
 		'24_percent_bracket': '24% Bracket',
 	};
 
-	let tableOpen = $state(false);
 	let addedFeedback = $state(false);
 
 	function generateSnapshotName(): string {
@@ -123,33 +121,6 @@
 		</div>
 
 		<BalanceChart years={singleResult.result.years} />
-
-		<CollapsibleSection title="Year-by-Year Detail" bind:open={tableOpen}>
-			{#snippet icon()}<TableProperties size={16} class="text-surface-500" />{/snippet}
-			<div class="overflow-x-auto">
-				<table class="table table-sm">
-					<thead>
-						<tr>
-							<th>Year</th><th>Age</th><th>AGI</th><th>Bracket</th><th>RMD</th>
-							<th>Spending</th><th>Pre-tax WD</th><th>Roth WD</th><th>Brokerage WD</th>
-							<th>Roth Conv</th><th>Total Tax</th><th>IRMAA</th><th>Total Balance</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each singleResult.result.years as yr}
-							<tr>
-								<td>{yr.year}</td><td>{yr.age_primary}</td><td>{currency(yr.agi)}</td>
-								<td>{yr.bracket}</td><td>{currency(yr.rmd)}</td><td>{currency(yr.spending_target)}</td>
-								<td>{currency(yr.pretax_withdrawal)}</td><td>{currency(yr.roth_withdrawal)}</td>
-								<td>{currency(yr.brokerage_withdrawal)}</td><td>{currency(yr.roth_conversion)}</td>
-								<td>{currency(yr.total_tax)}</td><td>{currency(yr.irmaa_cost)}</td>
-								<td>{currency(yr.total_balance)}</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
-		</CollapsibleSection>
 
 		<button class="btn preset-tonal flex items-center gap-2" onclick={addToComparison}>
 			<PlusCircle size={16} />

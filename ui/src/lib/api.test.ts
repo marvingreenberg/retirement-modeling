@@ -32,6 +32,8 @@ const mockPortfolio: Portfolio = {
 		},
 		rmd_start_age: 73,
 		planned_expenses: [],
+		income_streams: [],
+		ss_auto: null,
 	},
 	accounts: [
 		{

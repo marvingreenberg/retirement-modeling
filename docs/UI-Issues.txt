@@ -27,3 +27,17 @@
   Resolution: Test IncomeEditor directly with config prop for read-only checks.
 - No other issues.
 
+## 3. ux-details-page
+
+- Decision: Added shared simulationResults store to make results accessible from
+  /details page. Loading/error state remains local to +page.svelte.
+- Decision: Removed CollapsibleSection year-by-year table from SimulateView entirely.
+  Details page now owns the full table for single-run and MC percentile table.
+- Fix: api.test.ts was missing income_streams and ss_auto fields (pre-existing from
+  ux-income-expansion). Fixed while here.
+- Issue: navigation.test.ts dynamic import of details page hangs when lucide-svelte
+  icons are involved. The old placeholder had no script block so it worked. Resolution:
+  Removed the smoke test from navigation.test.ts (details page has its own test file
+  with 4 tests covering empty state, single-run table, MC table, and heading).
+- No other issues.
+

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { samplePortfolio, defaultPortfolio } from './stores';
+import { get } from 'svelte/store';
+import { samplePortfolio, defaultPortfolio, simulationResults } from './stores';
 import { portfolioSchema } from './schema';
 
 describe('samplePortfolio', () => {
@@ -58,5 +59,28 @@ describe('defaultPortfolio', () => {
 	it('has empty income streams and null ss_auto', () => {
 		expect(defaultPortfolio.config.income_streams).toEqual([]);
 		expect(defaultPortfolio.config.ss_auto).toBeNull();
+	});
+});
+
+describe('simulationResults store', () => {
+	it('starts with null results and null lastRunMode', () => {
+		const state = get(simulationResults);
+		expect(state.singleResult).toBeNull();
+		expect(state.mcResult).toBeNull();
+		expect(state.lastRunMode).toBeNull();
+	});
+
+	it('can store single run results', () => {
+		const mockResult = {
+			singleResult: { result: { strategy: 'standard' as const, spending_strategy: 'fixed_dollar' as const, years: [] }, summary: { final_balance: 100, total_taxes_paid: 10, total_irmaa_paid: 0, total_roth_conversions: 5, simulation_years: 1, strategy: 'standard', spending_strategy: 'fixed_dollar' } },
+			mcResult: null,
+			lastRunMode: 'single' as const,
+		};
+		simulationResults.set(mockResult);
+		const state = get(simulationResults);
+		expect(state.lastRunMode).toBe('single');
+		expect(state.singleResult?.summary.final_balance).toBe(100);
+		// reset
+		simulationResults.set({ singleResult: null, mcResult: null, lastRunMode: null });
 	});
 });

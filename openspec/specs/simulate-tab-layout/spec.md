@@ -32,7 +32,7 @@ The simulation settings panel SHALL provide a choice between single run and Mont
 #### Scenario: Single run selected
 - **WHEN** the user selects "Single run" and clicks Simulate
 - **THEN** the system runs a single deterministic simulation using the configured growth rate
-- **AND** results display in the right panel as detailed year-by-year breakdown with balance chart
+- **AND** results display in the right panel as summary metrics and balance chart
 
 #### Scenario: Monte Carlo selected
 - **WHEN** the user selects "Monte Carlo" and clicks Simulate
@@ -88,7 +88,7 @@ The results area in the right panel SHALL display appropriate content based on w
 
 #### Scenario: Single run results
 - **WHEN** a single run simulation completes
-- **THEN** results show: summary metrics (final balance, total taxes, IRMAA, Roth conversions, years, strategy), balance chart, collapsible year-by-year detail table
+- **THEN** results show: summary metrics (final balance, total taxes, IRMAA, Roth conversions, years, strategy), balance chart
 - **AND** an "Add to Comparison" button appears
 
 #### Scenario: Monte Carlo results
