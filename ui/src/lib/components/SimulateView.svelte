@@ -122,10 +122,13 @@
 
 		<BalanceChart years={singleResult.result.years} />
 
-		<button class="btn preset-tonal flex items-center gap-2" onclick={addToComparison}>
-			<PlusCircle size={16} />
-			{addedFeedback ? 'Added!' : 'Add to Comparison'}
-		</button>
+		<div class="flex items-center gap-4">
+			<button class="btn preset-tonal flex items-center gap-2" onclick={addToComparison}>
+				<PlusCircle size={16} />
+				{addedFeedback ? 'Added!' : 'Add to Comparison'}
+			</button>
+			<a href="/details" class="text-sm text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">View year-by-year details &rarr;</a>
+		</div>
 	{/if}
 
 	{#if lastRunMode === 'monte_carlo' && mcResult}
@@ -194,9 +197,12 @@
 			{/if}
 		</div>
 
-		<button class="btn preset-tonal flex items-center gap-2" onclick={addToComparison}>
-			<PlusCircle size={16} />
-			{addedFeedback ? 'Added!' : 'Add to Comparison (median)'}
-		</button>
+		<div class="flex items-center gap-4">
+			<button class="btn preset-tonal flex items-center gap-2" onclick={addToComparison}>
+				<PlusCircle size={16} />
+				{addedFeedback ? 'Added!' : 'Add to Comparison (median)'}
+			</button>
+			<a href="/details" class="text-sm text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">View yearly percentiles &rarr;</a>
+		</div>
 	{/if}
 </div>

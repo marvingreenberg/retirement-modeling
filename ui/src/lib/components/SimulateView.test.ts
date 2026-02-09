@@ -106,4 +106,22 @@ describe('SimulateView (results-only)', () => {
 		});
 		expect(screen.getByText(/no simulations resulted in portfolio depletion/i)).toBeInTheDocument();
 	});
+
+	it('shows View Details link for single results', () => {
+		render(SimulateView, {
+			singleResult: mockSingleResult, mcResult: null, lastRunMode: 'single', error: '',
+		});
+		const link = screen.getByText(/view year-by-year details/i);
+		expect(link).toBeInTheDocument();
+		expect(link.getAttribute('href')).toBe('/details');
+	});
+
+	it('shows View Details link for MC results', () => {
+		render(SimulateView, {
+			singleResult: null, mcResult: mockMCResult, lastRunMode: 'monte_carlo', error: '',
+		});
+		const link = screen.getByText(/view yearly percentiles/i);
+		expect(link).toBeInTheDocument();
+		expect(link.getAttribute('href')).toBe('/details');
+	});
 });

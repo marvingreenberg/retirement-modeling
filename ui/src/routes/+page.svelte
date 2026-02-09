@@ -53,6 +53,15 @@
 	}
 
 	let hasResults = $derived(lastRunMode !== null);
+
+	let warnings = $derived.by(() => {
+		const w: string[] = [];
+		const c = $portfolio.config;
+		if ($portfolio.accounts.length > 0 && c.annual_spend_net === 0) {
+			w.push('Annual spending is $0 — configure spending on the Spending page');
+		}
+		return w;
+	});
 </script>
 
 {#if needsSetup}
@@ -70,10 +79,18 @@
 			/>
 		</section>
 		<section>
+			{#if warnings.length > 0 && !hasResults}
+				<div class="mb-4 space-y-2">
+					{#each warnings as w}
+						<div class="text-warning-700 dark:text-warning-300 bg-warning-50 dark:bg-warning-950 p-3 rounded text-sm">{w}</div>
+					{/each}
+				</div>
+			{/if}
 			{#if hasResults || error}
 				<SimulateView {singleResult} {mcResult} {lastRunMode} {error} />
 			{:else if loading}
-				<div class="flex items-center justify-center py-16">
+				<div class="flex flex-col items-center justify-center py-16 gap-3">
+					<div class="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></div>
 					<span class="text-surface-500">Running simulation...</span>
 				</div>
 			{:else}

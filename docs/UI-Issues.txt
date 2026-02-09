@@ -49,3 +49,14 @@
   Primary row keeps inflation, growth, and conversion strategy.
 - No issues.
 
+## 5. ux-landing-redesign
+
+- Decision: WelcomeState now reads from portfolio store directly to show portfolio
+  summary (total balance, annual spending, coverage estimate). No prop needed.
+- Decision: Warning banner only shows when accounts exist but spending is $0.
+  Kept deliberately simple — just one warning for the most common issue.
+- Decision: Used CSS spinner (border-based animation) rather than a library component
+  to avoid additional dependency.
+- Decision: "View Details" links use different text for single-run vs MC results to
+  set correct expectations about what the details page shows.
+- No issues.

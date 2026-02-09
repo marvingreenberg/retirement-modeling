@@ -1,4 +1,4 @@
-.PHONY: help setup build test e2e clean lint format \
+.PHONY: help setup build test e2e clean lint format dev \
        setup-api setup-ui build-api build-ui test-api test-ui \
        run-api run-cli run-ui compose-up compose-down
 
@@ -18,6 +18,7 @@ help:
 	@echo "  clean   - Remove all build artifacts and generated files"
 	@echo "  lint    - Run linters (black, isort, mypy)"
 	@echo "  format  - Auto-format code (black, isort)"
+	@echo "  dev     - Start API + UI dev servers, open browser, Ctrl-C stops both"
 	@echo ""
 	@echo "Component targets: setup-api, setup-ui, build-api, build-ui,"
 	@echo "  test-api, test-ui, run-api, run-ui, run-cli,"
@@ -51,6 +52,13 @@ format:
 	$(ACTIVATE) && \
 	  black src/ tests/ && \
 	  isort src/ tests/
+
+dev:
+	@trap 'kill 0' INT TERM; \
+	  $(ACTIVATE) && uvicorn retirement_model.api:app --reload & \
+	  (cd ui && npx vite dev) & \
+	  sleep 2 && open http://localhost:5173; \
+	  wait
 
 # ── Component targets ───────────────────────────────────────────
 
