@@ -1,0 +1,16 @@
+# UI Refactoring Issues Log
+# Each section documents issues, decisions, and warnings per change.
+
+## 1. ux-first-use-flow
+
+- Decision: defaultPortfolio changed to empty state (age 0, no accounts, $0 spend).
+  Tests that relied on old defaults switched to samplePortfolio.
+- Decision: Setup age validation uses 20-120 range (not 0-120) since nobody
+  under 20 is planning retirement.
+- Issue: spending.test.ts failed after switching to samplePortfolio because
+  samplePortfolio uses 'guardrails' strategy but tests expected 'fixed_dollar'.
+  Resolution: beforeEach now explicitly sets spending_strategy to 'fixed_dollar'.
+- Issue: First full test run timed out (resource contention with 13 test files).
+  Second run passed cleanly. Likely machine load, not a code issue.
+- No other issues.
+

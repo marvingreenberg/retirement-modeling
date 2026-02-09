@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { ComparisonSnapshot } from '$lib/types';
 import { get } from 'svelte/store';
-import { comparisonSnapshots, defaultPortfolio } from '$lib/stores';
+import { comparisonSnapshots, samplePortfolio } from '$lib/stores';
 
 describe('Portfolio defaults', () => {
 	it('default portfolio config still has simulation params for API compatibility', () => {
-		const config = defaultPortfolio.config;
+		const config = samplePortfolio.config;
 		expect(config.inflation_rate).toBeDefined();
 		expect(config.investment_growth_rate).toBeDefined();
 		expect(config.spending_strategy).toBeDefined();
@@ -15,12 +15,12 @@ describe('Portfolio defaults', () => {
 	});
 
 	it('default portfolio has planned_expenses as array', () => {
-		expect(Array.isArray(defaultPortfolio.config.planned_expenses)).toBe(true);
+		expect(Array.isArray(samplePortfolio.config.planned_expenses)).toBe(true);
 	});
 });
 
 describe('Snapshot name generation', () => {
-	function generateSnapshotName(config: typeof defaultPortfolio.config): string {
+	function generateSnapshotName(config: typeof samplePortfolio.config): string {
 		const spendingLabels: Record<string, string> = {
 			fixed_dollar: 'Fixed Dollar',
 			percent_of_portfolio: '% of Portfolio',
@@ -41,12 +41,12 @@ describe('Snapshot name generation', () => {
 	}
 
 	it('generates name from default config', () => {
-		const name = generateSnapshotName(defaultPortfolio.config);
-		expect(name).toBe('3.0% infl, 6.0% growth, Fixed Dollar, IRMAA Tier 1');
+		const name = generateSnapshotName(samplePortfolio.config);
+		expect(name).toBe('3.0% infl, 7.0% growth, Guardrails, IRMAA Tier 1');
 	});
 
 	it('reflects changed parameters', () => {
-		const config = { ...defaultPortfolio.config, inflation_rate: 0.04, strategy_target: 'standard' as const };
+		const config = { ...samplePortfolio.config, inflation_rate: 0.04, strategy_target: 'standard' as const };
 		const name = generateSnapshotName(config);
 		expect(name).toContain('4.0% infl');
 		expect(name).toContain('Standard');

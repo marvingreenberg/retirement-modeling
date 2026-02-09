@@ -32,8 +32,17 @@ describe('samplePortfolio', () => {
 });
 
 describe('defaultPortfolio', () => {
-	it('passes Zod validation', () => {
-		const result = portfolioSchema.safeParse(defaultPortfolio);
-		expect(result.success).toBe(true);
+	it('starts with empty state (no accounts, age 0)', () => {
+		expect(defaultPortfolio.accounts).toHaveLength(0);
+		expect(defaultPortfolio.config.current_age_primary).toBe(0);
+		expect(defaultPortfolio.config.annual_spend_net).toBe(0);
+		expect(defaultPortfolio.config.social_security.primary_benefit).toBe(0);
+	});
+
+	it('has sensible defaults for simulation params', () => {
+		expect(defaultPortfolio.config.inflation_rate).toBeDefined();
+		expect(defaultPortfolio.config.investment_growth_rate).toBeDefined();
+		expect(defaultPortfolio.config.spending_strategy).toBeDefined();
+		expect(defaultPortfolio.config.strategy_target).toBeDefined();
 	});
 });

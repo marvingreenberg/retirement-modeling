@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import { portfolio, validationErrors, comparisonSnapshots } from '$lib/stores';
-import { defaultPortfolio } from '$lib/stores';
+import { samplePortfolio } from '$lib/stores';
 import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
 
 vi.mock('$lib/components/charts/BalanceChart.svelte', () => import('$lib/test-helpers/MockChart.svelte'));
@@ -38,7 +38,7 @@ const mockMCResult: MonteCarloResponse = {
 describe('SimulateView (results-only)', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		portfolio.set(structuredClone(defaultPortfolio));
+		portfolio.set(structuredClone(samplePortfolio));
 		validationErrors.set({});
 		comparisonSnapshots.set([]);
 	});

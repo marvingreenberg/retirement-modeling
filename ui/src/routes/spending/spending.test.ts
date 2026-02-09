@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import { portfolio, defaultPortfolio } from '$lib/stores';
+import { portfolio, samplePortfolio } from '$lib/stores';
 
 const { default: SpendingPage } = await import('./+page.svelte');
 
 describe('Spending page', () => {
 	beforeEach(() => {
-		portfolio.set(structuredClone(defaultPortfolio));
+		const p = structuredClone(samplePortfolio);
+		p.config.spending_strategy = 'fixed_dollar';
+		portfolio.set(p);
 	});
 
 	it('renders page heading', () => {

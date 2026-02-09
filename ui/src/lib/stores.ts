@@ -91,14 +91,14 @@ export const samplePortfolio: Portfolio = {
 
 export const defaultPortfolio: Portfolio = {
 	config: {
-		current_age_primary: 65,
-		current_age_spouse: 62,
+		current_age_primary: 0,
+		current_age_spouse: 0,
 		simulation_years: 30,
 		start_year: new Date().getFullYear(),
-		annual_spend_net: 100000,
+		annual_spend_net: 0,
 		inflation_rate: 0.03,
-		investment_growth_rate: 0.06,
-		strategy_target: 'irmaa_tier_1',
+		investment_growth_rate: 0.07,
+		strategy_target: 'standard',
 		spending_strategy: 'fixed_dollar',
 		withdrawal_rate: 0.04,
 		guardrails_config: {
@@ -108,29 +108,19 @@ export const defaultPortfolio: Portfolio = {
 			adjustment_percent: 0.10,
 		},
 		tax_brackets_federal: [],
-		tax_rate_state: 0.0575,
+		tax_rate_state: 0.05,
 		tax_rate_capital_gains: 0.15,
 		irmaa_limit_tier_1: 206000,
 		social_security: {
-			primary_benefit: 36000,
-			primary_start_age: 70,
-			spouse_benefit: 18000,
+			primary_benefit: 0,
+			primary_start_age: 67,
+			spouse_benefit: 0,
 			spouse_start_age: 67,
 		},
 		rmd_start_age: 73,
 		planned_expenses: [],
 	},
-	accounts: [
-		{
-			id: 'account_1',
-			name: 'Traditional IRA',
-			balance: 500000,
-			type: 'pretax',
-			owner: 'primary',
-			cost_basis_ratio: 1.0,
-			available_at_age: 0,
-		},
-	],
+	accounts: [],
 };
 
 export const portfolio = writable<Portfolio>(structuredClone(defaultPortfolio));

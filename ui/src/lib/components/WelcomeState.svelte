@@ -8,9 +8,6 @@
 	</div>
 	<h2 class="text-xl font-semibold text-surface-700 dark:text-surface-300">Ready to simulate</h2>
 	<p class="text-surface-500 max-w-md">
-		Configure your portfolio on the left, then click <strong>Simulate</strong> to see projected outcomes here.
-	</p>
-	<p class="text-sm text-surface-400">
-		New here? Try <strong>Load Sample Data</strong> for a realistic starting scenario.
+		Add your accounts and income on the left, then click <strong>Simulate</strong> to see projected outcomes here.
 	</p>
 </div>

@@ -12,11 +12,11 @@ The landing page (`/`) SHALL display a two-panel layout: a left panel (~40%) con
 - **THEN** the portfolio editor appears above the results area in a single column
 
 ### Requirement: Welcome state before first simulation
-The results panel SHALL display a welcome message before any simulation has been run. The welcome state SHALL guide the user to configure their portfolio and run a simulation.
+The results panel SHALL display a welcome message before any simulation has been run. The welcome state SHALL guide the user to add accounts and configure their portfolio after completing setup.
 
 #### Scenario: Welcome state on initial load
-- **WHEN** the user opens the app and no simulation has been run
-- **THEN** the right panel displays a welcome message with guidance text
+- **WHEN** the user completes setup and no simulation has been run
+- **THEN** the right panel displays a welcome message guiding the user to add accounts and run a simulation
 
 #### Scenario: Welcome state replaced by results
 - **WHEN** a simulation completes successfully

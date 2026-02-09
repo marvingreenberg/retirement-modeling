@@ -10,11 +10,6 @@ describe('WelcomeState', () => {
 
 	it('renders guidance text', () => {
 		render(WelcomeState);
-		expect(screen.getByText(/configure your portfolio/i)).toBeInTheDocument();
-	});
-
-	it('mentions sample data', () => {
-		render(WelcomeState);
-		expect(screen.getByText(/load sample data/i)).toBeInTheDocument();
+		expect(screen.getByText(/add your accounts and income/i)).toBeInTheDocument();
 	});
 });
