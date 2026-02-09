@@ -12,6 +12,7 @@ from retirement_model.models import (
     SpendingStrategy,
     YearResult,
 )
+from retirement_model.social_security import generate_ss_streams
 from retirement_model.strategies import calculate_spending_target, create_initial_state
 from retirement_model.taxes import (
     calculate_capital_gains_tax,
@@ -88,6 +89,15 @@ def run_simulation(
     accounts = copy.deepcopy(portfolio.accounts)
     results: list[YearResult] = []
 
+    # SS auto-generation: if ss_auto is set, generate streams and skip legacy SS
+    use_legacy_ss = True
+    if cfg.ss_auto is not None:
+        ss_streams = generate_ss_streams(cfg.ss_auto)
+        working_streams = ss_streams + list(cfg.income_streams)
+        use_legacy_ss = False
+    else:
+        working_streams = list(cfg.income_streams)
+
     conversion_ceiling = get_conversion_ceiling(cfg.strategy_target, cfg.irmaa_limit_tier_1)
 
     initial_balance = sum(a.balance for a in accounts)
@@ -149,14 +159,29 @@ def run_simulation(
         )
         total_spend_needed = base_spending + planned_expense_amount
 
-        # Social Security income
+        # Social Security income (legacy path, skipped when ss_auto generates streams)
         ss_income = 0.0
-        if age_primary >= cfg.social_security.primary_start_age:
-            ss_income += cfg.social_security.primary_benefit
-        if age_spouse >= cfg.social_security.spouse_start_age:
-            ss_income += cfg.social_security.spouse_benefit
+        if use_legacy_ss:
+            if age_primary >= cfg.social_security.primary_start_age:
+                ss_income += cfg.social_security.primary_benefit
+            if age_spouse >= cfg.social_security.spouse_start_age:
+                ss_income += cfg.social_security.spouse_benefit
 
-        current_agi = ss_income * 0.85
+        # Additional income streams (pensions, annuities, rental income, etc.)
+        stream_income = 0.0
+        stream_taxable = 0.0
+        for stream in working_streams:
+            in_range = age_primary >= stream.start_age
+            if stream.end_age is not None:
+                in_range = in_range and age_primary <= stream.end_age
+            if in_range:
+                years_active = age_primary - stream.start_age
+                cola_factor = (1 + stream.cola_rate) ** years_active if stream.cola_rate else 1.0
+                adjusted = stream.amount * cola_factor
+                stream_income += adjusted
+                stream_taxable += adjusted * stream.taxable_pct
+
+        current_agi = ss_income * 0.85 + stream_taxable
 
         # Mandatory RMDs
         pretax_bal_primary = get_total_balance_by_owner(accounts, AccountType.PRETAX, Owner.PRIMARY)
@@ -175,10 +200,11 @@ def run_simulation(
             + cfg.tax_rate_state
         )
 
-        # Cash from SS and RMD (net of estimated tax)
+        # Cash from SS, income streams, and RMD (net of estimated tax)
         cash_from_ss = ss_income * (1 - est_tax_rate)
+        cash_from_streams = stream_income * (1 - est_tax_rate)
         cash_from_rmd = rmd_result.amount_withdrawn * (1 - est_tax_rate)
-        cash_in_hand = cash_from_ss + cash_from_rmd
+        cash_in_hand = cash_from_ss + cash_from_streams + cash_from_rmd
 
         remaining_spend = max(0, total_spend_needed - cash_in_hand)
         surplus_cash = max(0, cash_in_hand - total_spend_needed)
@@ -308,6 +334,9 @@ def run_simulation(
                 brokerage_balance=round(get_total_balance_by_type(accounts, AccountType.BROKERAGE)),
             )
         )
+
+        if total_balance <= 0:
+            break
 
     return SimulationResult(
         strategy=cfg.strategy_target,

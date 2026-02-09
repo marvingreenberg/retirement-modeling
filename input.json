@@ -31,7 +31,23 @@
       "spouse_start_age": 67
     },
 
-    "rmd_start_age": 73
+    "rmd_start_age": 73,
+
+    "income_streams": [
+      {
+        "name": "State Pension",
+        "amount": 24000,
+        "start_age": 65,
+        "taxable_pct": 1.0
+      },
+      {
+        "name": "Deferred Annuity",
+        "amount": 12000,
+        "start_age": 70,
+        "end_age": 90,
+        "taxable_pct": 0.6
+      }
+    ]
   },
   "accounts": [
     {

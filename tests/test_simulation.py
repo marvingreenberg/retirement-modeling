@@ -204,6 +204,37 @@ class TestRunSimulation:
         assert result.total_taxes_paid == sum(y.total_tax for y in result.years)
         assert result.total_irmaa_paid == sum(y.irmaa_cost for y in result.years)
 
+    def test_depleting_portfolio_stops_early(self) -> None:
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=65,
+                current_age_spouse=65,
+                simulation_years=30,
+                start_year=2026,
+                annual_spend_net=200000,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0, primary_start_age=70,
+                    spouse_benefit=0, spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=100000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                )
+            ],
+        )
+        result = run_simulation(portfolio)
+        # $100k balance with $200k/yr spending — depletes in year 1
+        assert len(result.years) < 30
+        assert result.years[-1].total_balance <= 0
+
+    def test_non_depleting_portfolio_runs_full_duration(self, sample_portfolio: Portfolio) -> None:
+        result = run_simulation(sample_portfolio)
+        assert len(result.years) == sample_portfolio.config.simulation_years
+        assert result.years[-1].total_balance > 0
+
     def test_planned_expenses_affect_withdrawals(self):
         base_portfolio = Portfolio(
             config=SimulationConfig(

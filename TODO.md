@@ -13,13 +13,11 @@ Add URL-prefix versioning to the API: `/v1/simulate`, `/v1/monte-carlo`, etc. Fi
 
 New model fields should be optional with defaults matching current behavior so the existing UI continues to work against `/v1` without changes.
 
-## BE-1. Income Stream Model Expansion
+## ~~BE-1. Income Stream Model Expansion~~ ✓ DONE
 
-Backend support for richer income types: Annuity, Pension, Rental, SS, Alimony, Other. Each with properties: COLA adjustment, limited duration, taxability.
-
-SS auto-generation from profile info (age, spouse, full benefit amount, start age). Is the SS benefit formula something we can compute (reduction/increase for early/late claiming) instead of requiring separate amounts at 62/65/67?
-
-New fields optional — existing UI keeps working. FE-1 will need this for the Income section on the landing page.
+Implemented in `be-improvements` branch across two changes:
+- **add-income-streams**: Generic `IncomeStream` model with name, amount, start/end age, taxable_pct
+- **be1-cola-and-ss-features**: Per-stream COLA adjustment, SS actuarial benefit formula (early/late claiming), SS auto-generation from profile config (`ss_auto`)
 
 ## BE-2. Withdrawal Strategy Clarity
 
@@ -57,11 +55,9 @@ Add historical tax regime randomization to Monte Carlo simulations. Instead of u
 
 No dependencies. Complementary to BE-3 but independently useful.
 
-## BE-5. Stop Simulation After Fund Exhaustion
+## ~~BE-5. Stop Simulation After Fund Exhaustion~~ ✓ DONE
 
-The year-by-year details keep going after all accounts hit $0. Stop at depletion. Apply to both API response and CLI output.
-
-No FE dependency — API just returns fewer rows.
+Implemented in `be-improvements` branch. Simulation loop breaks after recording the depleted year. Monte Carlo percentile calculations handle variable-length results.
 
 ## BE-6. Multi-User Service
 
@@ -222,6 +218,8 @@ These could feed into Compare — run a what-if, it auto-adds to comparison.
 - IRA Conversion should be hidden/disabled when withdrawals exceed conversion income limits, or at least explain why conversions won't happen
 
 Monthly vs annual display for desired income — make it monthly, show annual as a note?
+
+- BE-2 adds `initial_monthly_spend` and `initial_annual_spend` to API summary — landing page summary area should display effective spending for the chosen strategy (e.g., "$6,667/mo via 4% rule")
 
 ## FE-2. E2E Testing Expansion
 

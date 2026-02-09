@@ -2,9 +2,7 @@
 
 ## Purpose
 Define how the simulation calculates various taxes including federal income tax, capital gains, IRMAA surcharges, and Required Minimum Distributions.
-
 ## Requirements
-
 ### Requirement: Federal Income Tax Brackets
 The system SHALL calculate federal income tax using progressive brackets.
 
@@ -113,7 +111,10 @@ The system SHALL apply 85% taxability to Social Security income.
 - WHEN combined income > $44,000
 - THEN up to 85% is taxable
 
----
+#### Scenario: Income streams in AGI
+- WHEN income streams are active
+- THEN `amount * taxable_pct` for each stream is added to AGI
+- AND this is added alongside SS taxable income before RMD and other components
 
 ### Requirement: State Tax
 The system SHALL apply a flat state tax rate.

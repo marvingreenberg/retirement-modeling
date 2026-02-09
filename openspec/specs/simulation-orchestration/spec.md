@@ -2,9 +2,7 @@
 
 ## Purpose
 Define the year-by-year simulation loop that coordinates all retirement calculations.
-
 ## Requirements
-
 ### Requirement: Year-by-Year Processing Order
 The system SHALL process each simulation year in a specific sequence.
 
@@ -16,16 +14,15 @@ The system SHALL process each simulation year in a specific sequence.
   3. Calculate spending target (via spending strategy)
   4. Add planned expenses for this year
   5. Calculate Social Security income (if age threshold met)
-  6. Calculate and execute RMDs (if age threshold met)
-  7. Determine cash available vs. spending needed
-  8. Execute withdrawals to meet spending shortfall
-  9. Execute Roth conversions (if pre-RMD age and strategy permits)
-  10. Reinvest surplus cash (if any)
-  11. Calculate all taxes
-  12. Apply investment growth to all accounts
-  13. Record year results
-
----
+  6. Calculate income from additional income streams (if age threshold met), applying per-stream COLA
+  7. Calculate and execute RMDs (if age threshold met)
+  8. Determine cash available vs. spending needed
+  9. Execute withdrawals to meet spending shortfall
+  10. Execute Roth conversions (if pre-RMD age and strategy permits)
+  11. Reinvest surplus cash (if any)
+  12. Calculate all taxes
+  13. Apply investment growth to all accounts
+  14. Record year results
 
 ### Requirement: Social Security Income
 The system SHALL add Social Security income when age thresholds are met.
@@ -67,7 +64,7 @@ The system SHALL incorporate planned one-time and recurring expenses.
 The system SHALL reconcile income against spending needs.
 
 #### Scenario: Income exceeds spending
-- WHEN (SS_income + RMD) net of taxes > spending_target
+- WHEN (SS_income + income_streams + RMD) net of taxes > spending_target
 - THEN surplus_cash = income - spending
 - AND surplus is deposited to brokerage
 
@@ -75,8 +72,6 @@ The system SHALL reconcile income against spending needs.
 - WHEN spending_target > available income
 - THEN remaining_spend = spending_target - income
 - AND withdrawals are executed per withdrawal ordering spec
-
----
 
 ### Requirement: Tax Estimation for Withholding
 The system SHALL estimate taxes for withdrawal gross-up calculations.
@@ -170,3 +165,48 @@ The system SHALL process simulation configuration assembled from both Portfolio 
 | rmd_start_age | 73 | Per SECURE 2.0 Act |
 | tax_rate_state | 5.75% | State income tax rate |
 | tax_rate_capital_gains | 15% | Flat cap gains rate |
+
+---
+
+### Requirement: SS Auto-Generation at Simulation Start
+
+The system SHALL materialize auto-generated SS income streams before the simulation loop begins.
+
+#### Scenario: ss_auto present
+- **WHEN** `SimulationConfig.ss_auto` is set
+- **THEN** the system SHALL call `generate_ss_streams(ss_auto)` to produce SS `IncomeStream` entries
+- **AND** prepend them to the working copy of `income_streams`
+- **AND** skip legacy `social_security` income in the per-year SS block
+
+#### Scenario: ss_auto absent
+- **WHEN** `SimulationConfig.ss_auto` is None
+- **THEN** the simulation SHALL use the existing `social_security` config for SS income (no change)
+
+### Requirement: COLA Application in Income Stream Loop
+
+The system SHALL apply per-stream COLA when calculating income stream contributions each year.
+
+#### Scenario: Stream with COLA
+- **WHEN** an active income stream has `cola_rate` set
+- **THEN** effective amount SHALL be `amount * (1 + cola_rate) ^ (current_age - start_age)`
+
+#### Scenario: Stream without COLA
+- **WHEN** an active income stream has `cola_rate` as None
+- **THEN** effective amount SHALL be the base `amount`
+
+### Requirement: Early Termination on Fund Exhaustion
+
+The system SHALL stop the simulation loop after all account balances reach zero.
+
+#### Scenario: Portfolio depletes mid-simulation
+- **WHEN** total balance across all accounts is <= 0 after applying year-end growth
+- **THEN** the system SHALL record the current year's results
+- **AND** terminate the simulation loop (no further years processed)
+
+#### Scenario: Portfolio never depletes
+- **WHEN** total balance remains > 0 for all simulation years
+- **THEN** the simulation SHALL run for the full `simulation_years` duration (no change)
+
+#### Scenario: Result array length
+- **WHEN** depletion occurs at year N of a simulation configured for M years
+- **THEN** the results array SHALL contain N entries (fewer than M)
