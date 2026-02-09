@@ -41,3 +41,11 @@
   with 4 tests covering empty state, single-run table, MC table, and heading).
 - No other issues.
 
+## 4. ux-config-drawer
+
+- Decision: Used inline "Advanced" text toggle within SimulateSettings rather than a
+  separate drawer component. Simpler and keeps everything in one place.
+- Decision: Tax rates, RMD age, and IRMAA limit moved behind "Advanced" toggle.
+  Primary row keeps inflation, growth, and conversion strategy.
+- No issues.
+

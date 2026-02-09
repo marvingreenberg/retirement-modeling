@@ -33,6 +33,8 @@
 		return `${infl}% infl, ${growth}% growth, ${conv}`;
 	});
 
+	let advancedOpen = $state(false);
+
 	function toggleCollapsed() {
 		collapsed = !collapsed;
 	}
@@ -68,24 +70,30 @@
 			</label>
 		</div>
 
-		<div class="flex gap-4 flex-wrap items-end">
-			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				State Tax %
-				<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.tax_rate_state} min="0" max="0.2" step="0.0025" />
-			</label>
-			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				Cap Gains %
-				<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.tax_rate_capital_gains} min="0" max="0.3" step="0.005" />
-			</label>
-			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				<span class="flex items-center gap-1">RMD Age <InfoPopover text="Age at which Required Minimum Distributions from pre-tax accounts begin. Currently 73 under the SECURE 2.0 Act." /></span>
-				<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.rmd_start_age} min="70" max="80" />
-			</label>
-			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				<span class="flex items-center gap-1">IRMAA Limit ($) <InfoPopover text="Income threshold above which Medicare Part B/D premiums increase. Roth conversions that push income above this trigger surcharges." /></span>
-				<input type="number" class="input w-28 text-sm" bind:value={$portfolio.config.irmaa_limit_tier_1} min="0" step="1000" />
-			</label>
-		</div>
+		<button class="text-xs text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer" onclick={() => { advancedOpen = !advancedOpen; }}>
+			{advancedOpen ? '▾' : '▸'} Advanced
+		</button>
+
+		{#if advancedOpen}
+			<div class="flex gap-4 flex-wrap items-end">
+				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+					State Tax %
+					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.tax_rate_state} min="0" max="0.2" step="0.0025" />
+				</label>
+				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+					Cap Gains %
+					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.tax_rate_capital_gains} min="0" max="0.3" step="0.005" />
+				</label>
+				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+					<span class="flex items-center gap-1">RMD Age <InfoPopover text="Age at which Required Minimum Distributions from pre-tax accounts begin. Currently 73 under the SECURE 2.0 Act." /></span>
+					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.rmd_start_age} min="70" max="80" />
+				</label>
+				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+					<span class="flex items-center gap-1">IRMAA Limit ($) <InfoPopover text="Income threshold above which Medicare Part B/D premiums increase. Roth conversions that push income above this trigger surcharges." /></span>
+					<input type="number" class="input w-28 text-sm" bind:value={$portfolio.config.irmaa_limit_tier_1} min="0" step="1000" />
+				</label>
+			</div>
+		{/if}
 
 		<div class="flex items-center gap-4 pt-1">
 			<label class="flex items-center gap-1.5 text-sm text-surface-600 dark:text-surface-400 cursor-pointer">
