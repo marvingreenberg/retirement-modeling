@@ -7,7 +7,7 @@
 
 	const navItems = [
 		{ href: '/', label: 'Home', icon: Home },
-		{ href: '/spending', label: 'Spending', icon: UtensilsCrossed },
+		{ href: '/budget', label: 'Budget', icon: UtensilsCrossed },
 		{ href: '/compare', label: 'Compare', icon: GitCompareArrows },
 		{ href: '/details', label: 'Details', icon: Table },
 	] as const;

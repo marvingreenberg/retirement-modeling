@@ -58,7 +58,7 @@
 		const w: string[] = [];
 		const c = $portfolio.config;
 		if ($portfolio.accounts.length > 0 && c.annual_spend_net === 0) {
-			w.push('Annual spending is $0 — configure spending on the Spending page');
+			w.push('Annual spending is $0 — configure spending on the Budget page');
 		}
 		return w;
 	});

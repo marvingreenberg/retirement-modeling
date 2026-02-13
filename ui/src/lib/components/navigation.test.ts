@@ -17,10 +17,10 @@ describe('Route pages render expected content', () => {
 		expect(screen.getByText('No comparisons yet')).toBeInTheDocument();
 	});
 
-	it('/spending page renders spending configuration', async () => {
-		const { default: SpendingPage } = await import('../../routes/spending/+page.svelte');
-		render(SpendingPage);
-		expect(screen.getByText('Spending Configuration')).toBeInTheDocument();
+	it('/budget page renders budget heading', async () => {
+		const { default: BudgetPage } = await import('../../routes/budget/+page.svelte');
+		render(BudgetPage);
+		expect(screen.getByText('Budget')).toBeInTheDocument();
 	});
 
 	// Details page rendering tested in src/routes/details/details.test.ts

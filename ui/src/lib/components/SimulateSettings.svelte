@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { portfolio } from '$lib/stores';
-	import type { ConversionStrategy } from '$lib/types';
+	import type { ConversionStrategy, SpendingStrategy } from '$lib/types';
 	import InfoPopover from './InfoPopover.svelte';
 	import { Play, Shuffle } from 'lucide-svelte';
 
@@ -25,12 +25,35 @@
 		'24_percent_bracket': '24% Bracket',
 	};
 
+	const strategyLabels: Record<SpendingStrategy, string> = {
+		fixed_dollar: 'Fixed',
+		percent_of_portfolio: 'POP',
+		guardrails: 'Guardrails',
+		rmd_based: 'RMD',
+	};
+
+	function strategyShorthand(): string {
+		const c = $portfolio.config;
+		const label = strategyLabels[c.spending_strategy ?? 'fixed_dollar'];
+		if (c.spending_strategy === 'percent_of_portfolio' && c.withdrawal_rate) {
+			return `${(c.withdrawal_rate * 100).toFixed(1)}%/${label}`;
+		}
+		if (c.spending_strategy === 'guardrails' && c.guardrails_config) {
+			return `${label}/${(c.guardrails_config.initial_withdrawal_rate * 100).toFixed(1)}%`;
+		}
+		if (c.spending_strategy === 'fixed_dollar') {
+			const spend = c.annual_spend_net >= 1000 ? `$${Math.round(c.annual_spend_net / 1000)}K` : `$${c.annual_spend_net}`;
+			return `${label}/${spend}`;
+		}
+		return label;
+	}
+
 	let summaryText = $derived.by(() => {
 		const c = $portfolio.config;
 		const infl = (c.inflation_rate * 100).toFixed(1);
 		const growth = (c.investment_growth_rate * 100).toFixed(1);
 		const conv = conversionLabels[c.strategy_target];
-		return `${infl}% infl, ${growth}% growth, ${conv}`;
+		return `${infl}% infl, ${growth}% growth, ${conv}, ${strategyShorthand()}`;
 	});
 
 	let advancedOpen = $state(false);
@@ -69,6 +92,48 @@
 				</select>
 			</label>
 		</div>
+
+		<div class="flex gap-4 flex-wrap items-end">
+			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+				<span class="flex items-center gap-1">Withdrawal Strategy <InfoPopover text="How annual withdrawals are calculated. Fixed Dollar adjusts for inflation. % of Portfolio takes a fixed percentage each year. Guardrails adjusts spending when withdrawal rate drifts. RMD-Based uses IRS Required Minimum Distribution tables." /></span>
+				<select class="select w-44 text-sm" bind:value={$portfolio.config.spending_strategy}>
+					<option value="fixed_dollar">Fixed Dollar</option>
+					<option value="percent_of_portfolio">% of Portfolio</option>
+					<option value="guardrails">Guardrails</option>
+					<option value="rmd_based">RMD-Based</option>
+				</select>
+			</label>
+		</div>
+
+		{#if $portfolio.config.spending_strategy === 'percent_of_portfolio'}
+			<div class="flex gap-4 items-end">
+				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+					Withdrawal Rate
+					<input type="number" class="input w-24 text-sm" bind:value={$portfolio.config.withdrawal_rate} min="0.01" max="0.15" step="0.005" />
+				</label>
+			</div>
+		{/if}
+
+		{#if $portfolio.config.spending_strategy === 'guardrails' && $portfolio.config.guardrails_config}
+			<div class="flex gap-4 flex-wrap items-end">
+				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+					Init. WD Rate
+					<input type="number" class="input w-24 text-sm" bind:value={$portfolio.config.guardrails_config.initial_withdrawal_rate} min="0.01" max="0.15" step="0.005" />
+				</label>
+				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+					Floor %
+					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.guardrails_config.floor_percent} min="0.5" max="1.0" step="0.05" />
+				</label>
+				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+					Ceiling %
+					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.guardrails_config.ceiling_percent} min="1.0" max="2.0" step="0.05" />
+				</label>
+				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+					Adjust %
+					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.guardrails_config.adjustment_percent} min="0.01" max="0.25" step="0.01" />
+				</label>
+			</div>
+		{/if}
 
 		<button class="text-xs text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer" onclick={() => { advancedOpen = !advancedOpen; }}>
 			{advancedOpen ? '▾' : '▸'} Advanced
