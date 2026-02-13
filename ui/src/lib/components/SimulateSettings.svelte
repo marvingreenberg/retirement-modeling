@@ -56,6 +56,11 @@
 		return `${infl}% infl, ${growth}% growth, ${conv}, ${strategyShorthand()}`;
 	});
 
+	function toPct(v: number): number { return Math.round(v * 10000) / 100; }
+	function setPct(e: Event, setter: (v: number) => void) {
+		setter(+(e.target as HTMLInputElement).value / 100);
+	}
+
 	let advancedOpen = $state(false);
 
 	function toggleCollapsed() {
@@ -76,11 +81,11 @@
 		<div class="flex gap-4 flex-wrap items-end">
 			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 				<span class="flex items-center gap-1">Inflation % <InfoPopover text="Assumed annual rate at which prices increase, reducing the purchasing power of fixed withdrawals over time." /></span>
-				<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.inflation_rate} min="0" max="0.5" step="0.005" />
+				<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.inflation_rate)} oninput={(e) => setPct(e, (v) => $portfolio.config.inflation_rate = v)} min="0" max="50" step="0.5" />
 			</label>
 			<label class="flex flex-col gap-0.5 text-xs font-medium {runMode === 'monte_carlo' ? 'text-surface-400 dark:text-surface-500' : 'text-surface-600 dark:text-surface-400'}">
 				<span class="flex items-center gap-1">Growth % {#if runMode === 'monte_carlo'}<span class="text-[10px] text-warning-500">(overridden)</span>{/if} <InfoPopover text="Assumed annual return on investments before inflation. In Monte Carlo mode, this is overridden by historically-sampled returns." /></span>
-				<input type="number" class="input w-20 text-sm {runMode === 'monte_carlo' ? 'opacity-50' : ''}" bind:value={$portfolio.config.investment_growth_rate} min="-0.5" max="0.5" step="0.005" />
+				<input type="number" class="input w-20 text-sm {runMode === 'monte_carlo' ? 'opacity-50' : ''}" value={toPct($portfolio.config.investment_growth_rate)} oninput={(e) => setPct(e, (v) => $portfolio.config.investment_growth_rate = v)} min="-50" max="50" step="0.5" />
 			</label>
 			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 				<span class="flex items-center gap-1">Conversion <InfoPopover text="Controls Roth conversion aggressiveness. Standard does no conversions. Other strategies convert pre-tax to Roth up to a tax bracket or IRMAA threshold to reduce future taxes." /></span>
@@ -109,7 +114,7 @@
 			<div class="flex gap-4 items-end">
 				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 					Withdrawal Rate
-					<input type="number" class="input w-24 text-sm" bind:value={$portfolio.config.withdrawal_rate} min="0.01" max="0.15" step="0.005" />
+					<input type="number" class="input w-24 text-sm" value={toPct($portfolio.config.withdrawal_rate ?? 0.04)} oninput={(e) => setPct(e, (v) => $portfolio.config.withdrawal_rate = v)} min="1" max="15" step="0.5" />
 				</label>
 			</div>
 		{/if}
@@ -118,19 +123,19 @@
 			<div class="flex gap-4 flex-wrap items-end">
 				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 					Init. WD Rate
-					<input type="number" class="input w-24 text-sm" bind:value={$portfolio.config.guardrails_config.initial_withdrawal_rate} min="0.01" max="0.15" step="0.005" />
+					<input type="number" class="input w-24 text-sm" value={toPct($portfolio.config.guardrails_config.initial_withdrawal_rate)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.initial_withdrawal_rate = v)} min="1" max="15" step="0.5" />
 				</label>
 				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 					Floor %
-					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.guardrails_config.floor_percent} min="0.5" max="1.0" step="0.05" />
+					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.guardrails_config.floor_percent)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.floor_percent = v)} min="50" max="100" step="5" />
 				</label>
 				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 					Ceiling %
-					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.guardrails_config.ceiling_percent} min="1.0" max="2.0" step="0.05" />
+					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.guardrails_config.ceiling_percent)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.ceiling_percent = v)} min="100" max="200" step="5" />
 				</label>
 				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 					Adjust %
-					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.guardrails_config.adjustment_percent} min="0.01" max="0.25" step="0.01" />
+					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.guardrails_config.adjustment_percent)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.adjustment_percent = v)} min="1" max="25" step="1" />
 				</label>
 			</div>
 		{/if}
@@ -143,11 +148,11 @@
 			<div class="flex gap-4 flex-wrap items-end">
 				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 					State Tax %
-					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.tax_rate_state} min="0" max="0.2" step="0.0025" />
+					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.tax_rate_state)} oninput={(e) => setPct(e, (v) => $portfolio.config.tax_rate_state = v)} min="0" max="20" step="0.25" />
 				</label>
 				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 					Cap Gains %
-					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.tax_rate_capital_gains} min="0" max="0.3" step="0.005" />
+					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.tax_rate_capital_gains)} oninput={(e) => setPct(e, (v) => $portfolio.config.tax_rate_capital_gains = v)} min="0" max="30" step="0.5" />
 				</label>
 				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 					<span class="flex items-center gap-1">RMD Age <InfoPopover text="Age at which Required Minimum Distributions from pre-tax accounts begin. Currently 73 under the SECURE 2.0 Act." /></span>
