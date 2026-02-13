@@ -69,26 +69,44 @@ class TestFixedDollarSpending:
 
 class TestPercentOfPortfolioSpending:
     def test_basic_percentage(self):
-        config = GuardrailsConfig(initial_withdrawal_rate=0.04)
-        state = create_initial_state(100000, 2000000, config)
+        state = create_initial_state(100000, 2000000)
         spending, _ = calculate_spending_target(
-            SpendingStrategy.PERCENT_OF_PORTFOLIO, 0, 2000000, 65, 0.03, state
+            SpendingStrategy.PERCENT_OF_PORTFOLIO, 0, 2000000, 65, 0.03, state,
+            withdrawal_rate=0.04,
         )
         assert spending == 80000  # 4% of 2M
 
     def test_varies_with_balance(self):
-        config = GuardrailsConfig(initial_withdrawal_rate=0.04)
-        state = create_initial_state(100000, 2000000, config)
-
+        state = create_initial_state(100000, 2000000)
         spending_high, _ = calculate_spending_target(
-            SpendingStrategy.PERCENT_OF_PORTFOLIO, 0, 3000000, 65, 0.03, state
+            SpendingStrategy.PERCENT_OF_PORTFOLIO, 0, 3000000, 65, 0.03, state,
+            withdrawal_rate=0.04,
         )
         assert spending_high == 120000  # 4% of 3M
 
         spending_low, _ = calculate_spending_target(
-            SpendingStrategy.PERCENT_OF_PORTFOLIO, 0, 1000000, 65, 0.03, state
+            SpendingStrategy.PERCENT_OF_PORTFOLIO, 0, 1000000, 65, 0.03, state,
+            withdrawal_rate=0.04,
         )
         assert spending_low == 40000  # 4% of 1M
+
+    def test_uses_withdrawal_rate_not_guardrails_config(self):
+        config = GuardrailsConfig(initial_withdrawal_rate=0.10)
+        state = create_initial_state(100000, 2000000, config)
+        spending, _ = calculate_spending_target(
+            SpendingStrategy.PERCENT_OF_PORTFOLIO, 0, 2000000, 65, 0.03, state,
+            withdrawal_rate=0.04,
+        )
+        # Should use withdrawal_rate (4%), not guardrails_config (10%)
+        assert spending == 80000
+
+    def test_custom_withdrawal_rate(self):
+        state = create_initial_state(100000, 2000000)
+        spending, _ = calculate_spending_target(
+            SpendingStrategy.PERCENT_OF_PORTFOLIO, 0, 2000000, 65, 0.03, state,
+            withdrawal_rate=0.06,
+        )
+        assert spending == 120000  # 6% of 2M
 
 
 class TestGuardrailsSpending:

@@ -21,7 +21,7 @@ from retirement_model.simulation import run_simulation
 app = FastAPI(
     title="Retirement Simulation API",
     description="API for running retirement portfolio simulations with tax-optimized strategies",
-    version="1.0.0",
+    version="0.9.0",
 )
 
 
@@ -107,7 +107,7 @@ async def root() -> dict:
     """API root endpoint."""
     return {
         "name": "Retirement Simulation API",
-        "version": "1.0.0",
+        "version": "0.9.0",
         "endpoints": {
             "simulate": "/simulate",
             "monte-carlo": "/monte-carlo",
@@ -125,7 +125,11 @@ async def list_strategies() -> dict:
             for s in ConversionStrategy
         ],
         "spending_strategies": [
-            {"value": s.value, "description": _get_spending_description(s)}
+            {
+                "value": s.value,
+                "description": _get_spending_description(s),
+                **_get_spending_field_usage(s),
+            }
             for s in SpendingStrategy
         ],
     }
@@ -141,6 +145,30 @@ def _get_conversion_description(strategy: ConversionStrategy) -> str:
             return "Fill up to top of 22% federal tax bracket"
         case ConversionStrategy.BRACKET_24:
             return "Fill up to top of 24% federal tax bracket"
+
+
+SPENDING_FIELD_USAGE: dict[SpendingStrategy, dict] = {
+    SpendingStrategy.FIXED_DOLLAR: {
+        "uses_fields": ["annual_spend_net"],
+        "ignores_fields": ["withdrawal_rate", "guardrails_config"],
+    },
+    SpendingStrategy.PERCENT_OF_PORTFOLIO: {
+        "uses_fields": ["withdrawal_rate"],
+        "ignores_fields": ["annual_spend_net", "guardrails_config"],
+    },
+    SpendingStrategy.GUARDRAILS: {
+        "uses_fields": ["guardrails_config"],
+        "ignores_fields": ["annual_spend_net", "withdrawal_rate"],
+    },
+    SpendingStrategy.RMD_BASED: {
+        "uses_fields": [],
+        "ignores_fields": ["annual_spend_net", "withdrawal_rate", "guardrails_config"],
+    },
+}
+
+
+def _get_spending_field_usage(strategy: SpendingStrategy) -> dict:
+    return SPENDING_FIELD_USAGE[strategy]
 
 
 def _get_spending_description(strategy: SpendingStrategy) -> str:
@@ -172,6 +200,7 @@ async def simulate(request: SimulationRequest) -> SimulationResponse:
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    initial_annual = result.years[0].spending_target if result.years else 0
     summary = {
         "final_balance": result.final_balance,
         "total_taxes_paid": result.total_taxes_paid,
@@ -180,6 +209,8 @@ async def simulate(request: SimulationRequest) -> SimulationResponse:
         "simulation_years": len(result.years),
         "strategy": result.strategy.value,
         "spending_strategy": result.spending_strategy.value,
+        "initial_annual_spend": initial_annual,
+        "initial_monthly_spend": initial_annual / 12,
     }
 
     return SimulationResponse(result=result, summary=summary)

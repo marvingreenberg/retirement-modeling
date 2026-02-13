@@ -74,6 +74,19 @@ class TestStrategiesEndpoint:
         assert len(data["conversion_strategies"]) == len(ConversionStrategy)
         assert len(data["spending_strategies"]) == len(SpendingStrategy)
 
+    def test_spending_strategies_include_field_usage(self, client: TestClient):
+        response = client.get("/strategies")
+        data = response.json()
+        for entry in data["spending_strategies"]:
+            assert "uses_fields" in entry, f"{entry['value']} missing uses_fields"
+            assert "ignores_fields" in entry, f"{entry['value']} missing ignores_fields"
+
+        by_value = {e["value"]: e for e in data["spending_strategies"]}
+        assert by_value["fixed_dollar"]["uses_fields"] == ["annual_spend_net"]
+        assert by_value["percent_of_portfolio"]["uses_fields"] == ["withdrawal_rate"]
+        assert by_value["guardrails"]["uses_fields"] == ["guardrails_config"]
+        assert by_value["rmd_based"]["uses_fields"] == []
+
 
 class TestSimulateEndpoint:
     def test_simulate_basic(self, client: TestClient, sample_portfolio: dict):
@@ -109,6 +122,33 @@ class TestSimulateEndpoint:
             },
         )
         assert response.status_code == 200
+
+    def test_summary_includes_initial_spending(self, client: TestClient, sample_portfolio: dict):
+        response = client.post("/simulate", json={"portfolio": sample_portfolio})
+        data = response.json()
+        summary = data["summary"]
+        assert "initial_annual_spend" in summary
+        assert "initial_monthly_spend" in summary
+        assert summary["initial_annual_spend"] > 0
+        assert summary["initial_monthly_spend"] == pytest.approx(
+            summary["initial_annual_spend"] / 12
+        )
+
+    def test_summary_spending_for_percent_of_portfolio(
+        self, client: TestClient, sample_portfolio: dict
+    ):
+        response = client.post(
+            "/simulate",
+            json={
+                "portfolio": sample_portfolio,
+                "spending_strategy": "percent_of_portfolio",
+                "withdrawal_rate": 0.04,
+            },
+        )
+        data = response.json()
+        summary = data["summary"]
+        # 4% of total balance (1M + 200K + 500K = 1.7M) = 68000
+        assert summary["initial_annual_spend"] == pytest.approx(1700000 * 0.04, rel=0.01)
 
 
 class TestMonteCarloEndpoint:

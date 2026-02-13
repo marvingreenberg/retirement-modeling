@@ -33,6 +33,7 @@ def calculate_spending_target(
     age_primary: int,
     inflation_rate: float,
     state: SpendingState,
+    withdrawal_rate: float = 0.04,
 ) -> tuple[float, SpendingState]:
     """
     Calculate the spending target for a given year based on the strategy.
@@ -44,7 +45,7 @@ def calculate_spending_target(
             return _fixed_dollar_spending(year_idx, inflation_rate, state)
 
         case SpendingStrategy.PERCENT_OF_PORTFOLIO:
-            return _percent_of_portfolio_spending(total_balance, state)
+            return _percent_of_portfolio_spending(total_balance, withdrawal_rate, state)
 
         case SpendingStrategy.GUARDRAILS:
             return _guardrails_spending(year_idx, total_balance, inflation_rate, state)
@@ -67,15 +68,10 @@ def _fixed_dollar_spending(
 
 
 def _percent_of_portfolio_spending(
-    total_balance: float, state: SpendingState
+    total_balance: float, withdrawal_rate: float, state: SpendingState
 ) -> tuple[float, SpendingState]:
     """Withdraw a fixed percentage of current portfolio value."""
-    if state.guardrails_config:
-        rate = state.guardrails_config.initial_withdrawal_rate
-    else:
-        rate = 0.04
-
-    spending = total_balance * rate
+    spending = total_balance * withdrawal_rate
     state.current_spending = spending
     return spending, state
 
