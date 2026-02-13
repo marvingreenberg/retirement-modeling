@@ -24,6 +24,22 @@ The system SHALL process each simulation year in a specific sequence.
   13. Apply investment growth to all accounts
   14. Record year results
 
+#### Scenario: Tax thresholds adjusted each year
+- WHEN processing a simulation year
+- THEN the simulation SHALL compute `inflation_factor = cumulative_inflation` for that year
+- AND pass inflation-adjusted brackets, IRMAA tiers, capital gains brackets, and standard deduction to all tax functions
+
+### Requirement: Conversion Ceiling
+The system SHALL compute the AGI ceiling for Roth conversions based on strategy, inflation-indexed.
+
+#### Scenario: Inflation-adjusted conversion ceiling
+- WHEN computing the Roth conversion AGI ceiling
+- THEN bracket thresholds (383900 for 24%, 201050 for 22%) SHALL be multiplied by `cumulative_inflation_factor`
+- AND the `irmaa_limit_tier_1` from config SHALL also be multiplied by `cumulative_inflation_factor`
+- AND the `STANDARD` strategy ceiling (0) SHALL remain 0
+
+---
+
 ### Requirement: Social Security Income
 The system SHALL add Social Security income when age thresholds are met.
 

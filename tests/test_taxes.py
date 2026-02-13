@@ -12,6 +12,7 @@ from retirement_model.taxes import (
     estimate_effective_tax_rate,
     get_bracket_label,
     get_marginal_tax_rate,
+    inflate_brackets,
 )
 
 
@@ -39,6 +40,11 @@ class TestGetMarginalTaxRate:
         assert get_marginal_tax_rate(30000, custom) == 0.15
         assert get_marginal_tax_rate(75000, custom) == 0.25
 
+    def test_dict_brackets(self):
+        custom = [{"limit": 50000, "rate": 0.15}, {"limit": 100000, "rate": 0.25}]
+        assert get_marginal_tax_rate(30000, custom) == 0.15
+        assert get_marginal_tax_rate(75000, custom) == 0.25
+
 
 class TestGetBracketLabel:
     def test_low_income(self):
@@ -55,6 +61,12 @@ class TestGetBracketLabel:
 
     def test_high_income_label(self):
         assert get_bracket_label(500000) == "35%+"
+
+    def test_inflation_adjusted_label(self):
+        # $250k is "24%" at factor=1.0 (above 201050, below 383900)
+        # At factor=2.0 thresholds double: 250k > 94300*2=188600 → "22%"
+        assert get_bracket_label(250000, inflation_factor=1.0) == "24%"
+        assert get_bracket_label(250000, inflation_factor=2.0) == "22%"
 
 
 class TestCalculateIrmaaCost:
@@ -104,6 +116,15 @@ class TestCalculateCapitalGainsTax:
         # Over $553,850 should be 20%
         assert calculate_capital_gains_tax(10000, 600000) == 2000
 
+    def test_custom_brackets(self):
+        brackets = [{"limit": 100000, "rate": 0.0}, {"limit": float("inf"), "rate": 0.20}]
+        assert calculate_capital_gains_tax(10000, 50000, brackets=brackets) == 0
+        assert calculate_capital_gains_tax(10000, 150000, brackets=brackets) == 2000
+
+    def test_flat_rate_takes_priority_over_brackets(self):
+        brackets = [{"limit": float("inf"), "rate": 0.0}]
+        assert calculate_capital_gains_tax(10000, 50000, flat_rate=0.15, brackets=brackets) == 1500
+
 
 class TestCalculateRmdAmount:
     def test_before_rmd_age(self):
@@ -152,6 +173,12 @@ class TestCalculateIncomeTax:
         federal = 23200 * 0.10 + 26800 * 0.12
         assert tax == pytest.approx(federal + 50000 * 0.05, rel=0.01)
 
+    def test_dict_brackets(self):
+        brackets = [{"limit": 50000, "rate": 0.10}, {"limit": float("inf"), "rate": 0.20}]
+        tax = calculate_income_tax(80000, brackets)
+        expected = 50000 * 0.10 + 30000 * 0.20
+        assert tax == pytest.approx(expected, rel=0.01)
+
 
 class TestCalculateSsTaxablePortion:
     def test_low_combined_income(self):
@@ -171,6 +198,42 @@ class TestCalculateSsTaxablePortion:
     def test_unsupported_filing_status(self):
         with pytest.raises(NotImplementedError):
             calculate_ss_taxable_portion(30000, 30000, filing_status="single")
+
+
+class TestInflateBrackets:
+    def test_scales_limits(self):
+        brackets = [{"limit": 100000, "rate": 0.10}, {"limit": 200000, "rate": 0.20}]
+        result = inflate_brackets(brackets, 1.5)
+        assert result[0]["limit"] == 150000
+        assert result[1]["limit"] == 300000
+
+    def test_preserves_rates(self):
+        brackets = [{"limit": 100000, "rate": 0.10}]
+        result = inflate_brackets(brackets, 2.0)
+        assert result[0]["rate"] == 0.10
+
+    def test_preserves_cost_fields(self):
+        tiers = [{"limit": 206000, "cost": 0}, {"limit": 258000, "cost": 1600}]
+        result = inflate_brackets(tiers, 1.3)
+        assert result[0]["cost"] == 0
+        assert result[1]["cost"] == 1600
+
+    def test_inf_limit_unchanged(self):
+        brackets = [{"limit": 100000, "rate": 0.10}, {"limit": float("inf"), "rate": 0.37}]
+        result = inflate_brackets(brackets, 2.0)
+        assert result[0]["limit"] == 200000
+        assert result[1]["limit"] == float("inf")
+
+    def test_factor_one_no_change(self):
+        brackets = [{"limit": 23200, "rate": 0.10}, {"limit": 94300, "rate": 0.12}]
+        result = inflate_brackets(brackets, 1.0)
+        assert result[0]["limit"] == 23200
+        assert result[1]["limit"] == 94300
+
+    def test_does_not_mutate_original(self):
+        brackets = [{"limit": 100000, "rate": 0.10}]
+        inflate_brackets(brackets, 2.0)
+        assert brackets[0]["limit"] == 100000
 
 
 class TestEstimateEffectiveTaxRate:

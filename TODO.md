@@ -28,15 +28,14 @@ Implemented in `be-improvements` branch:
 - Enriched `/strategies` endpoint with `uses_fields`/`ignores_fields` metadata per strategy
 - Aligned version to 0.9.0 across `pyproject.toml` and API
 
-## BE-3. Inflation-Index Tax Brackets and Thresholds
+## ~~BE-3. Inflation-Index Tax Brackets and Thresholds~~ ✓ DONE
 
-The simulation uses fixed nominal tax brackets, IRMAA tiers, and standard deduction. In reality these are indexed annually to CPI. Over a 30-year simulation the distortion is significant — the model overstates tax liability in later years, which biases withdrawal strategies and Roth conversion decisions toward being overly conservative.
-
-The Monte Carlo engine already produces per-year inflation rates. Applying cumulative inflation to bracket thresholds, IRMAA tiers, and the standard deduction each year would be straightforward.
-
-Social Security COLA adjustments are a related improvement.
-
-No FE dependency — results just become more accurate.
+Implemented in `be-improvements` branch:
+- Added `inflate_brackets` utility to scale bracket/tier limits by inflation factor
+- Simulation loop now computes inflation-adjusted federal brackets, IRMAA tiers, capital gains brackets, standard deduction, and conversion ceiling each year using `cumulative_inflation`
+- Fixed hardcoded standard deduction (was 30000, now uses correct `STANDARD_DEDUCTION_MFJ` = 29200, inflation-indexed)
+- Tax functions widened to accept dict brackets alongside TaxBracket objects
+- Year 0 unchanged (factor=1.0), later years reflect bracket growth
 
 ## BE-4. Monte Carlo Tax Regime Sampling
 
@@ -223,6 +222,12 @@ These could feed into Compare — run a what-if, it auto-adds to comparison.
 Monthly vs annual display for desired income — make it monthly, show annual as a note?
 
 - BE-2 adds `initial_monthly_spend` and `initial_annual_spend` to API summary — landing page summary area should display effective spending for the chosen strategy (e.g., "$6,667/mo via 4% rule")
+
+## FE-3. Integrate ApplicationDetails.md Into UI
+
+Surface the content from `docs/ApplicationDetails.md` as contextual help in the UI — tooltips, info popovers, or a dedicated "How It Works" section. Topics include tax bracket indexing, spending strategy explanations, SS benefit formula, and COLA mechanics. Content is maintained in the markdown file and rendered in the UI.
+
+Depends on: FE-1 (UX refactoring — need the final layout to know where help content goes).
 
 ## FE-2. E2E Testing Expansion
 
