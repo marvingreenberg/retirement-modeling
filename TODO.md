@@ -7,11 +7,9 @@ When an item here becomes an active change (`/opsx:new` or `/opsx:ff`), remove i
 
 # Backend (API / Simulation Engine)
 
-## API Versioning
+## ~~API Versioning~~ ✓ DONE (folded into BE-6)
 
-Add URL-prefix versioning to the API: `/v1/simulate`, `/v1/monte-carlo`, etc. Fix the version mismatch (FastAPI app says `1.0.0`, package says `0.1.0`) — align on `0.9.0` in `pyproject.toml` to reflect pre-1.0 status. All new BE work targets `/v1`. Existing unversioned endpoints can redirect or remain as aliases temporarily.
-
-New model fields should be optional with defaults matching current behavior so the existing UI continues to work against `/v1` without changes.
+Implemented as part of BE-6 cloud deployment: API routes under `/api/v1/` prefix, version aligned to 0.9.0.
 
 ## ~~BE-1. Income Stream Model Expansion~~ ✓ DONE
 
@@ -28,45 +26,41 @@ Implemented in `be-improvements` branch:
 - Enriched `/strategies` endpoint with `uses_fields`/`ignores_fields` metadata per strategy
 - Aligned version to 0.9.0 across `pyproject.toml` and API
 
-## BE-3. Inflation-Index Tax Brackets and Thresholds
+## ~~BE-3. Inflation-Index Tax Brackets and Thresholds~~ ✓ DONE
 
-The simulation uses fixed nominal tax brackets, IRMAA tiers, and standard deduction. In reality these are indexed annually to CPI. Over a 30-year simulation the distortion is significant — the model overstates tax liability in later years, which biases withdrawal strategies and Roth conversion decisions toward being overly conservative.
+Implemented in `be-improvements` branch:
+- Added `inflate_brackets` utility to scale bracket/tier limits by inflation factor
+- Simulation loop now computes inflation-adjusted federal brackets, IRMAA tiers, capital gains brackets, standard deduction, and conversion ceiling each year using `cumulative_inflation`
+- Fixed hardcoded standard deduction (was 30000, now uses correct `STANDARD_DEDUCTION_MFJ` = 29200, inflation-indexed)
+- Tax functions widened to accept dict brackets alongside TaxBracket objects
+- Year 0 unchanged (factor=1.0), later years reflect bracket growth
 
-The Monte Carlo engine already produces per-year inflation rates. Applying cumulative inflation to bracket thresholds, IRMAA tiers, and the standard deduction each year would be straightforward.
+## ~~BE-4. Monte Carlo Tax Regime Sampling~~ ✓ DONE
 
-Social Security COLA adjustments are a related improvement.
-
-No FE dependency — results just become more accurate.
-
-## BE-4. Monte Carlo Tax Regime Sampling
-
-Add historical tax regime randomization to Monte Carlo simulations. Instead of using fixed tax brackets throughout, sample from historical federal tax regimes the same way we sample historical returns and inflation.
-
-**Regime-sampling approach:** Tax policy changes are legislative (discrete jumps every few years), not continuous like returns. Sample a "tax regime" and hold it for 2-4 years (aligned to political cycles), then sample a new one. ~8 distinct regimes over the last 50 years (pre-1981, Reagan, TRA86, Bush/Clinton, Bush cuts, ATRA, TCJA, etc.).
-
-**Data structure:** Each regime is a complete bracket structure — always 7 income brackets, capital gains rate, standard deduction, and IRMAA tiers. Stored in a historical data file (like `historical_returns.py`), with a comment noting all thresholds are normalized to 2024 dollars.
-
-**Uniform structure across eras:**
-- Eras with fewer brackets (e.g., 1987 had only 2): pad to 7 by duplicating the top rate upward. "15% and 28%" becomes thresholds 2-7 all at the 28% rate. Simulation code always iterates 7 brackets, no conditionals.
-- IRMAA before 2007: set thresholds to effectively infinity (e.g., 1e10). Structure stays uniform, no special cases.
-
-**Normalization:** All regime thresholds stored in 2024 dollars (one-time data entry for ~8 regimes). During simulation, if BE-3 (inflation indexing) is also enabled, thresholds get further indexed forward. If not, used as-is.
-
-**State/local taxes:** Not part of regime sampling. Remain a single flat rate config input (can still compare NYC vs Florida).
-
-**API/Config:** Additive — optional flag to enable tax regime sampling (default off, current behavior preserved). Surfaces in FE Configuration as a toggle.
-
-No dependencies. Complementary to BE-3 but independently useful.
+Implemented in `be-improvements` branch:
+- Added `historical_tax_regimes.py` with 7 historical regimes (1978–2024), all normalized to 2024 dollars
+- Each regime has uniform structure: 7 federal brackets, 3 CG brackets, 6 IRMAA tiers, standard deduction
+- `sample_regime_sequence` uses 2-4 year blocks (political cycles) for Monte Carlo sampling
+- `run_simulation` accepts optional `tax_regime_sequence` parameter, regime values override constants before inflation indexing
+- `vary_tax_regimes: bool = False` on SimulationConfig; `run_full_monte_carlo` samples regime sequences when enabled
+- Pre-IRMAA regimes use `float("inf")` with cost 0 for uniform structure
 
 ## ~~BE-5. Stop Simulation After Fund Exhaustion~~ ✓ DONE
 
 Implemented in `be-improvements` branch. Simulation loop breaks after recording the depleted year. Monte Carlo percentile calculations handle variable-length results.
 
-## BE-6. Multi-User Service
+## ~~BE-6. Cloud deployment~~ ✓ DONE
 
-Something cloud based, information stored encrypted at rest. Some best practices for security. Security review. OAuth with Apple, Google, Facebook. Probably Google Cloud.
+Implemented in `be-improvements` branch:
+- API routes versioned under `/api/v1/` prefix with backward-compat 307 redirects
+- FastAPI conditionally serves built SvelteKit static assets from `static/` directory
+- Single multi-stage Dockerfile (node builds FE, python copies + installs)
+- `make dev` runs uvicorn + pnpm dev in parallel; `make docker-run` for integration testing
+- Deleted `Dockerfile.api`, `Dockerfile.ui`, `compose.yaml`; updated Makefile targets
 
-Depends on: FE-1 (UX refactoring should settle the data model first).
+## BE-6b. Cloud Run Deployment Process
+
+Define a `docs/Deploy.md` documenting the GCP Cloud Run deployment process. Add a `make deploy` target that assumes `gcloud` CLI is installed and authenticated, builds the Docker image, pushes to Artifact Registry, and deploys to Cloud Run. Cover: project/region configuration, service name, environment variables, IAM basics, and how to verify a deployment. Keep it simple — single service, no custom domain initially.
 
 ## BE-7. Sophisticated Portfolio Analysis
 
@@ -77,6 +71,11 @@ Simplest starting point: CSV import from brokerage exports (Fidelity, Schwab, Va
 ## BE-8. Chatbot Integration
 
 Expand. Does this need GCP, what security issues, what use cases make sense for chatbot integration (portfolio analysis)?
+
+## BE-9 Multi-user
+
+Something cloud based, information stored encrypted at rest. Some best practices for security. Security review. OAuth with Apple, Google, Facebook. Probably Google Cloud.  But, need to evaluate and discuss what the value.
+
 
 ---
 
@@ -223,6 +222,12 @@ These could feed into Compare — run a what-if, it auto-adds to comparison.
 Monthly vs annual display for desired income — make it monthly, show annual as a note?
 
 - BE-2 adds `initial_monthly_spend` and `initial_annual_spend` to API summary — landing page summary area should display effective spending for the chosen strategy (e.g., "$6,667/mo via 4% rule")
+
+## FE-3. Integrate ApplicationDetails.md Into UI
+
+Surface the content from `docs/ApplicationDetails.md` as contextual help in the UI — tooltips, info popovers, or a dedicated "How It Works" section. Topics include tax bracket indexing, spending strategy explanations, SS benefit formula, and COLA mechanics. Content is maintained in the markdown file and rendered in the UI.
+
+Depends on: FE-1 (UX refactoring — need the final layout to know where help content goes).
 
 ## FE-2. E2E Testing Expansion
 

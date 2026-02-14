@@ -1,6 +1,6 @@
 .PHONY: help setup build test e2e clean lint format dev \
        setup-api setup-ui build-api build-ui test-api test-ui \
-       run-api run-cli run-ui compose-up compose-down
+       run-api run-cli run-ui dev docker-run
 
 PKG_NAME := retirement-model
 ACTIVATE := . .venv/bin/activate
@@ -11,18 +11,18 @@ FILE ?= input.json
 
 help:
 	@echo "Standard targets:"
-	@echo "  setup   - Install all dependencies (API + UI)"
-	@echo "  build   - Build all packages (API + UI)"
-	@echo "  test    - Run all tests (API + UI)"
-	@echo "  e2e     - Run E2E tests against containerized stack"
-	@echo "  clean   - Remove all build artifacts and generated files"
-	@echo "  lint    - Run linters (black, isort, mypy)"
-	@echo "  format  - Auto-format code (black, isort)"
-	@echo "  dev     - Start API + UI dev servers, open browser, Ctrl-C stops both"
+	@echo "  setup      - Install all dependencies (API + UI)"
+	@echo "  build      - Build all packages (API + UI)"
+	@echo "  test       - Run all tests (API + UI)"
+	@echo "  dev        - Start API + UI dev servers, open browser, Ctrl-C stops both"
+	@echo "  docker-run - Build and run combined Docker image on port 8000"
+	@echo "  e2e        - Run E2E tests against Docker image"
+	@echo "  clean      - Remove all build artifacts and generated files"
+	@echo "  lint       - Run linters (black, isort, mypy)"
+	@echo "  format     - Auto-format code (black, isort)"
 	@echo ""
 	@echo "Component targets: setup-api, setup-ui, build-api, build-ui,"
-	@echo "  test-api, test-ui, run-api, run-ui, run-cli,"
-	@echo "  compose-up, compose-down"
+	@echo "  test-api, test-ui, run-api, run-ui, run-cli"
 
 setup: setup-api setup-ui
 
@@ -36,11 +36,17 @@ clean:
 	  [[ -z "$$text" ]] || { read -p 'Delete? (y/N): ' -n1 -r YN; echo; \
 	  [[ "$$YN" == y || "$$YN" == Y ]] && (set -x; $(GITCLN) .); }
 
-e2e: compose-up
-	cd ui && npx playwright test; \
-	  status=$$?; \
-	  cd .. && docker compose down; \
-	  exit $$status
+dev:
+	@trap 'kill 0' EXIT; \
+	  $(ACTIVATE) && uvicorn retirement_model.api:app --reload & \
+	  cd ui && pnpm dev & \
+	  wait
+
+docker-run:
+	docker build -t retirement-app . && \
+	  docker run --rm -p 8000:8000 retirement-app
+
+e2e: docker-run
 
 lint:
 	$(ACTIVATE) && \
@@ -90,9 +96,3 @@ run-ui:
 
 run-cli:
 	$(ACTIVATE) && retirement-model run $(FILE)
-
-compose-up:
-	docker compose up -d --build
-
-compose-down:
-	docker compose down

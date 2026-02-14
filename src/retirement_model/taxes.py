@@ -11,11 +11,27 @@ from retirement_model.constants import (
 )
 from retirement_model.models import TaxBracket
 
+import math
 
-def get_marginal_tax_rate(income: float, brackets: list[TaxBracket] | None = None) -> float:
+
+def inflate_brackets(brackets: list[dict], factor: float) -> list[dict]:
+    """Scale limit/threshold fields in bracket/tier dicts by an inflation factor."""
+    result = []
+    for entry in brackets:
+        adjusted = dict(entry)
+        if "limit" in adjusted and not math.isinf(adjusted["limit"]):
+            adjusted["limit"] = adjusted["limit"] * factor
+        result.append(adjusted)
+    return result
+
+
+def get_marginal_tax_rate(income: float, brackets: list | None = None) -> float:
     """Get the marginal federal tax rate for a given income level."""
     if brackets:
-        bracket_list = [{"limit": b.limit, "rate": b.rate} for b in brackets]
+        if isinstance(brackets[0], dict):
+            bracket_list = brackets
+        else:
+            bracket_list = [{"limit": b.limit, "rate": b.rate} for b in brackets]
     else:
         bracket_list = FEDERAL_TAX_BRACKETS_MFJ
 
@@ -25,10 +41,10 @@ def get_marginal_tax_rate(income: float, brackets: list[TaxBracket] | None = Non
     return bracket_list[-1]["rate"]
 
 
-def get_bracket_label(income: float) -> str:
+def get_bracket_label(income: float, inflation_factor: float = 1.0) -> str:
     """Get a display label for the tax bracket at a given income level."""
     for threshold, label in BRACKET_LABELS:
-        if income > threshold:
+        if income > threshold * inflation_factor:
             return label
     return "10%"
 
@@ -43,21 +59,25 @@ def calculate_irmaa_cost(agi: float, tiers: list[dict[str, float]] | None = None
 
 
 def calculate_capital_gains_tax(
-    gains: float, total_income: float, flat_rate: float | None = None
+    gains: float,
+    total_income: float,
+    flat_rate: float | None = None,
+    brackets: list[dict] | None = None,
 ) -> float:
     """
     Calculate capital gains tax on realized gains.
 
     If flat_rate is provided, uses that rate (legacy behavior).
-    Otherwise, uses tiered rates based on total income.
+    Otherwise, uses tiered rates based on total income (inflation-adjustable via brackets).
     """
     if flat_rate is not None:
         return gains * flat_rate
 
-    for bracket in CAPITAL_GAINS_BRACKETS_MFJ:
+    bracket_list = brackets or CAPITAL_GAINS_BRACKETS_MFJ
+    for bracket in bracket_list:
         if total_income < bracket["limit"]:
             return gains * bracket["rate"]
-    return gains * CAPITAL_GAINS_BRACKETS_MFJ[-1]["rate"]
+    return gains * bracket_list[-1]["rate"]
 
 
 def calculate_rmd_amount(age: int, balance: float, rmd_start_age: int = RMD_START_AGE) -> float:
@@ -75,7 +95,7 @@ def calculate_rmd_amount(age: int, balance: float, rmd_start_age: int = RMD_STAR
 
 def calculate_income_tax(
     taxable_income: float,
-    brackets: list[TaxBracket] | None = None,
+    brackets: list | None = None,
     state_rate: float = 0.0,
 ) -> float:
     """
@@ -87,7 +107,10 @@ def calculate_income_tax(
         return 0.0
 
     if brackets:
-        bracket_list = [{"limit": b.limit, "rate": b.rate} for b in brackets]
+        if isinstance(brackets[0], dict):
+            bracket_list = brackets
+        else:
+            bracket_list = [{"limit": b.limit, "rate": b.rate} for b in brackets]
     else:
         bracket_list = FEDERAL_TAX_BRACKETS_MFJ
 
@@ -134,7 +157,7 @@ def calculate_ss_taxable_portion(
 
 def estimate_effective_tax_rate(
     agi: float,
-    brackets: list[TaxBracket] | None = None,
+    brackets: list | None = None,
     state_rate: float = 0.0,
     deduction: float = STANDARD_DEDUCTION_MFJ,
 ) -> float:

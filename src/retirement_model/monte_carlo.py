@@ -366,12 +366,14 @@ def run_full_monte_carlo(
     """
     # Import here to avoid circular dependency
     from retirement_model.simulation import run_simulation
+    from retirement_model.historical_tax_regimes import sample_regime_sequence
 
     if seed is not None:
         random.seed(seed)
 
     historical_returns = get_historical_returns()
     historical_inflation = get_historical_inflation()
+    vary_taxes = portfolio.config.vary_tax_regimes
 
     all_results: list[SimulationResult] = []
 
@@ -385,7 +387,13 @@ def run_full_monte_carlo(
             sim_seed,
         )
 
-        result = run_simulation(portfolio, returns_seq, inflation_seq)
+        regime_seq = None
+        if vary_taxes:
+            regime_seq = sample_regime_sequence(
+                portfolio.config.simulation_years, seed=sim_seed
+            )
+
+        result = run_simulation(portfolio, returns_seq, inflation_seq, regime_seq)
         all_results.append(result)
 
     # Calculate success rate (portfolios that didn't deplete)

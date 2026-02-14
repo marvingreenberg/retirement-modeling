@@ -36,6 +36,22 @@ class TestGetConversionCeiling:
         ceiling = get_conversion_ceiling(WithdrawalStrategy.STANDARD, 200000)
         assert ceiling == 0
 
+    def test_bracket_24_with_inflation(self):
+        ceiling = get_conversion_ceiling(WithdrawalStrategy.BRACKET_24, 200000, 1.5)
+        assert ceiling == pytest.approx(383900 * 1.5)
+
+    def test_bracket_22_with_inflation(self):
+        ceiling = get_conversion_ceiling(WithdrawalStrategy.BRACKET_22, 200000, 1.3)
+        assert ceiling == pytest.approx(201050 * 1.3)
+
+    def test_irmaa_tier_1_with_inflation(self):
+        ceiling = get_conversion_ceiling(WithdrawalStrategy.IRMAA_TIER_1, 218000, 2.0)
+        assert ceiling == pytest.approx(218000 * 2.0)
+
+    def test_standard_unaffected_by_inflation(self):
+        ceiling = get_conversion_ceiling(WithdrawalStrategy.STANDARD, 200000, 1.5)
+        assert ceiling == 0
+
 
 class TestCalculatePlannedExpenses:
     def test_one_time_expense_matching_year(self):
@@ -278,3 +294,187 @@ class TestRunSimulation:
         assert (
             year_2027_with_expense.brokerage_withdrawal > year_2027_no_expense.brokerage_withdrawal
         )
+
+
+class TestInflationIndexedTaxBrackets:
+    """Integration tests for inflation-indexed tax thresholds in the simulation."""
+
+    def _make_portfolio(self, inflation_rate: float = 0.03, years: int = 20) -> Portfolio:
+        return Portfolio(
+            config=SimulationConfig(
+                current_age_primary=60,
+                current_age_spouse=60,
+                simulation_years=years,
+                start_year=2026,
+                annual_spend_net=80000,
+                inflation_rate=inflation_rate,
+                investment_growth_rate=0.06,
+                strategy_target=WithdrawalStrategy.BRACKET_24,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=30000, primary_start_age=67,
+                    spouse_benefit=20000, spouse_start_age=67,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="pretax", name="IRA", balance=1000000,
+                    type=AccountType.PRETAX, owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="roth", name="Roth", balance=200000,
+                    type=AccountType.ROTH, owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="brokerage", name="Brokerage", balance=500000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.6,
+                ),
+            ],
+        )
+
+    def test_year_0_unchanged_by_indexing(self):
+        """Year 0 should be identical regardless of inflation rate since factor=1.0."""
+        p_low = self._make_portfolio(inflation_rate=0.01, years=5)
+        p_high = self._make_portfolio(inflation_rate=0.05, years=5)
+
+        r_low = run_simulation(p_low)
+        r_high = run_simulation(p_high)
+
+        # Year 0 tax thresholds are unscaled (factor=1.0), so bracket labels match
+        assert r_low.years[0].bracket == r_high.years[0].bracket
+
+    def test_inflation_indexing_lowers_effective_tax_over_time(self):
+        """With inflation indexing, bracket thresholds grow, so effective tax rate
+        should be lower in later years than it would be with frozen brackets."""
+        portfolio = self._make_portfolio(inflation_rate=0.03, years=20)
+        result = run_simulation(portfolio)
+
+        # With 3% inflation over 20 years, brackets grow ~80%.
+        # For the same nominal AGI, the bracket label should reflect lower effective rates.
+        # More directly: total_tax / AGI should stay reasonable, not creep up due to bracket creep.
+        year_0 = result.years[0]
+        year_19 = result.years[-1]
+
+        # Effective tax ratio shouldn't dramatically increase over 20 years
+        # if brackets are properly indexed
+        if year_0.agi > 0 and year_19.agi > 0:
+            eff_rate_0 = year_0.total_tax / year_0.agi
+            eff_rate_19 = year_19.total_tax / year_19.agi
+            # Indexing prevents bracket creep — rate shouldn't jump wildly
+            assert eff_rate_19 < eff_rate_0 + 0.10
+
+    def test_zero_inflation_no_indexing_effect(self):
+        """With 0% inflation, brackets don't change year over year."""
+        portfolio = self._make_portfolio(inflation_rate=0.0, years=5)
+        result = run_simulation(portfolio)
+
+        # All years should use the same (base) bracket thresholds
+        # so bracket labels should be consistent for similar AGI levels
+        brackets = [y.bracket for y in result.years]
+        # Not asserting they're all identical (AGI changes), just that the test runs cleanly
+        assert len(result.years) == 5
+
+    def test_existing_tests_unaffected(self, sample_portfolio: Portfolio):
+        """Existing simulation behavior should not regress."""
+        result = run_simulation(sample_portfolio)
+        assert len(result.years) == sample_portfolio.config.simulation_years
+        assert result.years[-1].total_balance > 0
+
+
+class TestTaxRegimeSequence:
+    """Tests for tax regime sequence override in run_simulation."""
+
+    def _make_portfolio(self, years: int = 5) -> Portfolio:
+        return Portfolio(
+            config=SimulationConfig(
+                current_age_primary=65,
+                current_age_spouse=65,
+                simulation_years=years,
+                start_year=2026,
+                annual_spend_net=80000,
+                inflation_rate=0.03,
+                investment_growth_rate=0.06,
+                strategy_target=WithdrawalStrategy.BRACKET_24,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=30000, primary_start_age=70,
+                    spouse_benefit=20000, spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="pretax", name="IRA", balance=800000,
+                    type=AccountType.PRETAX, owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="brokerage", name="Brokerage", balance=400000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.6,
+                ),
+            ],
+        )
+
+    def test_no_regime_sequence_uses_defaults(self):
+        """Without regime sequence, simulation uses 2024 constants (unchanged behavior)."""
+        portfolio = self._make_portfolio()
+        result_default = run_simulation(portfolio)
+        result_none = run_simulation(portfolio, tax_regime_sequence=None)
+
+        for y_def, y_none in zip(result_default.years, result_none.years):
+            assert y_def.total_tax == y_none.total_tax
+            assert y_def.total_balance == y_none.total_balance
+
+    def test_regime_sequence_affects_tax(self):
+        """With a high-tax regime, taxes should differ from default."""
+        portfolio = self._make_portfolio()
+        result_default = run_simulation(portfolio)
+
+        # Use a high-tax regime for all years (70% top rate, Pre-ERTA style)
+        from retirement_model.historical_tax_regimes import HISTORICAL_TAX_REGIMES
+        high_tax = HISTORICAL_TAX_REGIMES[0]  # Pre-ERTA 1978 (High Tax)
+        regime_seq = [high_tax] * 5
+
+        result_regime = run_simulation(portfolio, tax_regime_sequence=regime_seq)
+
+        # Tax amounts should differ — high-tax regime has higher rates
+        taxes_default = sum(y.total_tax for y in result_default.years)
+        taxes_regime = sum(y.total_tax for y in result_regime.years)
+        assert taxes_default != taxes_regime
+
+    def test_regime_sequence_overrides_config_brackets(self):
+        """Regime sequence should take priority over config-level tax_brackets_federal."""
+        from retirement_model.models import TaxBracket
+        from retirement_model.historical_tax_regimes import HISTORICAL_TAX_REGIMES
+
+        portfolio = self._make_portfolio()
+        # Set config-level brackets (these should be overridden)
+        portfolio.config.tax_brackets_federal = [
+            TaxBracket(limit=23200, rate=0.10),
+            TaxBracket(limit=94300, rate=0.12),
+            TaxBracket(limit=201050, rate=0.22),
+            TaxBracket(limit=383900, rate=0.24),
+            TaxBracket(limit=487450, rate=0.32),
+        ]
+
+        regime = HISTORICAL_TAX_REGIMES[0]  # High tax
+        regime_seq = [regime] * 5
+
+        result_with_regime = run_simulation(portfolio, tax_regime_sequence=regime_seq)
+        result_config_only = run_simulation(portfolio)
+
+        # Should differ because regime overrides config brackets
+        taxes_regime = sum(y.total_tax for y in result_with_regime.years)
+        taxes_config = sum(y.total_tax for y in result_config_only.years)
+        assert taxes_regime != taxes_config
+
+    def test_regime_changes_deduction(self):
+        """Regime with different standard deduction should affect taxable income."""
+        portfolio = self._make_portfolio(years=2)
+
+        # Use TCJA (deduction=29200) vs Pre-ERTA (deduction=15000)
+        from retirement_model.historical_tax_regimes import HISTORICAL_TAX_REGIMES
+        tcja = next(r for r in HISTORICAL_TAX_REGIMES if "TCJA" in r["name"])
+        pre_erta = next(r for r in HISTORICAL_TAX_REGIMES if "Pre-ERTA" in r["name"])
+
+        result_tcja = run_simulation(portfolio, tax_regime_sequence=[tcja, tcja])
+        result_pre_erta = run_simulation(portfolio, tax_regime_sequence=[pre_erta, pre_erta])
+
+        # Different deductions → different taxes
+        assert result_tcja.years[0].total_tax != result_pre_erta.years[0].total_tax

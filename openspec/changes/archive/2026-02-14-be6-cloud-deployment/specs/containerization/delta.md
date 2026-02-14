@@ -1,9 +1,4 @@
-# Containerization Specification
-
-## Purpose
-Define the Docker and Makefile workflows for building, running, and developing the combined application.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Single Combined Dockerfile
 A single multi-stage Dockerfile SHALL build and run both the API and the static frontend.
@@ -34,3 +29,21 @@ The Makefile SHALL provide targets for local development and Docker integration 
 - **THEN** the combined Docker image SHALL be built
 - **AND** a container SHALL run on port 8000
 - **AND** the developer can browse `localhost:8000` for the full integrated app
+
+## REMOVED Requirements
+
+### Requirement: API service Dockerfile
+**Reason**: Replaced by single combined Dockerfile
+**Migration**: Use `docker build .` instead of `docker build -f Dockerfile.api .`
+
+### Requirement: UI service Dockerfile
+**Reason**: Replaced by single combined Dockerfile; `pnpm dev` runs natively via `make dev`
+**Migration**: Use `make dev` for local development, `make docker-run` for integration testing
+
+### Requirement: Compose orchestration
+**Reason**: Two-container compose replaced by single combined image and `make dev`
+**Migration**: Use `make dev` (local) or `make docker-run` (Docker)
+
+### Requirement: Makefile targets for container workflows
+**Reason**: `compose-up`/`compose-down` replaced by `dev`/`docker-run`
+**Migration**: `make dev` replaces `make compose-up`; `make docker-run` for Docker testing

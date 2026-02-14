@@ -14,12 +14,19 @@ from retirement_model.models import (
 )
 from retirement_model.social_security import generate_ss_streams
 from retirement_model.strategies import calculate_spending_target, create_initial_state
+from retirement_model.constants import (
+    CAPITAL_GAINS_BRACKETS_MFJ,
+    FEDERAL_TAX_BRACKETS_MFJ,
+    IRMAA_TIERS_MFJ,
+    STANDARD_DEDUCTION_MFJ,
+)
 from retirement_model.taxes import (
     calculate_capital_gains_tax,
     calculate_irmaa_cost,
     calculate_rmd_amount,
     get_bracket_label,
     get_marginal_tax_rate,
+    inflate_brackets,
 )
 from retirement_model.withdrawals import (
     apply_growth,
@@ -30,15 +37,17 @@ from retirement_model.withdrawals import (
 )
 
 
-def get_conversion_ceiling(strategy: ConversionStrategy, irmaa_tier_1_limit: float) -> float:
+def get_conversion_ceiling(
+    strategy: ConversionStrategy, irmaa_tier_1_limit: float, inflation_factor: float = 1.0
+) -> float:
     """Get the AGI ceiling for Roth conversions based on strategy."""
     match strategy:
         case ConversionStrategy.BRACKET_24:
-            return 383900
+            return 383900 * inflation_factor
         case ConversionStrategy.BRACKET_22:
-            return 201050
+            return 201050 * inflation_factor
         case ConversionStrategy.IRMAA_TIER_1:
-            return irmaa_tier_1_limit
+            return irmaa_tier_1_limit * inflation_factor
         case ConversionStrategy.STANDARD:
             return 0
         case _:
@@ -77,6 +86,7 @@ def run_simulation(
     portfolio: Portfolio,
     returns_sequence: list[float] | None = None,
     inflation_sequence: list[float] | None = None,
+    tax_regime_sequence: list[dict] | None = None,
 ) -> SimulationResult:
     """Run the retirement simulation and return year-by-year results.
 
@@ -84,6 +94,7 @@ def run_simulation(
         portfolio: The portfolio to simulate
         returns_sequence: Optional list of annual returns for each year (for Monte Carlo)
         inflation_sequence: Optional list of inflation rates for each year (for Monte Carlo)
+        tax_regime_sequence: Optional list of tax regime dicts per year (for Monte Carlo)
     """
     cfg = portfolio.config
     accounts = copy.deepcopy(portfolio.accounts)
@@ -97,8 +108,6 @@ def run_simulation(
         use_legacy_ss = False
     else:
         working_streams = list(cfg.income_streams)
-
-    conversion_ceiling = get_conversion_ceiling(cfg.strategy_target, cfg.irmaa_limit_tier_1)
 
     initial_balance = sum(a.balance for a in accounts)
     spending_state = create_initial_state(
@@ -155,6 +164,34 @@ def run_simulation(
         if year_idx > 0:
             cumulative_inflation *= 1 + year_inflation
         inflation_factor = cumulative_inflation
+
+        # Determine base tax parameters (regime sequence overrides defaults)
+        if tax_regime_sequence and year_idx < len(tax_regime_sequence):
+            regime = tax_regime_sequence[year_idx]
+            base_fed = regime["federal_brackets"]
+            base_irmaa = regime["irmaa_tiers"]
+            base_capgains = regime["capital_gains_brackets"]
+            base_deduction = regime["standard_deduction"]
+        elif cfg.tax_brackets_federal:
+            base_fed = [{"limit": b.limit, "rate": b.rate} for b in cfg.tax_brackets_federal]
+            base_irmaa = IRMAA_TIERS_MFJ
+            base_capgains = CAPITAL_GAINS_BRACKETS_MFJ
+            base_deduction = STANDARD_DEDUCTION_MFJ
+        else:
+            base_fed = FEDERAL_TAX_BRACKETS_MFJ
+            base_irmaa = IRMAA_TIERS_MFJ
+            base_capgains = CAPITAL_GAINS_BRACKETS_MFJ
+            base_deduction = STANDARD_DEDUCTION_MFJ
+
+        # Inflation-adjusted tax thresholds
+        adj_fed_brackets = inflate_brackets(base_fed, inflation_factor)
+        adj_irmaa_tiers = inflate_brackets(base_irmaa, inflation_factor)
+        adj_capgains_brackets = inflate_brackets(base_capgains, inflation_factor)
+        adj_deduction = base_deduction * inflation_factor
+        conversion_ceiling = get_conversion_ceiling(
+            cfg.strategy_target, cfg.irmaa_limit_tier_1, inflation_factor
+        )
+
         planned_expense_amount = calculate_planned_expenses(
             cfg.planned_expenses, current_year, age_primary, inflation_factor
         )
@@ -195,11 +232,8 @@ def run_simulation(
         rmd_result = withdraw_from_accounts(total_rmd, accounts, AccountType.PRETAX, age_map)
         current_agi += rmd_result.amount_withdrawn
 
-        # Estimate tax rate for withholding
-        est_tax_rate = (
-            get_marginal_tax_rate(current_agi, cfg.tax_brackets_federal or None)
-            + cfg.tax_rate_state
-        )
+        # Estimate tax rate for withholding (using inflation-adjusted brackets)
+        est_tax_rate = get_marginal_tax_rate(current_agi, adj_fed_brackets) + cfg.tax_rate_state
 
         # Cash from SS, income streams, and RMD (net of estimated tax)
         cash_from_ss = ss_income * (1 - est_tax_rate)
@@ -237,7 +271,7 @@ def run_simulation(
                 gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
                 current_agi += gains
                 brokerage_gains_tax += calculate_capital_gains_tax(
-                    gains, current_agi, cfg.tax_rate_capital_gains
+                    gains, current_agi, cfg.tax_rate_capital_gains, adj_capgains_brackets
                 )
                 remaining_spend -= result.amount_withdrawn
 
@@ -279,7 +313,7 @@ def run_simulation(
                     tax_gains = tax_result.amount_withdrawn * (1 - tax_result.average_basis_ratio)
                     current_agi += tax_gains
                     brokerage_gains_tax += calculate_capital_gains_tax(
-                        tax_gains, current_agi, cfg.tax_rate_capital_gains
+                        tax_gains, current_agi, cfg.tax_rate_capital_gains, adj_capgains_brackets
                     )
 
                     # Execute conversion
@@ -303,10 +337,10 @@ def run_simulation(
         if surplus_cash > 0:
             deposit_to_account(surplus_cash, accounts, AccountType.BROKERAGE, Owner.JOINT)
 
-        # Total tax calculation
-        taxable_income = max(0, current_agi - 30000)
+        # Total tax calculation (using inflation-adjusted deduction and IRMAA tiers)
+        taxable_income = max(0, current_agi - adj_deduction)
         income_tax = taxable_income * est_tax_rate
-        irmaa_cost = calculate_irmaa_cost(current_agi)
+        irmaa_cost = calculate_irmaa_cost(current_agi, adj_irmaa_tiers)
         total_tax = income_tax + brokerage_gains_tax + irmaa_cost
 
         # Apply growth and get balances
@@ -318,7 +352,7 @@ def run_simulation(
                 age_primary=age_primary,
                 age_spouse=age_spouse,
                 agi=round(current_agi),
-                bracket=get_bracket_label(current_agi),
+                bracket=get_bracket_label(current_agi, inflation_factor),
                 rmd=round(total_rmd),
                 surplus=round(surplus_cash),
                 roth_conversion=round(converted_amount),
