@@ -7,11 +7,9 @@ When an item here becomes an active change (`/opsx:new` or `/opsx:ff`), remove i
 
 # Backend (API / Simulation Engine)
 
-## API Versioning
+## ~~API Versioning~~ ✓ DONE (folded into BE-6)
 
-Add URL-prefix versioning to the API: `/v1/simulate`, `/v1/monte-carlo`, etc. Fix the version mismatch (FastAPI app says `1.0.0`, package says `0.1.0`) — align on `0.9.0` in `pyproject.toml` to reflect pre-1.0 status. All new BE work targets `/v1`. Existing unversioned endpoints can redirect or remain as aliases temporarily.
-
-New model fields should be optional with defaults matching current behavior so the existing UI continues to work against `/v1` without changes.
+Implemented as part of BE-6 cloud deployment: API routes under `/api/v1/` prefix, version aligned to 0.9.0.
 
 ## ~~BE-1. Income Stream Model Expansion~~ ✓ DONE
 
@@ -51,11 +49,18 @@ Implemented in `be-improvements` branch:
 
 Implemented in `be-improvements` branch. Simulation loop breaks after recording the depleted year. Monte Carlo percentile calculations handle variable-length results.
 
-## BE-6. Multi-User Service
+## ~~BE-6. Cloud deployment~~ ✓ DONE
 
-Something cloud based, information stored encrypted at rest. Some best practices for security. Security review. OAuth with Apple, Google, Facebook. Probably Google Cloud.
+Implemented in `be-improvements` branch:
+- API routes versioned under `/api/v1/` prefix with backward-compat 307 redirects
+- FastAPI conditionally serves built SvelteKit static assets from `static/` directory
+- Single multi-stage Dockerfile (node builds FE, python copies + installs)
+- `make dev` runs uvicorn + pnpm dev in parallel; `make docker-run` for integration testing
+- Deleted `Dockerfile.api`, `Dockerfile.ui`, `compose.yaml`; updated Makefile targets
 
-Depends on: FE-1 (UX refactoring should settle the data model first).
+## BE-6b. Cloud Run Deployment Process
+
+Define a `docs/Deploy.md` documenting the GCP Cloud Run deployment process. Add a `make deploy` target that assumes `gcloud` CLI is installed and authenticated, builds the Docker image, pushes to Artifact Registry, and deploys to Cloud Run. Cover: project/region configuration, service name, environment variables, IAM basics, and how to verify a deployment. Keep it simple — single service, no custom domain initially.
 
 ## BE-7. Sophisticated Portfolio Analysis
 
@@ -66,6 +71,11 @@ Simplest starting point: CSV import from brokerage exports (Fidelity, Schwab, Va
 ## BE-8. Chatbot Integration
 
 Expand. Does this need GCP, what security issues, what use cases make sense for chatbot integration (portfolio analysis)?
+
+## BE-9 Multi-user
+
+Something cloud based, information stored encrypted at rest. Some best practices for security. Security review. OAuth with Apple, Google, Facebook. Probably Google Cloud.  But, need to evaluate and discuss what the value.
+
 
 ---
 

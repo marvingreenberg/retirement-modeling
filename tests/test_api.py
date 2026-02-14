@@ -56,17 +56,29 @@ def sample_portfolio() -> dict:
 
 
 class TestRootEndpoint:
-    def test_root(self, client: TestClient):
+    def test_root_returns_health_info_without_static(self, client: TestClient):
+        """Root returns health JSON when no static dir (default test environment)."""
         response = client.get("/")
         assert response.status_code == 200
         data = response.json()
-        assert "name" in data
+        assert data["status"] == "ok"
+        assert data["api"] == "/api/v1/"
+        assert data["version"] == "0.9.0"
+
+
+class TestApiDiscovery:
+    def test_api_v1_root(self, client: TestClient):
+        response = client.get("/api/v1/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["version"] == "0.9.0"
         assert "endpoints" in data
+        assert data["endpoints"]["simulate"] == "/api/v1/simulate"
 
 
 class TestStrategiesEndpoint:
     def test_list_strategies(self, client: TestClient):
-        response = client.get("/strategies")
+        response = client.get("/api/v1/strategies")
         assert response.status_code == 200
         data = response.json()
         assert "conversion_strategies" in data
@@ -75,7 +87,7 @@ class TestStrategiesEndpoint:
         assert len(data["spending_strategies"]) == len(SpendingStrategy)
 
     def test_spending_strategies_include_field_usage(self, client: TestClient):
-        response = client.get("/strategies")
+        response = client.get("/api/v1/strategies")
         data = response.json()
         for entry in data["spending_strategies"]:
             assert "uses_fields" in entry, f"{entry['value']} missing uses_fields"
@@ -90,7 +102,7 @@ class TestStrategiesEndpoint:
 
 class TestSimulateEndpoint:
     def test_simulate_basic(self, client: TestClient, sample_portfolio: dict):
-        response = client.post("/simulate", json={"portfolio": sample_portfolio})
+        response = client.post("/api/v1/simulate", json={"portfolio": sample_portfolio})
         assert response.status_code == 200
         data = response.json()
         assert "result" in data
@@ -100,7 +112,7 @@ class TestSimulateEndpoint:
 
     def test_simulate_with_strategy_override(self, client: TestClient, sample_portfolio: dict):
         response = client.post(
-            "/simulate",
+            "/api/v1/simulate",
             json={
                 "portfolio": sample_portfolio,
                 "strategy": "24_percent_bracket",
@@ -114,7 +126,7 @@ class TestSimulateEndpoint:
 
     def test_simulate_with_withdrawal_rate(self, client: TestClient, sample_portfolio: dict):
         response = client.post(
-            "/simulate",
+            "/api/v1/simulate",
             json={
                 "portfolio": sample_portfolio,
                 "spending_strategy": "percent_of_portfolio",
@@ -124,7 +136,7 @@ class TestSimulateEndpoint:
         assert response.status_code == 200
 
     def test_summary_includes_initial_spending(self, client: TestClient, sample_portfolio: dict):
-        response = client.post("/simulate", json={"portfolio": sample_portfolio})
+        response = client.post("/api/v1/simulate", json={"portfolio": sample_portfolio})
         data = response.json()
         summary = data["summary"]
         assert "initial_annual_spend" in summary
@@ -138,7 +150,7 @@ class TestSimulateEndpoint:
         self, client: TestClient, sample_portfolio: dict
     ):
         response = client.post(
-            "/simulate",
+            "/api/v1/simulate",
             json={
                 "portfolio": sample_portfolio,
                 "spending_strategy": "percent_of_portfolio",
@@ -154,7 +166,7 @@ class TestSimulateEndpoint:
 class TestMonteCarloEndpoint:
     def test_monte_carlo_basic(self, client: TestClient, sample_portfolio: dict):
         response = client.post(
-            "/monte-carlo",
+            "/api/v1/monte-carlo",
             json={"portfolio": sample_portfolio, "num_simulations": 50, "seed": 42},
         )
         assert response.status_code == 200
@@ -166,7 +178,7 @@ class TestMonteCarloEndpoint:
 
     def test_monte_carlo_invalid_simulations(self, client: TestClient, sample_portfolio: dict):
         response = client.post(
-            "/monte-carlo",
+            "/api/v1/monte-carlo",
             json={"portfolio": sample_portfolio, "num_simulations": 20000},
         )
         assert response.status_code == 400
@@ -174,11 +186,11 @@ class TestMonteCarloEndpoint:
 
     def test_monte_carlo_reproducible(self, client: TestClient, sample_portfolio: dict):
         response1 = client.post(
-            "/monte-carlo",
+            "/api/v1/monte-carlo",
             json={"portfolio": sample_portfolio, "num_simulations": 50, "seed": 123},
         )
         response2 = client.post(
-            "/monte-carlo",
+            "/api/v1/monte-carlo",
             json={"portfolio": sample_portfolio, "num_simulations": 50, "seed": 123},
         )
         assert response1.json()["success_rate"] == response2.json()["success_rate"]
@@ -186,7 +198,7 @@ class TestMonteCarloEndpoint:
 
 class TestCompareEndpoint:
     def test_compare_default(self, client: TestClient, sample_portfolio: dict):
-        response = client.post("/compare", json=sample_portfolio)
+        response = client.post("/api/v1/compare", json=sample_portfolio)
         assert response.status_code == 200
         data = response.json()
         assert "comparisons" in data
@@ -194,7 +206,7 @@ class TestCompareEndpoint:
 
     def test_compare_multiple_strategies(self, client: TestClient, sample_portfolio: dict):
         response = client.post(
-            "/compare",
+            "/api/v1/compare",
             json=sample_portfolio,
             params={
                 "conversion_strategies": ["irmaa_tier_1", "24_percent_bracket"],
@@ -206,7 +218,7 @@ class TestCompareEndpoint:
         assert len(data["comparisons"]) == 4  # 2 conv * 2 spend
 
     def test_compare_includes_all_metrics(self, client: TestClient, sample_portfolio: dict):
-        response = client.post("/compare", json=sample_portfolio)
+        response = client.post("/api/v1/compare", json=sample_portfolio)
         data = response.json()
         comparison = data["comparisons"][0]
         assert "final_balance" in comparison
@@ -215,12 +227,38 @@ class TestCompareEndpoint:
         assert "total_roth_conversions" in comparison
 
 
+class TestBackwardCompatRedirects:
+    def test_old_simulate_redirects(self, client: TestClient, sample_portfolio: dict):
+        response = client.post(
+            "/simulate", json={"portfolio": sample_portfolio}, follow_redirects=False
+        )
+        assert response.status_code == 307
+        assert response.headers["location"] == "/api/v1/simulate"
+
+    def test_old_strategies_redirects(self, client: TestClient):
+        response = client.get("/strategies", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers["location"] == "/api/v1/strategies"
+
+    def test_old_monte_carlo_redirects(self, client: TestClient):
+        response = client.post(
+            "/monte-carlo", json={"portfolio": {}}, follow_redirects=False
+        )
+        assert response.status_code == 307
+        assert response.headers["location"] == "/api/v1/monte-carlo"
+
+    def test_old_compare_redirects(self, client: TestClient):
+        response = client.post("/compare", json={}, follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers["location"] == "/api/v1/compare"
+
+
 class TestVaryTaxRegimesEndpoint:
     def test_monte_carlo_with_vary_tax_regimes(self, client: TestClient, sample_portfolio: dict):
         """API should accept vary_tax_regimes in config without errors."""
         sample_portfolio["config"]["vary_tax_regimes"] = True
         response = client.post(
-            "/monte-carlo",
+            "/api/v1/monte-carlo",
             json={"portfolio": sample_portfolio, "num_simulations": 20, "seed": 42},
         )
         assert response.status_code == 200
@@ -230,7 +268,7 @@ class TestVaryTaxRegimesEndpoint:
     def test_simulate_with_vary_tax_regimes(self, client: TestClient, sample_portfolio: dict):
         """vary_tax_regimes in config should be accepted by /simulate (no effect on deterministic)."""
         sample_portfolio["config"]["vary_tax_regimes"] = True
-        response = client.post("/simulate", json={"portfolio": sample_portfolio})
+        response = client.post("/api/v1/simulate", json={"portfolio": sample_portfolio})
         assert response.status_code == 200
 
 
@@ -273,8 +311,60 @@ class TestNewIncomeFeatures:
                 },
             ],
         }
-        response = client.post("/simulate", json={"portfolio": portfolio})
+        response = client.post("/api/v1/simulate", json={"portfolio": portfolio})
         assert response.status_code == 200
         data = response.json()
         assert data["summary"]["simulation_years"] == 10
         assert data["summary"]["final_balance"] > 0
+
+
+class TestStaticServing:
+    def test_api_works_without_static_dir(self, client: TestClient):
+        """API endpoints function normally when static/ directory is absent."""
+        response = client.get("/api/v1/")
+        assert response.status_code == 200
+        assert response.json()["version"] == "0.9.0"
+
+    def test_root_returns_json_without_static_dir(self, client: TestClient):
+        """Root returns health/info JSON when no static assets are mounted."""
+        response = client.get("/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["api"] == "/api/v1/"
+
+    def test_static_mount_registered_when_dir_exists(self, tmp_path):
+        """When static/ dir exists, StaticFiles mount is registered and serves SPA at /."""
+        from unittest.mock import patch
+
+        static_dir = tmp_path / "static"
+        static_dir.mkdir()
+        (static_dir / "index.html").write_text("<html><body>App</body></html>")
+
+        from retirement_model import api as api_module
+
+        saved_routes = list(app.routes)
+        with patch.object(api_module, "STATIC_DIR", static_dir):
+            # Remove existing static mount and root route (registered at module load)
+            app.routes[:] = [
+                r for r in app.routes
+                if getattr(r, "name", "") not in ("static", "root")
+            ]
+            api_module.mount_static_or_root()
+
+            route_names = [getattr(r, "name", "") for r in app.routes]
+            assert "static" in route_names
+
+            # Root should serve index.html (SPA), not JSON
+            test_client = TestClient(app)
+            response = test_client.get("/")
+            assert response.status_code == 200
+            assert "App" in response.text
+
+            # API routes still work
+            response = test_client.get("/api/v1/")
+            assert response.status_code == 200
+            assert response.json()["version"] == "0.9.0"
+
+        # Restore original routes
+        app.routes[:] = saved_routes

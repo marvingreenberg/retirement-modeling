@@ -51,7 +51,7 @@ beforeEach(() => {
 });
 
 describe('runSimulation', () => {
-	it('calls POST /api/simulate with portfolio', async () => {
+	it('calls POST /api/v1/simulate with portfolio', async () => {
 		const mockResult = { result: {}, summary: {} };
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
 			ok: true,
@@ -59,7 +59,7 @@ describe('runSimulation', () => {
 		}));
 
 		await runSimulation(mockPortfolio);
-		expect(fetch).toHaveBeenCalledWith('/api/simulate', expect.objectContaining({
+		expect(fetch).toHaveBeenCalledWith('/api/v1/simulate', expect.objectContaining({
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 		}));
@@ -79,7 +79,7 @@ describe('runSimulation', () => {
 });
 
 describe('runMonteCarlo', () => {
-	it('calls POST /api/monte-carlo with simulation count', async () => {
+	it('calls POST /api/v1/monte-carlo with simulation count', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
 			ok: true,
 			json: () => Promise.resolve({}),

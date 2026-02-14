@@ -4,7 +4,7 @@ import type {
 	MonteCarloResponse,
 } from './types';
 
-const BASE = '/api';
+const BASE = '/api/v1';
 
 async function post<T>(path: string, body: unknown): Promise<T> {
 	const res = await fetch(`${BASE}${path}`, {

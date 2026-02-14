@@ -1,12 +1,16 @@
 """REST API layer for retirement simulation.
 
 Provides FastAPI endpoints for running simulations and Monte Carlo analysis.
-Designed to be consumed by web applications.
+Designed to be consumed by web applications. Serves built SvelteKit static
+assets when available.
 """
 
+import logging
+from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import APIRouter, FastAPI, HTTPException, Query
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from retirement_model.models import (
@@ -18,11 +22,15 @@ from retirement_model.models import (
 from retirement_model.monte_carlo import MonteCarloResult, run_monte_carlo
 from retirement_model.simulation import run_simulation
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(
     title="Retirement Simulation API",
     description="API for running retirement portfolio simulations with tax-optimized strategies",
     version="0.9.0",
 )
+
+router = APIRouter(prefix="/api/v1")
 
 
 class SimulationRequest(BaseModel):
@@ -102,21 +110,25 @@ class MonteCarloResponse(BaseModel):
         )
 
 
-@app.get("/")
-async def root() -> dict:
-    """API root endpoint."""
+# --- Versioned API routes (on the router) ---
+
+
+@router.get("/")
+async def api_root() -> dict:
+    """API discovery endpoint."""
     return {
         "name": "Retirement Simulation API",
         "version": "0.9.0",
         "endpoints": {
-            "simulate": "/simulate",
-            "monte-carlo": "/monte-carlo",
-            "strategies": "/strategies",
+            "simulate": "/api/v1/simulate",
+            "monte-carlo": "/api/v1/monte-carlo",
+            "compare": "/api/v1/compare",
+            "strategies": "/api/v1/strategies",
         },
     }
 
 
-@app.get("/strategies")
+@router.get("/strategies")
 async def list_strategies() -> dict:
     """List available strategies."""
     return {
@@ -183,7 +195,7 @@ def _get_spending_description(strategy: SpendingStrategy) -> str:
             return "Withdraw based on RMD percentages from IRS tables"
 
 
-@app.post("/simulate", response_model=SimulationResponse)
+@router.post("/simulate", response_model=SimulationResponse)
 async def simulate(request: SimulationRequest) -> SimulationResponse:
     """Run a retirement simulation."""
     portfolio = request.portfolio.model_copy(deep=True)
@@ -216,7 +228,7 @@ async def simulate(request: SimulationRequest) -> SimulationResponse:
     return SimulationResponse(result=result, summary=summary)
 
 
-@app.post("/monte-carlo", response_model=MonteCarloResponse)
+@router.post("/monte-carlo", response_model=MonteCarloResponse)
 async def monte_carlo(request: MonteCarloRequest) -> MonteCarloResponse:
     """Run Monte Carlo simulation."""
     portfolio = request.portfolio.model_copy(deep=True)
@@ -239,7 +251,7 @@ async def monte_carlo(request: MonteCarloRequest) -> MonteCarloResponse:
     return MonteCarloResponse.from_result(result)
 
 
-@app.post("/compare")
+@router.post("/compare")
 async def compare_strategies(
     portfolio: Portfolio,
     conversion_strategies: Annotated[
@@ -274,3 +286,62 @@ async def compare_strategies(
             )
 
     return {"comparisons": results}
+
+
+# --- Include the versioned router ---
+
+app.include_router(router)
+
+
+# --- Backward-compat redirects from old unversioned routes ---
+
+_OLD_ROUTES = [
+    ("/simulate", "/api/v1/simulate"),
+    ("/monte-carlo", "/api/v1/monte-carlo"),
+    ("/compare", "/api/v1/compare"),
+    ("/strategies", "/api/v1/strategies"),
+]
+
+for _old_path, _new_path in _OLD_ROUTES:
+
+    def _make_redirect(target: str):  # noqa: E301
+        async def redirect() -> RedirectResponse:
+            return RedirectResponse(url=target, status_code=307)
+
+        return redirect
+
+    app.add_api_route(
+        _old_path,
+        _make_redirect(_new_path),
+        methods=["GET", "POST"],
+        include_in_schema=False,
+    )
+
+
+# --- Conditional static file serving OR root health endpoint ---
+
+STATIC_DIR = Path(__file__).parent / "static"
+
+
+def mount_static_or_root() -> None:
+    """Mount static files if present, otherwise register root health endpoint."""
+    if STATIC_DIR.is_dir():
+        from starlette.staticfiles import StaticFiles
+
+        app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
+        logger.info("Static asset serving: ACTIVE (serving from %s)", STATIC_DIR)
+    else:
+        @app.get("/")
+        async def root() -> dict:
+            """Health/info endpoint when no static assets are mounted."""
+            return {
+                "name": "Retirement Simulation API",
+                "version": "0.9.0",
+                "status": "ok",
+                "api": "/api/v1/",
+            }
+
+        logger.info("Static asset serving: INACTIVE (no static/ directory found)")
+
+
+mount_static_or_root()
