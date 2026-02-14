@@ -29,6 +29,12 @@ The system SHALL process each simulation year in a specific sequence.
 - THEN the simulation SHALL compute `inflation_factor = cumulative_inflation` for that year
 - AND pass inflation-adjusted brackets, IRMAA tiers, capital gains brackets, and standard deduction to all tax functions
 
+#### Scenario: Tax regime override per year
+- **WHEN** a `tax_regime_sequence` is provided to `run_simulation`
+- **THEN** for each year, the regime dict SHALL provide the base brackets, cap gains brackets, standard deduction, and IRMAA tiers
+- **AND** these base values SHALL be inflation-indexed using `inflate_brackets` and `cumulative_inflation` (layering with BE-3)
+- **AND** when no regime sequence is provided, the 2024 constants SHALL be used as the base (unchanged behavior)
+
 ### Requirement: Conversion Ceiling
 The system SHALL compute the AGI ceiling for Roth conversions based on strategy, inflation-indexed.
 
@@ -245,6 +251,20 @@ The API SHALL include the effective initial spending amounts in the simulation s
 #### Scenario: Compute monthly from annual
 - **WHEN** `SimulationConfig.monthly_spend` is accessed
 - **THEN** it SHALL return `annual_spend_net / 12`
+
+### Requirement: Tax Regime Configuration
+The system SHALL support an optional flag to enable tax regime variation in Monte Carlo.
+
+#### Scenario: Config field
+- **WHEN** `SimulationConfig` is defined
+- **THEN** it SHALL include `vary_tax_regimes: bool` with default `False`
+
+#### Scenario: Deterministic simulation unaffected
+- **WHEN** running a deterministic simulation (not Monte Carlo)
+- **THEN** `vary_tax_regimes` SHALL have no effect
+- **AND** the simulation SHALL use 2024 constants as the base brackets
+
+---
 
 ### Requirement: API Version Alignment
 The API version SHALL be aligned across `pyproject.toml` and the FastAPI app.

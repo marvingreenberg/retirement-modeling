@@ -215,6 +215,25 @@ class TestCompareEndpoint:
         assert "total_roth_conversions" in comparison
 
 
+class TestVaryTaxRegimesEndpoint:
+    def test_monte_carlo_with_vary_tax_regimes(self, client: TestClient, sample_portfolio: dict):
+        """API should accept vary_tax_regimes in config without errors."""
+        sample_portfolio["config"]["vary_tax_regimes"] = True
+        response = client.post(
+            "/monte-carlo",
+            json={"portfolio": sample_portfolio, "num_simulations": 20, "seed": 42},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert 0 <= data["success_rate"] <= 1
+
+    def test_simulate_with_vary_tax_regimes(self, client: TestClient, sample_portfolio: dict):
+        """vary_tax_regimes in config should be accepted by /simulate (no effect on deterministic)."""
+        sample_portfolio["config"]["vary_tax_regimes"] = True
+        response = client.post("/simulate", json={"portfolio": sample_portfolio})
+        assert response.status_code == 200
+
+
 class TestNewIncomeFeatures:
     def test_simulate_with_ss_auto_and_cola(self, client: TestClient) -> None:
         portfolio = {

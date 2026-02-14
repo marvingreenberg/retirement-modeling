@@ -86,6 +86,7 @@ def run_simulation(
     portfolio: Portfolio,
     returns_sequence: list[float] | None = None,
     inflation_sequence: list[float] | None = None,
+    tax_regime_sequence: list[dict] | None = None,
 ) -> SimulationResult:
     """Run the retirement simulation and return year-by-year results.
 
@@ -93,6 +94,7 @@ def run_simulation(
         portfolio: The portfolio to simulate
         returns_sequence: Optional list of annual returns for each year (for Monte Carlo)
         inflation_sequence: Optional list of inflation rates for each year (for Monte Carlo)
+        tax_regime_sequence: Optional list of tax regime dicts per year (for Monte Carlo)
     """
     cfg = portfolio.config
     accounts = copy.deepcopy(portfolio.accounts)
@@ -163,15 +165,29 @@ def run_simulation(
             cumulative_inflation *= 1 + year_inflation
         inflation_factor = cumulative_inflation
 
-        # Inflation-adjusted tax thresholds
-        if cfg.tax_brackets_federal:
+        # Determine base tax parameters (regime sequence overrides defaults)
+        if tax_regime_sequence and year_idx < len(tax_regime_sequence):
+            regime = tax_regime_sequence[year_idx]
+            base_fed = regime["federal_brackets"]
+            base_irmaa = regime["irmaa_tiers"]
+            base_capgains = regime["capital_gains_brackets"]
+            base_deduction = regime["standard_deduction"]
+        elif cfg.tax_brackets_federal:
             base_fed = [{"limit": b.limit, "rate": b.rate} for b in cfg.tax_brackets_federal]
+            base_irmaa = IRMAA_TIERS_MFJ
+            base_capgains = CAPITAL_GAINS_BRACKETS_MFJ
+            base_deduction = STANDARD_DEDUCTION_MFJ
         else:
             base_fed = FEDERAL_TAX_BRACKETS_MFJ
+            base_irmaa = IRMAA_TIERS_MFJ
+            base_capgains = CAPITAL_GAINS_BRACKETS_MFJ
+            base_deduction = STANDARD_DEDUCTION_MFJ
+
+        # Inflation-adjusted tax thresholds
         adj_fed_brackets = inflate_brackets(base_fed, inflation_factor)
-        adj_irmaa_tiers = inflate_brackets(IRMAA_TIERS_MFJ, inflation_factor)
-        adj_capgains_brackets = inflate_brackets(CAPITAL_GAINS_BRACKETS_MFJ, inflation_factor)
-        adj_deduction = STANDARD_DEDUCTION_MFJ * inflation_factor
+        adj_irmaa_tiers = inflate_brackets(base_irmaa, inflation_factor)
+        adj_capgains_brackets = inflate_brackets(base_capgains, inflation_factor)
+        adj_deduction = base_deduction * inflation_factor
         conversion_ceiling = get_conversion_ceiling(
             cfg.strategy_target, cfg.irmaa_limit_tier_1, inflation_factor
         )

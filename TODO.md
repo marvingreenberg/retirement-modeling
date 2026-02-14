@@ -37,25 +37,15 @@ Implemented in `be-improvements` branch:
 - Tax functions widened to accept dict brackets alongside TaxBracket objects
 - Year 0 unchanged (factor=1.0), later years reflect bracket growth
 
-## BE-4. Monte Carlo Tax Regime Sampling
+## ~~BE-4. Monte Carlo Tax Regime Sampling~~ ✓ DONE
 
-Add historical tax regime randomization to Monte Carlo simulations. Instead of using fixed tax brackets throughout, sample from historical federal tax regimes the same way we sample historical returns and inflation.
-
-**Regime-sampling approach:** Tax policy changes are legislative (discrete jumps every few years), not continuous like returns. Sample a "tax regime" and hold it for 2-4 years (aligned to political cycles), then sample a new one. ~8 distinct regimes over the last 50 years (pre-1981, Reagan, TRA86, Bush/Clinton, Bush cuts, ATRA, TCJA, etc.).
-
-**Data structure:** Each regime is a complete bracket structure — always 7 income brackets, capital gains rate, standard deduction, and IRMAA tiers. Stored in a historical data file (like `historical_returns.py`), with a comment noting all thresholds are normalized to 2024 dollars.
-
-**Uniform structure across eras:**
-- Eras with fewer brackets (e.g., 1987 had only 2): pad to 7 by duplicating the top rate upward. "15% and 28%" becomes thresholds 2-7 all at the 28% rate. Simulation code always iterates 7 brackets, no conditionals.
-- IRMAA before 2007: set thresholds to effectively infinity (e.g., 1e10). Structure stays uniform, no special cases.
-
-**Normalization:** All regime thresholds stored in 2024 dollars (one-time data entry for ~8 regimes). During simulation, if BE-3 (inflation indexing) is also enabled, thresholds get further indexed forward. If not, used as-is.
-
-**State/local taxes:** Not part of regime sampling. Remain a single flat rate config input (can still compare NYC vs Florida).
-
-**API/Config:** Additive — optional flag to enable tax regime sampling (default off, current behavior preserved). Surfaces in FE Configuration as a toggle.
-
-No dependencies. Complementary to BE-3 but independently useful.
+Implemented in `be-improvements` branch:
+- Added `historical_tax_regimes.py` with 7 historical regimes (1978–2024), all normalized to 2024 dollars
+- Each regime has uniform structure: 7 federal brackets, 3 CG brackets, 6 IRMAA tiers, standard deduction
+- `sample_regime_sequence` uses 2-4 year blocks (political cycles) for Monte Carlo sampling
+- `run_simulation` accepts optional `tax_regime_sequence` parameter, regime values override constants before inflation indexing
+- `vary_tax_regimes: bool = False` on SimulationConfig; `run_full_monte_carlo` samples regime sequences when enabled
+- Pre-IRMAA regimes use `float("inf")` with cost 0 for uniform structure
 
 ## ~~BE-5. Stop Simulation After Fund Exhaustion~~ ✓ DONE
 

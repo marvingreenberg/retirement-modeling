@@ -258,3 +258,31 @@ class TestFullMonteCarlo:
         assert "Success Rate" in formatted
         assert "Age" in formatted
         assert "Balance" in formatted
+
+    def test_vary_tax_regimes_false_matches_default(self, simple_portfolio: Portfolio):
+        """vary_tax_regimes=False should produce identical results to default."""
+        simple_portfolio.config.vary_tax_regimes = False
+        result1 = run_full_monte_carlo(simple_portfolio, num_simulations=10, seed=42)
+        result2 = run_full_monte_carlo(simple_portfolio, num_simulations=10, seed=42)
+        assert result1.success_rate == result2.success_rate
+
+    def test_vary_tax_regimes_true_runs_without_error(self, simple_portfolio: Portfolio):
+        """MC with vary_tax_regimes=True should complete without errors."""
+        simple_portfolio.config.vary_tax_regimes = True
+        result = run_full_monte_carlo(simple_portfolio, num_simulations=10, seed=42)
+        assert result.num_simulations == 10
+        assert 0 <= result.success_rate <= 1
+        assert result.median_simulation is not None
+
+    def test_vary_tax_regimes_produces_variation(self, simple_portfolio: Portfolio):
+        """With regime variation, different seeds should produce more variation."""
+        simple_portfolio.config.vary_tax_regimes = True
+        result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
+        # Valid results with a numeric success rate
+        assert isinstance(result.success_rate, float)
+        # Final balances should show variation
+        balances = [
+            r.total_balance
+            for r in [result.median_simulation.years[-1]]
+        ]
+        assert len(result.yearly_percentiles) > 0

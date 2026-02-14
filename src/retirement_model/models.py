@@ -165,6 +165,8 @@ class SimulationConfig(BaseModel):
 
     ss_auto: SSAutoConfig | None = None
 
+    vary_tax_regimes: bool = Field(default=False)
+
     @property
     def monthly_spend(self) -> float:
         return self.annual_spend_net / 12
