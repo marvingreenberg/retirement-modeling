@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
-import { profile, defaultProfile } from '$lib/stores';
+import { profile, defaultProfile, portfolio, defaultPortfolio } from '$lib/stores';
 
 Object.defineProperty(window, 'matchMedia', {
 	writable: true,
@@ -21,6 +21,7 @@ const { default: AppBar } = await import('./AppBar.svelte');
 describe('AppBar', () => {
 	beforeEach(() => {
 		profile.set(structuredClone(defaultProfile));
+		portfolio.set(structuredClone(defaultPortfolio));
 	});
 
 	it('renders the app title', () => {
@@ -28,26 +29,25 @@ describe('AppBar', () => {
 		expect(screen.getByText('Retirement Simulator')).toBeInTheDocument();
 	});
 
-	it('renders all navigation links', () => {
+	it('renders navigation links (no budget)', () => {
 		render(AppBar);
-		expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument();
-		expect(screen.getByRole('link', { name: /budget/i })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: /overview/i })).toBeInTheDocument();
+		expect(screen.queryByRole('link', { name: /budget/i })).not.toBeInTheDocument();
 		expect(screen.getByRole('link', { name: /compare/i })).toBeInTheDocument();
 		expect(screen.getByRole('link', { name: /details/i })).toBeInTheDocument();
 	});
 
 	it('navigation links have correct hrefs', () => {
 		render(AppBar);
-		expect(screen.getByRole('link', { name: /home/i })).toHaveAttribute('href', '/');
-		expect(screen.getByRole('link', { name: /budget/i })).toHaveAttribute('href', '/budget');
+		expect(screen.getByRole('link', { name: /overview/i })).toHaveAttribute('href', '/');
 		expect(screen.getByRole('link', { name: /compare/i })).toHaveAttribute('href', '/compare');
 		expect(screen.getByRole('link', { name: /details/i })).toHaveAttribute('href', '/details');
 	});
 
-	it('marks home link as active on root path', () => {
+	it('marks overview link as active on root path', () => {
 		render(AppBar);
-		const homeLink = screen.getByRole('link', { name: /home/i });
-		expect(homeLink).toHaveAttribute('aria-current', 'page');
+		const overviewLink = screen.getByRole('link', { name: /overview/i });
+		expect(overviewLink).toHaveAttribute('aria-current', 'page');
 	});
 
 	it('does not render dark mode toggle in bar', () => {

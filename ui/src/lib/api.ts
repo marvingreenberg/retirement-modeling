@@ -13,8 +13,10 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 		body: JSON.stringify(body),
 	});
 	if (!res.ok) {
-		const detail = await res.json().catch(() => ({ detail: res.statusText }));
-		throw new Error(detail.detail || `API error: ${res.status}`);
+		const body = await res.json().catch(() => ({ detail: res.statusText }));
+		const detail = body.detail;
+		const msg = typeof detail === 'string' ? detail : detail ? JSON.stringify(detail) : `API error: ${res.status}`;
+		throw new Error(msg);
 	}
 	return res.json();
 }

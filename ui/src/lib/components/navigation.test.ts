@@ -17,12 +17,7 @@ describe('Route pages render expected content', () => {
 		expect(screen.getByText('No comparisons yet')).toBeInTheDocument();
 	});
 
-	it('/budget page renders budget heading', async () => {
-		const { default: BudgetPage } = await import('../../routes/budget/+page.svelte');
-		render(BudgetPage);
-		expect(screen.getByText('Budget')).toBeInTheDocument();
-	});
-
+	// Budget is now inline in PortfolioEditor, not a separate route
 	// Details page rendering tested in src/routes/details/details.test.ts
 	// Dynamic import from this context hangs due to lucide-svelte module resolution
 });

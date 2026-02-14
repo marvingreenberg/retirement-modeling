@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { get } from 'svelte/store';
-import { portfolio, defaultPortfolio, profile, defaultProfile } from '$lib/stores';
+import { portfolio, defaultPortfolio, profile, defaultProfile, tourActive } from '$lib/stores';
 
 const { default: SetupView } = await import('./SetupView.svelte');
 
@@ -9,6 +9,7 @@ describe('SetupView', () => {
 	beforeEach(() => {
 		portfolio.set(structuredClone(defaultPortfolio));
 		profile.set(structuredClone(defaultProfile));
+		tourActive.set(false);
 	});
 
 	it('renders setup form with heading and name field', () => {
@@ -62,9 +63,10 @@ describe('SetupView', () => {
 		const p = get(portfolio);
 		expect(p.config.current_age_primary).toBe(58);
 		expect(p.config.simulation_years).toBe(37);
-		expect(p.accounts).toHaveLength(1);
+		expect(p.accounts).toHaveLength(0);
 		const prof = get(profile);
 		expect(prof.primaryName).toBe('Mike');
+		expect(get(tourActive)).toBe(true);
 	});
 
 	it('loads sample data including profile when Load Sample Data is clicked', async () => {
@@ -76,5 +78,6 @@ describe('SetupView', () => {
 		const prof = get(profile);
 		expect(prof.primaryName).toBe('Mike');
 		expect(prof.spouseName).toBe('Karen');
+		expect(get(tourActive)).toBe(true);
 	});
 });

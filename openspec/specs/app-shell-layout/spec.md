@@ -4,15 +4,15 @@ Defines the AppBar, navigation, route structure, avatar with profile drawer, and
 ## Requirements
 
 ### Requirement: AppBar with navigation
-The app SHALL display a Skeleton `AppBar` at the top of every page. The AppBar SHALL contain the app title in the lead slot, navigation links in the center, and an avatar button in the trail slot.
+The app SHALL display a Skeleton `AppBar` at the top of every page. The AppBar SHALL contain the app title in the lead slot, navigation links in the center, and an avatar button in the trail slot. Navigation links SHALL be: Overview, Compare, Details. Each nav tab SHALL support a `data-tour` attribute for tooltip anchoring.
 
 #### Scenario: AppBar visible on all routes
-- **WHEN** the user navigates to any route (`/`, `/budget`, `/compare`, `/details`)
-- **THEN** the AppBar is visible with the title "Retirement Simulator", navigation links, and avatar button
+- **WHEN** the user navigates to any route (`/`, `/compare`, `/details`)
+- **THEN** the AppBar is visible with the title "Retirement Simulator", navigation links (Overview, Compare, Details), and avatar button
 
 #### Scenario: Active navigation link
-- **WHEN** the user is on the `/budget` route
-- **THEN** the "Budget" navigation link is visually marked as active
+- **WHEN** the user is on the `/compare` route
+- **THEN** the "Compare" navigation link is visually marked as active
 
 ### Requirement: Avatar button with initials
 The AppBar SHALL display an avatar button showing the user's initials. Clicking the avatar SHALL open the profile drawer.
@@ -45,7 +45,7 @@ A slide-out drawer SHALL open from the right when the user clicks the avatar but
 
 #### Scenario: Drawer contents
 - **WHEN** the profile drawer is open
-- **THEN** it displays: primary name, spouse name (if applicable), primary age, spouse age (if applicable), simulation years, and dark/light mode toggle
+- **THEN** it displays: primary name, spouse name (if applicable), primary age, spouse age (if applicable), simulation years, start year, and dark/light mode toggle
 
 #### Scenario: Drawer edits update stores
 - **WHEN** the user changes a name in the profile drawer
@@ -58,24 +58,21 @@ A slide-out drawer SHALL open from the right when the user clicks the avatar but
 ### Requirement: Route-based page navigation
 The app SHALL use SvelteKit routes for page navigation. Clicking a navigation link in the AppBar SHALL navigate to the corresponding route without a full page reload.
 
-#### Scenario: Navigate to Budget
-- **WHEN** the user clicks the "Budget" link in the AppBar
-- **THEN** the browser URL changes to `/budget` and the budget page content is displayed
-
 #### Scenario: Navigate to Compare
 - **WHEN** the user clicks the "Compare" link in the AppBar
 - **THEN** the browser URL changes to `/compare` and the compare view is displayed
 
-#### Scenario: Navigate home
-- **WHEN** the user clicks the "Home" link or the app title in the AppBar
-- **THEN** the browser URL changes to `/` and the home page content is displayed
+#### Scenario: Navigate to Overview
+- **WHEN** the user clicks the "Overview" link or the app title in the AppBar
+- **THEN** the browser URL changes to `/` and the Overview page content is displayed
 
 ### Requirement: Route definitions
 The app SHALL define the following routes:
-- `/` — Home page (portfolio editor with simulation controls, results)
-- `/budget` — Budget configuration (annual spending, planned expenses)
+- `/` — Overview page (portfolio editor with simulation controls, results)
 - `/compare` — Snapshot comparison
 - `/details` — Year-by-year simulation details
+
+Budget configuration is inline in the PortfolioEditor left panel, not a separate route.
 
 ### Requirement: Layout structure
 The root layout SHALL render the AppBar above a content area. The content area SHALL render the current route's page component with consistent padding and max-width constraints.

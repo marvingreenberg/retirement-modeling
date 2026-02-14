@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { portfolio, validationErrors, formTouched, markFormTouched } from '$lib/stores';
+	import { portfolio, validationErrors, formTouched, markFormTouched, simulateBlockedSection } from '$lib/stores';
 
 	function handleFocusOut() {
 		markFormTouched();
@@ -8,13 +8,13 @@
 	import { validatePortfolio } from '$lib/validation';
 	import CollapsibleSection from '$lib/components/CollapsibleSection.svelte';
 	import FileControls from '$lib/components/FileControls.svelte';
-	import PeopleTimeline from './PeopleTimeline.svelte';
 	import AccountsEditor from './AccountsEditor.svelte';
+	import SpendingEditor from './SpendingEditor.svelte';
 	import IncomeEditor from './IncomeEditor.svelte';
-	import { Users, Landmark, Briefcase } from 'lucide-svelte';
+	import { Landmark, Wallet, Briefcase, AlertTriangle } from 'lucide-svelte';
 
-	let peopleOpen = $state(true);
 	let accountsOpen = $state(false);
+	let budgetOpen = $state(false);
 	let incomeOpen = $state(false);
 	let errors = $derived(validatePortfolio($portfolio));
 	$effect(() => {
@@ -24,6 +24,15 @@
 	let errorList = $derived(
 		$formTouched ? Object.entries(errors) : []
 	);
+
+	let noAccounts = $derived($portfolio.accounts.length === 0);
+	let noBudget = $derived($portfolio.config.annual_spend_net === 0);
+
+	$effect(() => {
+		const section = $simulateBlockedSection;
+		if (section === 'accounts') accountsOpen = true;
+		if (section === 'budget') budgetOpen = true;
+	});
 
 	function friendlyPath(path: string): string {
 		const fieldLabels: Record<string, string> = {
@@ -76,14 +85,26 @@
 		</div>
 	{/if}
 
-	<CollapsibleSection title="People & Timeline" bind:open={peopleOpen}>
-		{#snippet icon()}<Users size={16} class="text-primary-500" />{/snippet}
-		<PeopleTimeline bind:config={$portfolio.config} />
-	</CollapsibleSection>
-
 	<CollapsibleSection title="Accounts" bind:open={accountsOpen}>
 		{#snippet icon()}<Landmark size={16} class="text-tertiary-500" />{/snippet}
+		{#if noAccounts}
+			<div class="flex items-center gap-2 text-warning-600 dark:text-warning-400 text-sm font-semibold py-2">
+				<AlertTriangle size={16} />
+				Add an account to allow simulation
+			</div>
+		{/if}
 		<AccountsEditor bind:accounts={$portfolio.accounts} />
+	</CollapsibleSection>
+
+	<CollapsibleSection title="Budget" bind:open={budgetOpen}>
+		{#snippet icon()}<Wallet size={16} class="text-primary-500" />{/snippet}
+		{#if noBudget && !noAccounts}
+			<div class="flex items-center gap-2 text-warning-600 dark:text-warning-400 text-sm font-semibold py-2">
+				<AlertTriangle size={16} />
+				Define expected annual spending to allow simulation
+			</div>
+		{/if}
+		<SpendingEditor bind:config={$portfolio.config} bind:plannedExpenses={$portfolio.config.planned_expenses} />
 	</CollapsibleSection>
 
 	<CollapsibleSection title="Income" bind:open={incomeOpen}>

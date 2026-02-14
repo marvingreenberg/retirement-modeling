@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { portfolio, samplePortfolio, profile, sampleProfile } from '$lib/stores';
+	import { portfolio, samplePortfolio, profile, sampleProfile, tourActive } from '$lib/stores';
 	import { TreePine } from 'lucide-svelte';
 
 	let primaryName = $state('');
@@ -33,21 +33,14 @@
 				current_age_spouse: hasSpouse ? spouseAge : 0,
 				simulation_years: simYears,
 			},
-			accounts: [{
-				id: 'account_1',
-				name: 'Brokerage',
-				balance: 0,
-				type: 'brokerage' as const,
-				owner: 'primary' as const,
-				cost_basis_ratio: 1.0,
-				available_at_age: 0,
-			}],
 		}));
+		tourActive.set(true);
 	}
 
 	function loadSample() {
 		profile.set(structuredClone(sampleProfile));
 		portfolio.set(structuredClone(samplePortfolio));
+		tourActive.set(true);
 	}
 </script>
 

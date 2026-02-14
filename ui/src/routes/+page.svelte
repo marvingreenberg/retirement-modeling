@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { portfolio, validationErrors, simulationResults } from '$lib/stores';
+	import { portfolio, validationErrors, simulationResults, simulateBlockedSection } from '$lib/stores';
 	import { validatePortfolio } from '$lib/validation';
 	import { runSimulation, runMonteCarlo } from '$lib/api';
 	import PortfolioEditor from '$lib/components/portfolio/PortfolioEditor.svelte';
@@ -9,7 +9,7 @@
 	import SetupView from '$lib/components/SetupView.svelte';
 	import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
 
-	let needsSetup = $derived($portfolio.accounts.length === 0 && $portfolio.config.current_age_primary === 0);
+	let needsSetup = $derived($portfolio.config.current_age_primary === 0);
 
 	let loading = $state(false);
 	let error = $state('');
@@ -22,6 +22,16 @@
 	let lastRunMode = $state<'single' | 'monte_carlo' | null>(null);
 
 	async function handleRun() {
+		if ($portfolio.accounts.length === 0) {
+			simulateBlockedSection.set('accounts');
+			return;
+		}
+		if ($portfolio.config.annual_spend_net === 0) {
+			simulateBlockedSection.set('budget');
+			return;
+		}
+		simulateBlockedSection.set(null);
+
 		const p = $portfolio;
 		const errors = validatePortfolio(p);
 		validationErrors.set(errors);
@@ -53,15 +63,6 @@
 	}
 
 	let hasResults = $derived(lastRunMode !== null);
-
-	let warnings = $derived.by(() => {
-		const w: string[] = [];
-		const c = $portfolio.config;
-		if ($portfolio.accounts.length > 0 && c.annual_spend_net === 0) {
-			w.push('Annual spending is $0 — configure spending on the Budget page');
-		}
-		return w;
-	});
 </script>
 
 {#if needsSetup}
@@ -79,13 +80,6 @@
 			/>
 		</section>
 		<section>
-			{#if warnings.length > 0 && !hasResults}
-				<div class="mb-4 space-y-2">
-					{#each warnings as w}
-						<div class="text-warning-700 dark:text-warning-300 bg-warning-50 dark:bg-warning-950 p-3 rounded text-sm">{w}</div>
-					{/each}
-				</div>
-			{/if}
 			{#if hasResults || error}
 				<SimulateView {singleResult} {mcResult} {lastRunMode} {error} />
 			{:else if loading}
