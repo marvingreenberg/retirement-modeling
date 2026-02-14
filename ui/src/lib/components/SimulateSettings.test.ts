@@ -27,46 +27,70 @@ describe('SimulateSettings', () => {
 		expect(screen.getByText(/Conversion/)).toBeInTheDocument();
 	});
 
-	it('shows withdrawal strategy dropdown', () => {
+	it('shows strategy summary when collapsed', () => {
 		renderSettings();
 		expect(screen.getByText(/Withdrawal Strategy/)).toBeInTheDocument();
 	});
 
-	it('shows guardrails params when guardrails selected', () => {
+	it('shows strategy controls after expanding strategy section', async () => {
 		portfolio.update((p) => {
 			p.config.spending_strategy = 'guardrails';
 			return p;
 		});
 		renderSettings();
+		const toggle = screen.getByText(/Withdrawal Strategy/);
+		await fireEvent.click(toggle);
 		expect(screen.getByText('Init. WD Rate')).toBeInTheDocument();
 		expect(screen.getByText('Floor %')).toBeInTheDocument();
 		expect(screen.getByText('Ceiling %')).toBeInTheDocument();
 		expect(screen.getByText('Adjust %')).toBeInTheDocument();
 	});
 
-	it('shows withdrawal rate when percent_of_portfolio selected', () => {
+	it('shows withdrawal rate after expanding strategy for POP', async () => {
 		portfolio.update((p) => {
 			p.config.spending_strategy = 'percent_of_portfolio';
 			return p;
 		});
 		renderSettings();
+		const toggle = screen.getByText(/Withdrawal Strategy/);
+		await fireEvent.click(toggle);
 		expect(screen.getByText('Withdrawal Rate')).toBeInTheDocument();
 	});
 
-	it('hides conditional params for fixed_dollar', () => {
+	it('strategy section collapsed by default shows summary', () => {
 		portfolio.update((p) => {
 			p.config.spending_strategy = 'fixed_dollar';
+			p.config.annual_spend_net = 140000;
 			return p;
 		});
 		renderSettings();
-		expect(screen.queryByText('Withdrawal Rate')).not.toBeInTheDocument();
-		expect(screen.queryByText('Init. WD Rate')).not.toBeInTheDocument();
+		expect(screen.getByText(/Fixed \$140K/)).toBeInTheDocument();
 	});
 
-	it('hides advanced inputs by default', () => {
+	it('shows advanced summary when collapsed', () => {
 		renderSettings();
-		expect(screen.queryByText('State Tax %')).not.toBeInTheDocument();
-		expect(screen.queryByText('Cap Gains %')).not.toBeInTheDocument();
+		expect(screen.getByText(/Advanced/)).toBeInTheDocument();
+	});
+
+	it('advanced shows "defaults" when values match default', () => {
+		portfolio.update((p) => {
+			p.config.tax_rate_state = 0.05;
+			p.config.tax_rate_capital_gains = 0.15;
+			p.config.rmd_start_age = 73;
+			p.config.irmaa_limit_tier_1 = 206000;
+			return p;
+		});
+		renderSettings();
+		expect(screen.getByText(/defaults/)).toBeInTheDocument();
+	});
+
+	it('advanced shows "custom" when values differ from default', () => {
+		portfolio.update((p) => {
+			p.config.tax_rate_state = 0.08;
+			return p;
+		});
+		renderSettings();
+		expect(screen.getByText(/custom/)).toBeInTheDocument();
 	});
 
 	it('shows advanced inputs after clicking Advanced toggle', async () => {
@@ -84,7 +108,7 @@ describe('SimulateSettings', () => {
 		expect(screen.getByRole('button', { name: 'Simulate' })).toBeInTheDocument();
 	});
 
-	it('shows summary text with strategy when collapsed', () => {
+	it('shows summary text with strategy when panel collapsed', () => {
 		portfolio.update((p) => {
 			p.config.spending_strategy = 'fixed_dollar';
 			p.config.annual_spend_net = 120000;
@@ -93,17 +117,17 @@ describe('SimulateSettings', () => {
 		renderSettings({ collapsed: true });
 		const summary = screen.getByText(/infl.*growth/);
 		expect(summary).toBeInTheDocument();
-		expect(summary.textContent).toContain('Fixed/$120K');
+		expect(summary.textContent).toContain('Fixed $120K');
 	});
 
-	it('shows POP shorthand in summary', () => {
+	it('shows POP shorthand in panel summary', () => {
 		portfolio.update((p) => {
 			p.config.spending_strategy = 'percent_of_portfolio';
 			p.config.withdrawal_rate = 0.04;
 			return p;
 		});
 		renderSettings({ collapsed: true });
-		expect(screen.getByText(/4\.0%\/POP/)).toBeInTheDocument();
+		expect(screen.getByText(/4\.0% of Portfolio/)).toBeInTheDocument();
 	});
 
 	it('shows run mode radio buttons', () => {

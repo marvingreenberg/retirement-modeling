@@ -20,27 +20,27 @@ The app SHALL detect when a portfolio is unconfigured and display a setup form i
 - **THEN** the setup form is replaced by the normal landing page with sample data populated
 
 ### Requirement: Setup form inputs
-The setup form SHALL collect the minimum information needed to begin: primary person's age and an optional spouse with age.
+The setup form SHALL collect the minimum information needed to begin: primary person's name and age, and an optional spouse with name and age.
 
 #### Scenario: Setup form fields
 - **WHEN** the setup form is displayed
-- **THEN** the form shows a primary age input, a spouse toggle, and a [Get Started] button
+- **THEN** the form shows a primary name input, primary age input, a spouse toggle, and a [Get Started] button
 - **AND** a [Load Sample Data] button is available as an alternative
 
-#### Scenario: Spouse toggle reveals spouse age
+#### Scenario: Spouse toggle reveals spouse fields
 - **WHEN** the user enables the spouse toggle
-- **THEN** a spouse age input appears
+- **THEN** spouse name and spouse age inputs appear
 
-#### Scenario: Spouse toggle hides spouse age
+#### Scenario: Spouse toggle hides spouse fields
 - **WHEN** the user disables the spouse toggle
-- **THEN** the spouse age input is hidden and spouse age is set to 0
+- **THEN** the spouse name and age inputs are hidden and spouse values are cleared
 
 ### Requirement: Setup form submission
 The setup form SHALL validate inputs and initialize the portfolio with entered ages, derived simulation years, and one empty starter account.
 
 #### Scenario: Valid setup submission
-- **WHEN** the user enters a valid primary age and clicks [Get Started]
-- **THEN** the portfolio is initialized with the entered ages, simulation_years set to (95 - primary_age), one empty brokerage account, and the landing page transitions to the normal two-panel layout
+- **WHEN** the user enters a valid name and primary age and clicks [Get Started]
+- **THEN** the profile store is updated with the entered names, the portfolio is initialized with the entered ages, simulation_years set to (95 - primary_age), one empty brokerage account, and the landing page transitions to the normal two-panel layout
 
 #### Scenario: Invalid age rejected
 - **WHEN** the user enters an age below 20 or above 120 and clicks [Get Started]

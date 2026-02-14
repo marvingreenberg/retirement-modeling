@@ -1,13 +1,19 @@
 <script lang="ts">
-	import { portfolio, samplePortfolio } from '$lib/stores';
+	import { portfolio, samplePortfolio, profile, sampleProfile } from '$lib/stores';
 	import { TreePine } from 'lucide-svelte';
 
+	let primaryName = $state('');
 	let primaryAge = $state(0);
 	let hasSpouse = $state(false);
+	let spouseName = $state('');
 	let spouseAge = $state(0);
 	let error = $state('');
 
 	function handleStart() {
+		if (!primaryName.trim()) {
+			error = 'Please enter your name.';
+			return;
+		}
 		if (primaryAge < 20 || primaryAge > 120) {
 			error = 'Please enter a valid age between 20 and 120.';
 			return;
@@ -17,6 +23,7 @@
 			return;
 		}
 		error = '';
+		profile.set({ primaryName: primaryName.trim(), spouseName: hasSpouse ? spouseName.trim() : '' });
 		const simYears = Math.max(1, 95 - primaryAge);
 		portfolio.update((p) => ({
 			...p,
@@ -39,6 +46,7 @@
 	}
 
 	function loadSample() {
+		profile.set(structuredClone(sampleProfile));
 		portfolio.set(structuredClone(samplePortfolio));
 	}
 </script>
@@ -53,6 +61,11 @@
 
 		<div class="space-y-4">
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
+				Your Name
+				<input type="text" class="input text-sm" bind:value={primaryName} placeholder="e.g. Mike" />
+			</label>
+
+			<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
 				Your Age
 				<input type="number" class="input text-sm" bind:value={primaryAge} min="20" max="120" placeholder="e.g. 55" />
 			</label>
@@ -63,6 +76,11 @@
 			</label>
 
 			{#if hasSpouse}
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
+					Spouse Name
+					<input type="text" class="input text-sm" bind:value={spouseName} placeholder="e.g. Karen" />
+				</label>
+
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
 					Spouse Age
 					<input type="number" class="input text-sm" bind:value={spouseAge} min="20" max="120" placeholder="e.g. 52" />

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { portfolio } from '$lib/stores';
+	import { portfolio, defaultPortfolio } from '$lib/stores';
 	import type { ConversionStrategy, SpendingStrategy } from '$lib/types';
 	import InfoPopover from './InfoPopover.svelte';
 	import { Play, Shuffle } from 'lucide-svelte';
@@ -25,27 +25,34 @@
 		'24_percent_bracket': '24% Bracket',
 	};
 
-	const strategyLabels: Record<SpendingStrategy, string> = {
-		fixed_dollar: 'Fixed',
-		percent_of_portfolio: 'POP',
-		guardrails: 'Guardrails',
-		rmd_based: 'RMD',
-	};
+	function toPct(v: number): number { return Math.round(v * 10000) / 100; }
+	function setPct(e: Event, setter: (v: number) => void) {
+		setter(+(e.target as HTMLInputElement).value / 100);
+	}
 
-	function strategyShorthand(): string {
+	function strategySummary(): string {
 		const c = $portfolio.config;
-		const label = strategyLabels[c.spending_strategy ?? 'fixed_dollar'];
-		if (c.spending_strategy === 'percent_of_portfolio' && c.withdrawal_rate) {
-			return `${(c.withdrawal_rate * 100).toFixed(1)}%/${label}`;
-		}
-		if (c.spending_strategy === 'guardrails' && c.guardrails_config) {
-			return `${label}/${(c.guardrails_config.initial_withdrawal_rate * 100).toFixed(1)}%`;
-		}
-		if (c.spending_strategy === 'fixed_dollar') {
+		const s = c.spending_strategy ?? 'fixed_dollar';
+		if (s === 'fixed_dollar') {
 			const spend = c.annual_spend_net >= 1000 ? `$${Math.round(c.annual_spend_net / 1000)}K` : `$${c.annual_spend_net}`;
-			return `${label}/${spend}`;
+			return `Fixed ${spend}`;
 		}
-		return label;
+		if (s === 'percent_of_portfolio') return `${toPct(c.withdrawal_rate ?? 0.04).toFixed(1)}% of Portfolio`;
+		if (s === 'guardrails' && c.guardrails_config) {
+			const g = c.guardrails_config;
+			return `Guardrails ${toPct(g.initial_withdrawal_rate).toFixed(1)}%, (${Math.round(g.floor_percent * 100)}/${Math.round(g.ceiling_percent * 100)})`;
+		}
+		return 'RMD-Based';
+	}
+
+	function advancedSummary(): string {
+		const c = $portfolio.config;
+		const d = defaultPortfolio.config;
+		const isDefault = c.tax_rate_state === d.tax_rate_state
+			&& c.tax_rate_capital_gains === d.tax_rate_capital_gains
+			&& c.rmd_start_age === d.rmd_start_age
+			&& c.irmaa_limit_tier_1 === d.irmaa_limit_tier_1;
+		return isDefault ? 'defaults' : 'custom';
 	}
 
 	let summaryText = $derived.by(() => {
@@ -53,14 +60,10 @@
 		const infl = (c.inflation_rate * 100).toFixed(1);
 		const growth = (c.investment_growth_rate * 100).toFixed(1);
 		const conv = conversionLabels[c.strategy_target];
-		return `${infl}% infl, ${growth}% growth, ${conv}, ${strategyShorthand()}`;
+		return `${infl}% infl, ${growth}% growth, ${conv}, ${strategySummary()}`;
 	});
 
-	function toPct(v: number): number { return Math.round(v * 10000) / 100; }
-	function setPct(e: Event, setter: (v: number) => void) {
-		setter(+(e.target as HTMLInputElement).value / 100);
-	}
-
+	let strategyOpen = $state(false);
 	let advancedOpen = $state(false);
 
 	function toggleCollapsed() {
@@ -78,6 +81,7 @@
 	</div>
 {:else}
 	<div class="bg-surface-100 dark:bg-surface-800 rounded p-3 space-y-2">
+		<!-- Primary row: always visible -->
 		<div class="flex gap-4 flex-wrap items-end">
 			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 				<span class="flex items-center gap-1">Inflation % <InfoPopover text="Assumed annual rate at which prices increase, reducing the purchasing power of fixed withdrawals over time." /></span>
@@ -98,54 +102,82 @@
 			</label>
 		</div>
 
-		<div class="flex gap-4 flex-wrap items-end">
-			<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-				<span class="flex items-center gap-1">Withdrawal Strategy <InfoPopover text="How annual withdrawals are calculated. Fixed Dollar adjusts for inflation. % of Portfolio takes a fixed percentage each year. Guardrails adjusts spending when withdrawal rate drifts. RMD-Based uses IRS Required Minimum Distribution tables." /></span>
-				<select class="select w-44 text-sm" bind:value={$portfolio.config.spending_strategy}>
-					<option value="fixed_dollar">Fixed Dollar</option>
-					<option value="percent_of_portfolio">% of Portfolio</option>
-					<option value="guardrails">Guardrails</option>
-					<option value="rmd_based">RMD-Based</option>
-				</select>
-			</label>
-		</div>
+		<!-- Withdrawal Strategy: collapsible -->
+		<button class="text-xs text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer w-full text-left" onclick={() => { strategyOpen = !strategyOpen; }}>
+			{strategyOpen ? '▾' : '▸'} Withdrawal Strategy{#if !strategyOpen} <span class="text-surface-500">— {strategySummary()}</span>{/if}
+		</button>
 
-		{#if $portfolio.config.spending_strategy === 'percent_of_portfolio'}
-			<div class="flex gap-4 items-end">
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-					Withdrawal Rate
-					<input type="number" class="input w-24 text-sm" value={toPct($portfolio.config.withdrawal_rate ?? 0.04)} oninput={(e) => setPct(e, (v) => $portfolio.config.withdrawal_rate = v)} min="1" max="15" step="0.5" />
-				</label>
+		{#if strategyOpen}
+			<div class="pl-3 space-y-2">
+				{#if $portfolio.config.spending_strategy === 'percent_of_portfolio'}
+					<div class="flex gap-4 flex-wrap items-end">
+						<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+							<span class="flex items-center gap-1">Strategy <InfoPopover text="How annual withdrawals are calculated. Fixed Dollar adjusts for inflation. % of Portfolio takes a fixed percentage each year. Guardrails adjusts spending when withdrawal rate drifts. RMD-Based uses IRS Required Minimum Distribution tables." /></span>
+							<select class="select w-44 text-sm" bind:value={$portfolio.config.spending_strategy}>
+								<option value="fixed_dollar">Fixed Dollar</option>
+								<option value="percent_of_portfolio">% of Portfolio</option>
+								<option value="guardrails">Guardrails</option>
+								<option value="rmd_based">RMD-Based</option>
+							</select>
+						</label>
+						<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+							Withdrawal Rate
+							<input type="number" class="input w-24 text-sm" value={toPct($portfolio.config.withdrawal_rate ?? 0.04)} oninput={(e) => setPct(e, (v) => $portfolio.config.withdrawal_rate = v)} min="1" max="15" step="0.5" />
+						</label>
+					</div>
+				{:else if $portfolio.config.spending_strategy === 'guardrails' && $portfolio.config.guardrails_config}
+					<div class="flex gap-4 flex-wrap items-end">
+						<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+							<span class="flex items-center gap-1">Strategy <InfoPopover text="How annual withdrawals are calculated. Fixed Dollar adjusts for inflation. % of Portfolio takes a fixed percentage each year. Guardrails adjusts spending when withdrawal rate drifts. RMD-Based uses IRS Required Minimum Distribution tables." /></span>
+							<select class="select w-44 text-sm" bind:value={$portfolio.config.spending_strategy}>
+								<option value="fixed_dollar">Fixed Dollar</option>
+								<option value="percent_of_portfolio">% of Portfolio</option>
+								<option value="guardrails">Guardrails</option>
+								<option value="rmd_based">RMD-Based</option>
+							</select>
+						</label>
+						<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+							Init. WD Rate
+							<input type="number" class="input w-24 text-sm" value={toPct($portfolio.config.guardrails_config.initial_withdrawal_rate)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.initial_withdrawal_rate = v)} min="1" max="15" step="0.5" />
+						</label>
+					</div>
+					<div class="flex gap-4 flex-wrap items-end">
+						<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+							Floor %
+							<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.guardrails_config.floor_percent)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.floor_percent = v)} min="50" max="100" step="5" />
+						</label>
+						<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+							Ceiling %
+							<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.guardrails_config.ceiling_percent)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.ceiling_percent = v)} min="100" max="200" step="5" />
+						</label>
+						<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+							Adjust %
+							<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.guardrails_config.adjustment_percent)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.adjustment_percent = v)} min="1" max="25" step="1" />
+						</label>
+					</div>
+				{:else}
+					<div class="flex gap-4 flex-wrap items-end">
+						<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+							<span class="flex items-center gap-1">Strategy <InfoPopover text="How annual withdrawals are calculated. Fixed Dollar adjusts for inflation. % of Portfolio takes a fixed percentage each year. Guardrails adjusts spending when withdrawal rate drifts. RMD-Based uses IRS Required Minimum Distribution tables." /></span>
+							<select class="select w-44 text-sm" bind:value={$portfolio.config.spending_strategy}>
+								<option value="fixed_dollar">Fixed Dollar</option>
+								<option value="percent_of_portfolio">% of Portfolio</option>
+								<option value="guardrails">Guardrails</option>
+								<option value="rmd_based">RMD-Based</option>
+							</select>
+						</label>
+					</div>
+				{/if}
 			</div>
 		{/if}
 
-		{#if $portfolio.config.spending_strategy === 'guardrails' && $portfolio.config.guardrails_config}
-			<div class="flex gap-4 flex-wrap items-end">
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-					Init. WD Rate
-					<input type="number" class="input w-24 text-sm" value={toPct($portfolio.config.guardrails_config.initial_withdrawal_rate)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.initial_withdrawal_rate = v)} min="1" max="15" step="0.5" />
-				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-					Floor %
-					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.guardrails_config.floor_percent)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.floor_percent = v)} min="50" max="100" step="5" />
-				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-					Ceiling %
-					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.guardrails_config.ceiling_percent)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.ceiling_percent = v)} min="100" max="200" step="5" />
-				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-					Adjust %
-					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.guardrails_config.adjustment_percent)} oninput={(e) => setPct(e, (v) => $portfolio.config.guardrails_config!.adjustment_percent = v)} min="1" max="25" step="1" />
-				</label>
-			</div>
-		{/if}
-
-		<button class="text-xs text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer" onclick={() => { advancedOpen = !advancedOpen; }}>
-			{advancedOpen ? '▾' : '▸'} Advanced
+		<!-- Advanced: collapsible -->
+		<button class="text-xs text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer w-full text-left" onclick={() => { advancedOpen = !advancedOpen; }}>
+			{advancedOpen ? '▾' : '▸'} Advanced{#if !advancedOpen} <span class="text-surface-500">— {advancedSummary()}</span>{/if}
 		</button>
 
 		{#if advancedOpen}
-			<div class="flex gap-4 flex-wrap items-end">
+			<div class="pl-3 flex gap-4 flex-wrap items-end">
 				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 					State Tax %
 					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.tax_rate_state)} oninput={(e) => setPct(e, (v) => $portfolio.config.tax_rate_state = v)} min="0" max="20" step="0.25" />
@@ -165,6 +197,7 @@
 			</div>
 		{/if}
 
+		<!-- Run mode + Simulate -->
 		<div class="flex items-center gap-4 pt-1">
 			<label class="flex items-center gap-1.5 text-sm text-surface-600 dark:text-surface-400 cursor-pointer">
 				<input type="radio" name="runMode" value="single" bind:group={runMode} class="radio" />

@@ -1,3 +1,8 @@
+export interface UserProfile {
+	primaryName: string;
+	spouseName: string;
+}
+
 export type AccountType = 'brokerage' | 'pretax' | 'roth';
 export type Owner = 'primary' | 'spouse' | 'joint';
 export type ConversionStrategy = 'standard' | 'irmaa_tier_1' | '22_percent_bracket' | '24_percent_bracket';

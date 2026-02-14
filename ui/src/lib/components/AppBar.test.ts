@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
+import { profile, defaultProfile } from '$lib/stores';
 
 Object.defineProperty(window, 'matchMedia', {
 	writable: true,
@@ -18,6 +19,10 @@ vi.mock('$app/state', () => ({
 const { default: AppBar } = await import('./AppBar.svelte');
 
 describe('AppBar', () => {
+	beforeEach(() => {
+		profile.set(structuredClone(defaultProfile));
+	});
+
 	it('renders the app title', () => {
 		render(AppBar);
 		expect(screen.getByText('Retirement Simulator')).toBeInTheDocument();
@@ -45,8 +50,19 @@ describe('AppBar', () => {
 		expect(homeLink).toHaveAttribute('aria-current', 'page');
 	});
 
-	it('renders dark mode toggle', () => {
+	it('does not render dark mode toggle in bar', () => {
 		render(AppBar);
-		expect(screen.getByLabelText('Toggle dark mode')).toBeInTheDocument();
+		expect(screen.queryByLabelText('Toggle dark mode')).not.toBeInTheDocument();
+	});
+
+	it('renders avatar/profile button', () => {
+		render(AppBar);
+		expect(screen.getByLabelText('Open profile')).toBeInTheDocument();
+	});
+
+	it('avatar shows initials when profile has names', () => {
+		profile.set({ primaryName: 'Mike', spouseName: 'Karen' });
+		render(AppBar);
+		expect(screen.getByText('M,K')).toBeInTheDocument();
 	});
 });

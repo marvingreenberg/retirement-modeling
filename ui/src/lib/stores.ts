@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { Portfolio, ComparisonSnapshot, SimulationResponse, MonteCarloResponse } from './types';
+import type { Portfolio, ComparisonSnapshot, SimulationResponse, MonteCarloResponse, UserProfile } from './types';
 import type { FieldErrors } from './validation';
 
 export const samplePortfolio: Portfolio = {
@@ -142,6 +142,10 @@ export const defaultPortfolio: Portfolio = {
 	accounts: [],
 };
 
+export const defaultProfile: UserProfile = { primaryName: '', spouseName: '' };
+export const sampleProfile: UserProfile = { primaryName: 'Mike', spouseName: 'Karen' };
+
+export const profile = writable<UserProfile>(structuredClone(defaultProfile));
 export const portfolio = writable<Portfolio>(structuredClone(defaultPortfolio));
 export const validationErrors = writable<FieldErrors>({});
 export const touchedFields = writable<Set<string>>(new Set());

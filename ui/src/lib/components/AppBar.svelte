@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { AppBar as SkAppBar } from '@skeletonlabs/skeleton-svelte';
-	import DarkModeToggle from './DarkModeToggle.svelte';
 	import AvatarButton from './AvatarButton.svelte';
+	import ProfileDrawer from './ProfileDrawer.svelte';
 	import { Home, UtensilsCrossed, GitCompareArrows, Table } from 'lucide-svelte';
 
 	const navItems = [
@@ -16,6 +16,8 @@
 		if (href === '/') return page.url.pathname === '/';
 		return page.url.pathname.startsWith(href);
 	}
+
+	let drawerOpen = $state(false);
 </script>
 
 <SkAppBar>
@@ -38,8 +40,9 @@
 			</nav>
 		</SkAppBar.Headline>
 		<SkAppBar.Trail>
-			<DarkModeToggle />
-			<AvatarButton />
+			<AvatarButton onclick={() => drawerOpen = !drawerOpen} />
 		</SkAppBar.Trail>
 	</SkAppBar.Toolbar>
 </SkAppBar>
+
+<ProfileDrawer bind:open={drawerOpen} />
