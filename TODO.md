@@ -78,6 +78,26 @@ Something cloud based, information stored encrypted at rest. Some best practices
 
 
 ---
+# UI bugs
+
+## First use lets set user name and age AND add spouse
+    Profile does not allow adding (or deleting) a spouse
+
+## Bug parsing
+    Failed to parse OFX: This page contains the following errors:error on line 5 at column 38: Opening and ending tag mismatch: STATUS line 4 and CODE Below is a rendering of the page up to the first error.
+    for .accounts/WF_Joint_Investment.QFX
+
+    Test parsing of all
+
+## Parsing identifies %equities, etc. but information is not retained anywhere
+    Want to use to estimate rate of return
+
+## can't import to create first account - get error must have one account
+
+## Some disconenct between the 4% rule, RMD, and guardrails, since can't support spending budget
+if 4% withdrawal, sometimes.
+
+---
 
 # Frontend (UI)
 

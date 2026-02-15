@@ -36,10 +36,12 @@ clean:
 	  [[ -z "$$text" ]] || { read -p 'Delete? (y/N): ' -n1 -r YN; echo; \
 	  [[ "$$YN" == y || "$$YN" == Y ]] && (set -x; $(GITCLN) .); }
 
+
 dev:
-	@trap 'kill 0' EXIT; \
+	@trap 'kill 0' INT TERM; \
 	  $(ACTIVATE) && uvicorn retirement_model.api:app --reload & \
-	  cd ui && pnpm dev & \
+	  (cd ui && npx vite dev) & \
+	  sleep 2 && open http://localhost:5173; \
 	  wait
 
 docker-run:
@@ -59,12 +61,7 @@ format:
 	  black src/ tests/ && \
 	  isort src/ tests/
 
-dev:
-	@trap 'kill 0' INT TERM; \
-	  $(ACTIVATE) && uvicorn retirement_model.api:app --reload & \
-	  (cd ui && npx vite dev) & \
-	  sleep 2 && open http://localhost:5173; \
-	  wait
+
 
 # ── Component targets ───────────────────────────────────────────
 

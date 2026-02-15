@@ -1,5 +1,7 @@
 # Virtual environment
 .venv/
+.docs/
+.accounts/
 
 # Python
 __pycache__/
