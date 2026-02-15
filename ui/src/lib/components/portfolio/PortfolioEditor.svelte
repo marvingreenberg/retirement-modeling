@@ -9,6 +9,7 @@
 	import CollapsibleSection from '$lib/components/CollapsibleSection.svelte';
 	import FileControls from '$lib/components/FileControls.svelte';
 	import AccountsEditor from './AccountsEditor.svelte';
+	import ImportPortfolio from './ImportPortfolio.svelte';
 	import SpendingEditor from './SpendingEditor.svelte';
 	import IncomeEditor from './IncomeEditor.svelte';
 	import { Landmark, Wallet, Briefcase, AlertTriangle } from 'lucide-svelte';
@@ -94,6 +95,7 @@
 			</div>
 		{/if}
 		<AccountsEditor bind:accounts={$portfolio.accounts} />
+		<ImportPortfolio bind:accounts={$portfolio.accounts} />
 	</CollapsibleSection>
 
 	<CollapsibleSection title="Budget" bind:open={budgetOpen}>
