@@ -2,10 +2,11 @@
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import type { Snippet } from 'svelte';
 
-	let { title, open = $bindable(false), icon, children } = $props<{
+	let { title, open = $bindable(false), icon, summary, children } = $props<{
 		title: string;
 		open?: boolean;
 		icon?: Snippet;
+		summary?: Snippet;
 		children: any;
 	}>();
 
@@ -18,6 +19,9 @@
 			<span class="flex items-center gap-2">
 				{#if icon}{@render icon()}{/if}
 				{title}
+				{#if !open && summary}
+					<span class="text-xs text-surface-500 font-normal">— {@render summary()}</span>
+				{/if}
 			</span>
 			<span class="text-surface-500 transition-transform duration-200" class:rotate-90={open}>▶</span>
 		</Accordion.ItemTrigger>

@@ -1,16 +1,17 @@
 ## Purpose
 Main landing page combining portfolio overview, simulation controls, results display, and navigation to other views.
 ## Requirements
-### Requirement: Two-panel landing page layout
-The landing page SHALL use a single-column vertical layout. Simulation settings appear at the top, followed by chart/results, then a portfolio summary bar, then accounts and income editors below.
+### Requirement: Landing page layout order
+The landing page SHALL render components in this order: PortfolioEditor (Accounts, Budget, Income), then SimulateSettings, then results area (SimulateView or WelcomeState). The portfolio summary bar is removed.
 
-#### Scenario: Landing page with results
-- **WHEN** user has run a simulation
-- **THEN** the page displays (top to bottom): SimulateSettings, SimulateView with chart, portfolio summary bar with nav links, PortfolioEditor with accounts/income
+#### Scenario: Landing page component order
+- **WHEN** the user views the landing page after setup
+- **THEN** the page displays (top to bottom): PortfolioEditor, SimulateSettings, results/welcome area
+- **AND** there is no separate portfolio summary bar
 
-#### Scenario: Landing page before simulation
-- **WHEN** no simulation has been run
-- **THEN** the page displays SimulateSettings, WelcomeState placeholder, then PortfolioEditor
+#### Scenario: Navigation links in AppBar suffice
+- **WHEN** the portfolio summary bar is removed
+- **THEN** navigation to Spending, Compare, and Details is available via the AppBar
 
 ### Requirement: Welcome state before first simulation
 The results panel SHALL display a welcome message before any simulation has been run. The welcome state SHALL guide the user to add accounts and configure their portfolio after completing setup.
@@ -85,14 +86,4 @@ The loading state SHALL display an animated spinner while a simulation is in pro
 - **WHEN** a simulation is running
 - **THEN** an animated spinner is displayed with "Running simulation..." text
 
-### Requirement: Portfolio summary bar
-The landing page SHALL display a summary bar showing total portfolio balance, monthly spending (with annual in parentheses), spending strategy (if non-default), and navigation links to Spending, Compare, and Details pages. The summary bar SHALL only appear when accounts exist.
-
-#### Scenario: Summary bar with accounts
-- **WHEN** user has accounts totaling $1M and spending of $120,000/yr
-- **THEN** summary bar shows portfolio total, "$10,000/mo ($120,000/yr)", and links to /spending, /compare, /details
-
-#### Scenario: Summary bar hidden without accounts
-- **WHEN** user has no accounts
-- **THEN** summary bar is not displayed
 

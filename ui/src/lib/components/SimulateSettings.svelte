@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { portfolio, defaultPortfolio, validationErrors, formTouched } from '$lib/stores';
+	import { portfolio, validationErrors, formTouched } from '$lib/stores';
 	import type { ConversionStrategy, SpendingStrategy } from '$lib/types';
 	import InfoPopover from './InfoPopover.svelte';
 	import { Play, Shuffle } from 'lucide-svelte';
@@ -48,16 +48,6 @@
 		return 'RMD-Based';
 	}
 
-	function advancedSummary(): string {
-		const c = $portfolio.config;
-		const d = defaultPortfolio.config;
-		const isDefault = c.tax_rate_state === d.tax_rate_state
-			&& c.tax_rate_capital_gains === d.tax_rate_capital_gains
-			&& c.rmd_start_age === d.rmd_start_age
-			&& c.irmaa_limit_tier_1 === d.irmaa_limit_tier_1;
-		return isDefault ? 'defaults' : 'custom';
-	}
-
 	let summaryText = $derived.by(() => {
 		const c = $portfolio.config;
 		const infl = (c.inflation_rate * 100).toFixed(1);
@@ -71,7 +61,6 @@
 	);
 
 	let strategyOpen = $state(false);
-	let advancedOpen = $state(false);
 
 	function toggleCollapsed() {
 		collapsed = !collapsed;
@@ -80,7 +69,7 @@
 
 {#if collapsed}
 	<div class="flex items-center gap-2 p-2 bg-surface-100 dark:bg-surface-800 rounded cursor-pointer" role="button" tabindex="0" onclick={toggleCollapsed} onkeydown={(e) => e.key === 'Enter' && toggleCollapsed()}>
-		<span class="text-xs text-surface-500">▸</span>
+		<span class="text-xs text-surface-500">&#9656;</span>
 		<span class="text-sm text-surface-600 dark:text-surface-400 flex-1">{summaryText}</span>
 		<button class="btn preset-filled btn-sm" onclick={(e) => { e.stopPropagation(); onrun(); }} disabled={loading}>
 			{loading ? 'Running...' : 'Simulate'}
@@ -180,32 +169,6 @@
 						</label>
 					</div>
 				{/if}
-			</div>
-		{/if}
-
-		<!-- Advanced: collapsible -->
-		<button class="text-xs text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer w-full text-left" onclick={() => { advancedOpen = !advancedOpen; }}>
-			{advancedOpen ? '▾' : '▸'} Advanced{#if !advancedOpen} <span class="text-surface-500">— {advancedSummary()}</span>{/if}
-		</button>
-
-		{#if advancedOpen}
-			<div class="pl-3 flex gap-4 flex-wrap items-end">
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-					State Tax %
-					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.tax_rate_state)} oninput={(e) => setPct(e, (v) => $portfolio.config.tax_rate_state = v)} min="0" max="20" step="0.25" />
-				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-					Cap Gains %
-					<input type="number" class="input w-20 text-sm" value={toPct($portfolio.config.tax_rate_capital_gains)} oninput={(e) => setPct(e, (v) => $portfolio.config.tax_rate_capital_gains = v)} min="0" max="30" step="0.5" />
-				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-					<span class="flex items-center gap-1">RMD Age <InfoPopover text="Age at which Required Minimum Distributions from pre-tax accounts begin. Currently 73 under the SECURE 2.0 Act." /></span>
-					<input type="number" class="input w-20 text-sm" bind:value={$portfolio.config.rmd_start_age} min="70" max="80" />
-				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
-					<span class="flex items-center gap-1">IRMAA Limit ($) <InfoPopover text="Income threshold above which Medicare Part B/D premiums increase. Roth conversions that push income above this trigger surcharges." /></span>
-					<input type="number" class="input w-28 text-sm" bind:value={$portfolio.config.irmaa_limit_tier_1} min="0" step="1000" />
-				</label>
 			</div>
 		{/if}
 

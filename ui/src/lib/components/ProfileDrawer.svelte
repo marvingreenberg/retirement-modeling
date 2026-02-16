@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { portfolio, profile } from '$lib/stores';
 	import { X, UserPlus, UserMinus } from 'lucide-svelte';
+	import InfoPopover from './InfoPopover.svelte';
 	import { onMount } from 'svelte';
 
 	let { open = $bindable(false) }: { open: boolean } = $props();
@@ -42,6 +43,11 @@
 			$portfolio.config.ss_auto.spouse_fra_amount = null;
 			$portfolio.config.ss_auto.spouse_start_age = null;
 		}
+	}
+
+	function toPct(v: number): number { return Math.round(v * 10000) / 100; }
+	function setPct(e: Event, setter: (v: number) => void) {
+		setter(+(e.target as HTMLInputElement).value / 100);
 	}
 </script>
 
@@ -110,6 +116,28 @@
 				<input type="checkbox" class="checkbox" checked={dark} onchange={toggleDarkMode} aria-label="Toggle dark mode" />
 				Dark Mode
 			</label>
+
+			<hr class="border-surface-300 dark:border-surface-700" />
+
+			<div class="space-y-3">
+				<h3 class="text-sm font-semibold text-surface-700 dark:text-surface-300">Tax & Advanced</h3>
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
+					State Tax %
+					<input type="number" class="input text-sm" value={toPct($portfolio.config.tax_rate_state)} oninput={(e) => setPct(e, (v) => $portfolio.config.tax_rate_state = v)} min="0" max="20" step="0.25" />
+				</label>
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
+					Cap Gains %
+					<input type="number" class="input text-sm" value={toPct($portfolio.config.tax_rate_capital_gains)} oninput={(e) => setPct(e, (v) => $portfolio.config.tax_rate_capital_gains = v)} min="0" max="30" step="0.5" />
+				</label>
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
+					<span class="flex items-center gap-1">RMD Age <InfoPopover text="Age at which Required Minimum Distributions from pre-tax accounts begin. Currently 73 under the SECURE 2.0 Act." /></span>
+					<input type="number" class="input text-sm" bind:value={$portfolio.config.rmd_start_age} min="70" max="80" />
+				</label>
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
+					<span class="flex items-center gap-1">IRMAA Limit ($) <InfoPopover text="Income threshold above which Medicare Part B/D premiums increase. Roth conversions that push income above this trigger surcharges." /></span>
+					<input type="number" class="input text-sm" bind:value={$portfolio.config.irmaa_limit_tier_1} min="0" step="1000" />
+				</label>
+			</div>
 		</aside>
 	</div>
 {/if}

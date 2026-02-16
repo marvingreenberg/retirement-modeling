@@ -2,11 +2,16 @@
 Defines the simulation settings panel layout, including primary assumptions, withdrawal strategy, advanced world parameters, run mode controls, and collapsible summary behavior.
 ## Requirements
 ### Requirement: Simulation settings panel
-The simulation settings panel SHALL provide input controls for simulation assumption parameters. Primary assumptions (Inflation Rate, Investment Growth Rate, Conversion Strategy) SHALL be always visible. Withdrawal Strategy and Advanced settings SHALL each be independently collapsible subsections with summary text when collapsed.
+The simulation settings panel SHALL provide input controls for simulation assumption parameters. Primary assumptions (Inflation Rate, Investment Growth Rate, Conversion Strategy) SHALL be on one compact row. The panel SHALL NOT contain an Advanced subsection — those settings are in the ProfileDrawer.
 
-#### Scenario: Primary inputs visible
+#### Scenario: No Advanced section in SimulateSettings
 - **WHEN** the user views the simulation settings panel
-- **THEN** Inflation Rate, Investment Growth Rate, and Conversion Strategy inputs are visible
+- **THEN** there is no "Advanced" toggle or collapsible section
+- **AND** Inflation %, Growth %, and Conversion are visible on one row
+
+#### Scenario: Withdrawal Strategy remains
+- **WHEN** the user views the simulation settings panel
+- **THEN** the Withdrawal Strategy collapsible subsection is still present below the primary row
 
 ### Requirement: Collapsible withdrawal strategy section
 The Withdrawal Strategy controls SHALL be in a collapsible subsection between the primary assumptions and the Advanced section. The section SHALL show a succinct summary when collapsed and default to collapsed.
@@ -21,21 +26,6 @@ The Withdrawal Strategy controls SHALL be in a collapsible subsection between th
 - **AND** percent_of_portfolio shows dropdown + withdrawal rate on the same row
 - **AND** guardrails shows dropdown + init rate on row 1, floor/ceiling/adjust on row 2
 - **AND** fixed_dollar and rmd_based show only the dropdown
-
-### Requirement: Collapsible advanced section with summary
-The Advanced section SHALL show a summary when collapsed indicating whether settings are default or customized.
-
-#### Scenario: Advanced collapsed with defaults
-- **WHEN** all advanced settings match default values
-- **THEN** the collapsed summary reads "Advanced — defaults"
-
-#### Scenario: Advanced collapsed with custom values
-- **WHEN** any advanced setting differs from the default
-- **THEN** the collapsed summary reads "Advanced — custom"
-
-#### Scenario: Advanced expanded
-- **WHEN** the user clicks the Advanced toggle
-- **THEN** State Tax %, Cap Gains %, RMD Age, and IRMAA Limit inputs appear
 
 #### Scenario: Collapsed panel summary includes strategy
 - **WHEN** the entire settings panel is collapsed after a simulation run

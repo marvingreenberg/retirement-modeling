@@ -69,40 +69,9 @@ describe('SimulateSettings', () => {
 		expect(screen.getByText(/Fixed \$140K/)).toBeInTheDocument();
 	});
 
-	it('shows advanced summary when collapsed', () => {
+	it('does not show Advanced section', () => {
 		renderSettings();
-		expect(screen.getByText(/Advanced/)).toBeInTheDocument();
-	});
-
-	it('advanced shows "defaults" when values match default', () => {
-		portfolio.update((p) => {
-			p.config.tax_rate_state = 0.05;
-			p.config.tax_rate_capital_gains = 0.15;
-			p.config.rmd_start_age = 73;
-			p.config.irmaa_limit_tier_1 = 206000;
-			return p;
-		});
-		renderSettings();
-		expect(screen.getByText(/defaults/)).toBeInTheDocument();
-	});
-
-	it('advanced shows "custom" when values differ from default', () => {
-		portfolio.update((p) => {
-			p.config.tax_rate_state = 0.08;
-			return p;
-		});
-		renderSettings();
-		expect(screen.getByText(/custom/)).toBeInTheDocument();
-	});
-
-	it('shows advanced inputs after clicking Advanced toggle', async () => {
-		renderSettings();
-		const toggle = screen.getByText(/Advanced/);
-		await fireEvent.click(toggle);
-		expect(screen.getByText('State Tax %')).toBeInTheDocument();
-		expect(screen.getByText('Cap Gains %')).toBeInTheDocument();
-		expect(screen.getByText(/RMD Age/)).toBeInTheDocument();
-		expect(screen.getByText(/IRMAA Limit/)).toBeInTheDocument();
+		expect(screen.queryByText(/Advanced/)).not.toBeInTheDocument();
 	});
 
 	it('shows Simulate button', () => {

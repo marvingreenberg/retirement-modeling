@@ -58,10 +58,11 @@ test.describe('Simulation Flow', () => {
 		await expect(page.getByRole('button', { name: 'Simulate', exact: true })).toBeVisible();
 	});
 
-	test('portfolio summary bar shows monthly spending', async ({ page }) => {
-		// The summary bar at the bottom should show monthly spending with annual note
-		const summaryBar = page.locator('.bg-surface-100, .dark\\:bg-surface-800').filter({ hasText: 'Spending' });
-		await expect(summaryBar.getByText(/\/mo/)).toBeVisible();
-		await expect(summaryBar.getByText(/\/yr\)/)).toBeVisible();
+	test('portfolio editor appears above simulate settings', async ({ page }) => {
+		const accounts = page.getByRole('button', { name: /^Accounts/ });
+		const simulate = page.getByRole('button', { name: 'Simulate' });
+		const accountsBox = await accounts.boundingBox();
+		const simulateBox = await simulate.boundingBox();
+		expect(accountsBox!.y).toBeLessThan(simulateBox!.y);
 	});
 });

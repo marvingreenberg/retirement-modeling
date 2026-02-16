@@ -18,7 +18,7 @@ describe('PortfolioEditor', () => {
 
 	it('shows annual equivalent next to monthly input', () => {
 		render(PortfolioEditor);
-		expect(screen.getByText(/\/yr$/)).toBeInTheDocument();
+		expect(screen.getByText(/\$120,000\/yr/)).toBeInTheDocument();
 	});
 
 	it('shows collapsible sections for accounts, budget, income', () => {
@@ -72,5 +72,46 @@ describe('PortfolioEditor', () => {
 	it('shows planned expenses count in budget section', () => {
 		render(PortfolioEditor);
 		expect(screen.getByText(/2 planned expenses/)).toBeInTheDocument();
+	});
+
+	it('shows accounts collapsed summary with total', () => {
+		render(PortfolioEditor);
+		expect(screen.getByText(/Total \$1\.80M/)).toBeInTheDocument();
+	});
+
+	it('shows "No accounts" summary when accounts empty', () => {
+		portfolio.update((p) => {
+			p.accounts = [];
+			return p;
+		});
+		render(PortfolioEditor);
+		expect(screen.getByText(/No accounts/)).toBeInTheDocument();
+	});
+
+	it('shows budget collapsed summary with monthly spending', () => {
+		render(PortfolioEditor);
+		expect(screen.getByText(/\$10,000\/mo/)).toBeInTheDocument();
+	});
+
+	it('shows budget summary with expense count', () => {
+		render(PortfolioEditor);
+		expect(screen.getByText(/\+ 2 expenses/)).toBeInTheDocument();
+	});
+
+	it('shows income collapsed summary with SS and pension', () => {
+		render(PortfolioEditor);
+		expect(screen.getByText(/SS at 70/)).toBeInTheDocument();
+		expect(screen.getByText(/Pension \$24K\/yr/)).toBeInTheDocument();
+	});
+
+	it('shows "None configured" when no income', () => {
+		portfolio.update((p) => {
+			p.config.social_security.primary_benefit = 0;
+			p.config.ss_auto = null;
+			p.config.income_streams = [];
+			return p;
+		});
+		render(PortfolioEditor);
+		expect(screen.getByText(/None configured/)).toBeInTheDocument();
 	});
 });

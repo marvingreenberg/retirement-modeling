@@ -29,6 +29,29 @@
 
 	let noAccounts = $derived($portfolio.accounts.length === 0);
 	let noBudget = $derived($portfolio.config.annual_spend_net === 0);
+	let totalBalance = $derived($portfolio.accounts.reduce((sum, a) => sum + a.balance, 0));
+
+	function compactCurrency(v: number): string {
+		if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
+		if (v >= 1_000) return `$${Math.round(v / 1_000)}K`;
+		return `$${v}`;
+	}
+
+	let incomeSummary = $derived.by(() => {
+		const parts: string[] = [];
+		const ss = $portfolio.config.social_security;
+		const ssAuto = $portfolio.config.ss_auto;
+		const hasSS = (ssAuto && ssAuto.primary_fra_amount > 0) || ss.primary_benefit > 0;
+		if (hasSS) {
+			const startAge = ssAuto?.primary_start_age ?? ss.primary_start_age;
+			parts.push(`SS at ${startAge}`);
+		}
+		for (const s of $portfolio.config.income_streams) {
+			const amt = s.amount >= 1000 ? `$${Math.round(s.amount / 1000)}K` : `$${s.amount}`;
+			parts.push(`${s.name} ${amt}/yr`);
+		}
+		return parts.length > 0 ? parts.join(', ') : 'None configured';
+	});
 
 	$effect(() => {
 		const section = $simulateBlockedSection;
@@ -89,6 +112,7 @@
 
 	<CollapsibleSection title="Accounts" bind:open={accountsOpen}>
 		{#snippet icon()}<Landmark size={16} class="text-tertiary-500" />{/snippet}
+		{#snippet summary()}{#if noAccounts}No accounts{:else}Total {compactCurrency(totalBalance)}{/if}{/snippet}
 		{#if noAccounts}
 			<div class="flex items-center gap-2 text-warning-600 dark:text-warning-400 text-sm font-semibold py-2">
 				<AlertTriangle size={16} />
@@ -101,6 +125,7 @@
 
 	<CollapsibleSection title="Budget" bind:open={budgetOpen}>
 		{#snippet icon()}<Wallet size={16} class="text-primary-500" />{/snippet}
+		{#snippet summary()}{currency(Math.round($portfolio.config.annual_spend_net / 12))}/mo{#if ($portfolio.config.planned_expenses ?? []).length > 0} + {($portfolio.config.planned_expenses ?? []).length} expenses{/if}{/snippet}
 		{#if noBudget && !noAccounts}
 			<div class="flex items-center gap-2 text-warning-600 dark:text-warning-400 text-sm font-semibold py-2">
 				<AlertTriangle size={16} />
@@ -127,6 +152,7 @@
 
 	<CollapsibleSection title="Income" bind:open={incomeOpen}>
 		{#snippet icon()}<Briefcase size={16} class="text-success-500" />{/snippet}
+		{#snippet summary()}{incomeSummary}{/snippet}
 		<IncomeEditor bind:config={$portfolio.config} />
 	</CollapsibleSection>
 
