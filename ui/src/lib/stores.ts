@@ -153,17 +153,16 @@ export const formTouched = writable<boolean>(false);
 export const comparisonSnapshots = writable<ComparisonSnapshot[]>([]);
 export const tourActive = writable<boolean>(false);
 export const simulateBlockedSection = writable<string | null>(null);
+export const numSimulations = writable<number>(1000);
 
 export interface SimulationResultsState {
 	singleResult: SimulationResponse | null;
 	mcResult: MonteCarloResponse | null;
-	lastRunMode: 'single' | 'monte_carlo' | null;
 }
 
 export const simulationResults = writable<SimulationResultsState>({
 	singleResult: null,
 	mcResult: null,
-	lastRunMode: null,
 });
 
 export function markTouched(path: string) {

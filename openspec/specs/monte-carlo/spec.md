@@ -144,24 +144,27 @@ The system SHALL support reproducible results via random seed.
 ---
 
 ### Requirement: Monte Carlo UI Integration
-The Monte Carlo simulation SHALL be accessible as a run mode within the Simulate tab.
+The Monte Carlo simulation SHALL always run alongside the single simulation when the user clicks Simulate. Results appear on the Monte Carlo tab.
 
-#### Scenario: Run mode selection
-- WHEN user wants to run Monte Carlo
-- THEN they select the "Monte Carlo" radio option on the Simulate tab
-- AND enter desired iteration count (default 1000)
-- AND click the "Simulate" button
+#### Scenario: Always-run behavior
+- **WHEN** user clicks Simulate
+- **THEN** Monte Carlo runs concurrently with the single simulation
+- **AND** results appear on the Monte Carlo tab when ready
 
-#### Scenario: Monte Carlo ignores configured growth rate
-- WHEN Monte Carlo mode is selected
-- THEN the configured `investment_growth_rate` is not used for simulation
-- AND returns are sampled from historical market data instead
-- AND the growth rate input shows a visual indicator that it is overridden
+#### Scenario: MC iteration count location
+- **WHEN** the user wants to configure Monte Carlo iterations
+- **THEN** the setting is in the ProfileDrawer Tax & Advanced section
+- **AND** a `numSimulations` store provides the value (default 1000)
+
+#### Scenario: Growth rate and Monte Carlo
+- **WHEN** the simulation settings panel is displayed
+- **THEN** the Growth % input does not show an override indicator
+- **AND** the tooltip mentions that Monte Carlo uses historically-sampled returns instead
 
 #### Scenario: Monte Carlo results display
-- WHEN Monte Carlo simulation completes
-- THEN results are displayed in the Simulate tab results area
-- AND results include: success rate, final balance percentiles, fan chart, depletion analysis
+- **WHEN** Monte Carlo simulation completes
+- **THEN** results are displayed on the "Monte Carlo" tab
+- **AND** results include: warning text, success rate, final balance percentiles, fan chart, depletion analysis
 
 ---
 

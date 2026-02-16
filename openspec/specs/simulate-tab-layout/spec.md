@@ -1,5 +1,5 @@
 ## Purpose
-Defines the simulation settings panel layout, including primary assumptions, withdrawal strategy, advanced world parameters, run mode controls, and collapsible summary behavior.
+Defines the simulation settings panel layout, including primary assumptions, withdrawal strategy, run-both behavior with tabbed results, and collapsible summary behavior.
 ## Requirements
 ### Requirement: Simulation settings panel
 The simulation settings panel SHALL provide input controls for simulation assumption parameters. Primary assumptions (Inflation Rate, Investment Growth Rate, Conversion Strategy) SHALL be on one compact row. The panel SHALL NOT contain an Advanced subsection — those settings are in the ProfileDrawer.
@@ -14,7 +14,7 @@ The simulation settings panel SHALL provide input controls for simulation assump
 - **THEN** the Withdrawal Strategy collapsible subsection is still present below the primary row
 
 ### Requirement: Collapsible withdrawal strategy section
-The Withdrawal Strategy controls SHALL be in a collapsible subsection between the primary assumptions and the Advanced section. The section SHALL show a succinct summary when collapsed and default to collapsed.
+The Withdrawal Strategy controls SHALL be in a collapsible subsection below the primary assumptions. The section SHALL show a succinct summary when collapsed and default to collapsed.
 
 #### Scenario: Strategy collapsed with summary
 - **WHEN** the strategy section is collapsed
@@ -52,24 +52,52 @@ All percentage inputs in the simulation settings panel SHALL display values as h
 
 ---
 
-### Requirement: Run mode selection
-The simulation settings panel SHALL provide a choice between single run and Monte Carlo modes.
+### Requirement: Always-run-both with tabbed results
+Clicking Simulate SHALL always run both a single deterministic simulation and a Monte Carlo simulation concurrently. Results are displayed in a tabbed interface.
 
-#### Scenario: Run mode radio buttons
+#### Scenario: No run mode radio buttons
 - **WHEN** the user views the simulation settings panel
-- **THEN** two radio options are displayed: "Single run" and "Monte Carlo"
-- **AND** Monte Carlo option includes an editable iteration count (default 1000)
-- **AND** an (i) icon next to Monte Carlo explains what it does
+- **THEN** there are no radio buttons for "Single run" or "Monte Carlo"
+- **AND** there is no inline Monte Carlo iteration count input
 
-#### Scenario: Single run selected
-- **WHEN** the user selects "Single run" and clicks Simulate
-- **THEN** the system runs a single deterministic simulation using the configured growth rate
-- **AND** results display in the right panel as summary metrics and balance chart
+#### Scenario: Simulate triggers both runs
+- **WHEN** the user clicks Simulate
+- **THEN** both a single deterministic simulation and a Monte Carlo simulation are fired concurrently
+- **AND** the single run result displays immediately when it resolves
+- **AND** the Monte Carlo result displays when it resolves (may be later)
 
-#### Scenario: Monte Carlo selected
-- **WHEN** the user selects "Monte Carlo" and clicks Simulate
-- **THEN** the system runs N iterations with historically-sampled returns
-- **AND** results display in the right panel as success rate, percentile bands, fan chart, and depletion analysis
+#### Scenario: MC iteration count in ProfileDrawer
+- **WHEN** the user wants to change the number of Monte Carlo iterations
+- **THEN** the setting is available in the ProfileDrawer's Tax & Advanced section
+- **AND** the default is 1000 iterations
+
+#### Scenario: Tab bar with two tabs
+- **WHEN** simulation results exist
+- **THEN** a tab bar with "Simulation" and "Monte Carlo" tabs is displayed
+- **AND** the "Simulation" tab is active by default
+
+#### Scenario: Single run results on Simulation tab
+- **WHEN** a single run simulation completes
+- **THEN** the Simulation tab shows: summary metrics (final balance, total taxes, IRMAA, Roth conversions, years), balance chart
+- **AND** an "Add to Comparison" button appears
+
+#### Scenario: Monte Carlo results on Monte Carlo tab
+- **WHEN** a Monte Carlo simulation completes
+- **THEN** the Monte Carlo tab shows: warning text about historically-sampled returns, success rate (color-coded), final balance percentiles, fan chart, depletion analysis
+- **AND** an "Add to Comparison (median)" button appears
+
+#### Scenario: MC tab loading state
+- **WHEN** the Monte Carlo simulation has not yet completed
+- **THEN** the Monte Carlo tab shows a spinner with "Running Monte Carlo simulation..."
+- **AND** a small spinner also appears inline on the Monte Carlo tab button
+
+#### Scenario: Simulation tab loading state
+- **WHEN** the single simulation has not yet completed
+- **THEN** the Simulation tab shows a spinner with "Running simulation..."
+
+#### Scenario: MC warning text
+- **WHEN** Monte Carlo results are displayed
+- **THEN** a small warning note is shown: "Monte Carlo uses historically-sampled returns and inflation, not the configured values above."
 
 ---
 
@@ -79,7 +107,7 @@ The settings panel SHALL use a compact multi-column grid to minimize vertical sp
 #### Scenario: Settings rendered in grid
 - **WHEN** the settings panel is expanded
 - **THEN** assumption inputs are arranged in 2-3 rows using horizontal grouping
-- **AND** the Simulate button appears on the same row as the run mode selection
+- **AND** the Simulate button appears on its own row
 - **AND** total settings height is approximately 3-4 rows of content
 
 ---
@@ -105,7 +133,7 @@ The settings panel SHALL auto-collapse to a summary line after a simulation run,
 ---
 
 ### Requirement: Single Simulate button
-The settings panel SHALL have a single "Simulate" button that runs the currently selected mode.
+The settings panel SHALL have a single "Simulate" button that triggers both simulation runs.
 
 #### Scenario: Button text
 - **WHEN** the landing page is displayed
@@ -114,19 +142,6 @@ The settings panel SHALL have a single "Simulate" button that runs the currently
 - **AND** the button is disabled during execution
 
 ---
-
-### Requirement: Results display adapts to run mode
-The results area in the right panel SHALL display appropriate content based on whether a single run or Monte Carlo was executed.
-
-#### Scenario: Single run results
-- **WHEN** a single run simulation completes
-- **THEN** results show: summary metrics (final balance, total taxes, IRMAA, Roth conversions, years, strategy), balance chart
-- **AND** an "Add to Comparison" button appears
-
-#### Scenario: Monte Carlo results
-- **WHEN** a Monte Carlo simulation completes
-- **THEN** results show: success rate (color-coded), final balance percentiles, fan chart, depletion analysis
-- **AND** an "Add to Comparison" button appears (captures median values + success rate)
 
 ### Requirement: Effective spending in results summary
 The simulation results summary SHALL display the effective initial spending amount in both monthly and annual formats, using data from the API response.
@@ -139,3 +154,13 @@ The simulation results summary SHALL display the effective initial spending amou
 - **WHEN** a Monte Carlo simulation completes
 - **THEN** the results summary does NOT display initial spending (the MC API response does not include spending fields)
 
+---
+
+### Requirement: Details page tabbed view
+The details page SHALL use a tabbed interface matching the main results view.
+
+#### Scenario: Details page tabs
+- **WHEN** simulation results exist and user navigates to /details
+- **THEN** a tab bar with "Simulation" and "Monte Carlo" tabs is displayed
+- **AND** the Simulation tab shows the year-by-year detail table
+- **AND** the Monte Carlo tab shows the yearly percentile table
