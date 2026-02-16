@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import { portfolio, validationErrors, comparisonSnapshots } from '$lib/stores';
 import { samplePortfolio } from '$lib/stores';
 import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
@@ -35,7 +35,7 @@ const mockMCResult: MonteCarloResponse = {
 	depletion_ages: [], yearly_percentiles: [],
 };
 
-describe('SimulateView (results-only)', () => {
+describe('SimulateView (tabbed results)', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		portfolio.set(structuredClone(samplePortfolio));
@@ -43,24 +43,24 @@ describe('SimulateView (results-only)', () => {
 		comparisonSnapshots.set([]);
 	});
 
-	it('renders nothing when no results and no error', () => {
+	it('renders tab bar with Simulation and Monte Carlo tabs', () => {
 		render(SimulateView, {
-			singleResult: null, mcResult: null, lastRunMode: null, error: '',
+			singleResult: mockSingleResult, mcResult: null, mcLoading: false, error: '',
 		});
-		expect(screen.queryByText('Summary')).not.toBeInTheDocument();
-		expect(screen.queryByText('Success Rate')).not.toBeInTheDocument();
+		expect(screen.getByText('Simulation')).toBeInTheDocument();
+		expect(screen.getByText('Monte Carlo')).toBeInTheDocument();
 	});
 
 	it('shows error message when error prop is set', () => {
 		render(SimulateView, {
-			singleResult: null, mcResult: null, lastRunMode: null, error: 'Server error',
+			singleResult: null, mcResult: null, mcLoading: false, error: 'Server error',
 		});
 		expect(screen.getByText('Server error')).toBeInTheDocument();
 	});
 
-	it('shows summary for single run results', () => {
+	it('shows summary for single run results on Simulation tab', () => {
 		render(SimulateView, {
-			singleResult: mockSingleResult, mcResult: null, lastRunMode: 'single', error: '',
+			singleResult: mockSingleResult, mcResult: null, mcLoading: false, error: '',
 		});
 		expect(screen.getByText('Final Balance')).toBeInTheDocument();
 		expect(screen.getByText('Total Taxes')).toBeInTheDocument();
@@ -70,56 +70,91 @@ describe('SimulateView (results-only)', () => {
 
 	it('shows Add to Comparison button for single results', () => {
 		render(SimulateView, {
-			singleResult: mockSingleResult, mcResult: null, lastRunMode: 'single', error: '',
+			singleResult: mockSingleResult, mcResult: null, mcLoading: false, error: '',
 		});
 		expect(screen.getByRole('button', { name: /add to comparison/i })).toBeInTheDocument();
 	});
 
-	it('shows success rate for monte carlo results', () => {
+	it('shows loading spinner on Simulation tab when no single result', () => {
 		render(SimulateView, {
-			singleResult: null, mcResult: mockMCResult, lastRunMode: 'monte_carlo', error: '',
+			singleResult: null, mcResult: null, mcLoading: true, error: '',
 		});
+		expect(screen.getByText('Running simulation...')).toBeInTheDocument();
+	});
+
+	it('shows MC loading spinner when switching to Monte Carlo tab', async () => {
+		render(SimulateView, {
+			singleResult: mockSingleResult, mcResult: null, mcLoading: true, error: '',
+		});
+		const mcTab = screen.getByText('Monte Carlo');
+		await fireEvent.click(mcTab);
+		expect(screen.getByText('Running Monte Carlo simulation...')).toBeInTheDocument();
+	});
+
+	it('shows success rate on Monte Carlo tab', async () => {
+		render(SimulateView, {
+			singleResult: mockSingleResult, mcResult: mockMCResult, mcLoading: false, error: '',
+		});
+		const mcTab = screen.getByText('Monte Carlo');
+		await fireEvent.click(mcTab);
 		expect(screen.getByText(/92\.0% Success Rate/)).toBeInTheDocument();
 	});
 
-	it('shows final balance percentiles for monte carlo results', () => {
+	it('shows final balance percentiles on Monte Carlo tab', async () => {
 		render(SimulateView, {
-			singleResult: null, mcResult: mockMCResult, lastRunMode: 'monte_carlo', error: '',
+			singleResult: mockSingleResult, mcResult: mockMCResult, mcLoading: false, error: '',
 		});
+		const mcTab = screen.getByText('Monte Carlo');
+		await fireEvent.click(mcTab);
 		expect(screen.getByText('5th')).toBeInTheDocument();
 		expect(screen.getByText('Median')).toBeInTheDocument();
 		expect(screen.getByText('95th')).toBeInTheDocument();
 	});
 
-	it('shows depletion info when depletion ages exist', () => {
+	it('shows depletion info when depletion ages exist', async () => {
 		const mcWithDepletion = { ...mockMCResult, depletion_ages: [78, 82, 85] };
 		render(SimulateView, {
-			singleResult: null, mcResult: mcWithDepletion, lastRunMode: 'monte_carlo', error: '',
+			singleResult: null, mcResult: mcWithDepletion, mcLoading: false, error: '',
 		});
+		const mcTab = screen.getByText('Monte Carlo');
+		await fireEvent.click(mcTab);
 		expect(screen.getByText('Age 78')).toBeInTheDocument();
 		expect(screen.getByText('Age 85')).toBeInTheDocument();
 	});
 
-	it('shows no depletion message when depletion ages are empty', () => {
+	it('shows no depletion message when depletion ages are empty', async () => {
 		render(SimulateView, {
-			singleResult: null, mcResult: mockMCResult, lastRunMode: 'monte_carlo', error: '',
+			singleResult: null, mcResult: mockMCResult, mcLoading: false, error: '',
 		});
+		const mcTab = screen.getByText('Monte Carlo');
+		await fireEvent.click(mcTab);
 		expect(screen.getByText(/no simulations resulted in portfolio depletion/i)).toBeInTheDocument();
+	});
+
+	it('shows MC warning text about historically-sampled returns', async () => {
+		render(SimulateView, {
+			singleResult: null, mcResult: mockMCResult, mcLoading: false, error: '',
+		});
+		const mcTab = screen.getByText('Monte Carlo');
+		await fireEvent.click(mcTab);
+		expect(screen.getByText(/Monte Carlo uses historically-sampled returns/)).toBeInTheDocument();
 	});
 
 	it('shows View Details link for single results', () => {
 		render(SimulateView, {
-			singleResult: mockSingleResult, mcResult: null, lastRunMode: 'single', error: '',
+			singleResult: mockSingleResult, mcResult: null, mcLoading: false, error: '',
 		});
 		const link = screen.getByText(/view year-by-year details/i);
 		expect(link).toBeInTheDocument();
 		expect(link.getAttribute('href')).toBe('/details');
 	});
 
-	it('shows View Details link for MC results', () => {
+	it('shows View Details link for MC results', async () => {
 		render(SimulateView, {
-			singleResult: null, mcResult: mockMCResult, lastRunMode: 'monte_carlo', error: '',
+			singleResult: null, mcResult: mockMCResult, mcLoading: false, error: '',
 		});
+		const mcTab = screen.getByText('Monte Carlo');
+		await fireEvent.click(mcTab);
 		const link = screen.getByText(/view yearly percentiles/i);
 		expect(link).toBeInTheDocument();
 		expect(link.getAttribute('href')).toBe('/details');
@@ -135,7 +170,7 @@ describe('SimulateView (results-only)', () => {
 			},
 		};
 		render(SimulateView, {
-			singleResult: resultWithSpending, mcResult: null, lastRunMode: 'single', error: '',
+			singleResult: resultWithSpending, mcResult: null, mcLoading: false, error: '',
 		});
 		expect(screen.getByText('Initial Spending')).toBeInTheDocument();
 		expect(screen.getByText(/\$10,000\/mo/)).toBeInTheDocument();
@@ -144,7 +179,7 @@ describe('SimulateView (results-only)', () => {
 
 	it('does not show initial spending when field is absent', () => {
 		render(SimulateView, {
-			singleResult: mockSingleResult, mcResult: null, lastRunMode: 'single', error: '',
+			singleResult: mockSingleResult, mcResult: null, mcLoading: false, error: '',
 		});
 		expect(screen.queryByText('Initial Spending')).not.toBeInTheDocument();
 	});

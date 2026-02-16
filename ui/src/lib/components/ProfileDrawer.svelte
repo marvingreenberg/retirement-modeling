@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { portfolio, profile } from '$lib/stores';
+	import { portfolio, profile, numSimulations } from '$lib/stores';
 	import { X, UserPlus, UserMinus } from 'lucide-svelte';
 	import InfoPopover from './InfoPopover.svelte';
 	import { onMount } from 'svelte';
@@ -136,6 +136,10 @@
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
 					<span class="flex items-center gap-1">IRMAA Limit ($) <InfoPopover text="Income threshold above which Medicare Part B/D premiums increase. Roth conversions that push income above this trigger surcharges." /></span>
 					<input type="number" class="input text-sm" bind:value={$portfolio.config.irmaa_limit_tier_1} min="0" step="1000" />
+				</label>
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
+					<span class="flex items-center gap-1">MC Iterations <InfoPopover text="Number of Monte Carlo simulations to run. More iterations give more stable results but take longer." /></span>
+					<input type="number" class="input text-sm" bind:value={$numSimulations} min="1" max="10000" />
 				</label>
 			</div>
 		</aside>

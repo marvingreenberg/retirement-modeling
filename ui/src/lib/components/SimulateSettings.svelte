@@ -2,20 +2,15 @@
 	import { portfolio, validationErrors, formTouched } from '$lib/stores';
 	import type { ConversionStrategy, SpendingStrategy } from '$lib/types';
 	import InfoPopover from './InfoPopover.svelte';
-	import { Play, Shuffle } from 'lucide-svelte';
 
 	let inflError = $derived($formTouched ? ($validationErrors['config.inflation_rate'] ?? '') : '');
 	let growthError = $derived($formTouched ? ($validationErrors['config.investment_growth_rate'] ?? '') : '');
 
 	let {
-		runMode = $bindable<'single' | 'monte_carlo'>('single'),
-		numSimulations = $bindable(1000),
 		collapsed = $bindable(false),
 		onrun,
 		loading = false,
 	}: {
-		runMode: 'single' | 'monte_carlo';
-		numSimulations: number;
 		collapsed: boolean;
 		onrun: () => void;
 		loading: boolean;
@@ -84,9 +79,9 @@
 				<input type="number" class="input w-20 text-sm {inflError ? 'ring-2 ring-error-500 border-error-500' : ''}" value={toPct($portfolio.config.inflation_rate)} oninput={(e) => setPct(e, (v) => $portfolio.config.inflation_rate = v)} min="0" max="50" step="0.5" />
 				{#if inflError}<span class="text-[10px] text-error-500">{inflError}</span>{/if}
 			</label>
-			<label class="flex flex-col gap-0.5 text-xs font-medium {growthError ? 'text-error-600 dark:text-error-400' : runMode === 'monte_carlo' ? 'text-surface-400 dark:text-surface-500' : 'text-surface-600 dark:text-surface-400'}">
-				<span class="flex items-center gap-1">Growth % {#if runMode === 'monte_carlo'}<span class="text-[10px] text-warning-500">(overridden)</span>{/if} <InfoPopover text="Assumed annual return on investments before inflation. In Monte Carlo mode, this is overridden by historically-sampled returns." /></span>
-				<input type="number" class="input w-20 text-sm {growthError ? 'ring-2 ring-error-500 border-error-500' : runMode === 'monte_carlo' ? 'opacity-50' : ''}" value={toPct($portfolio.config.investment_growth_rate)} oninput={(e) => setPct(e, (v) => $portfolio.config.investment_growth_rate = v)} min="-50" max="50" step="0.5" />
+			<label class="flex flex-col gap-0.5 text-xs font-medium {growthError ? 'text-error-600 dark:text-error-400' : 'text-surface-600 dark:text-surface-400'}">
+				<span class="flex items-center gap-1">Growth % <InfoPopover text="Assumed annual return on investments before inflation. Monte Carlo uses historically-sampled returns instead." /></span>
+				<input type="number" class="input w-20 text-sm {growthError ? 'ring-2 ring-error-500 border-error-500' : ''}" value={toPct($portfolio.config.investment_growth_rate)} oninput={(e) => setPct(e, (v) => $portfolio.config.investment_growth_rate = v)} min="-50" max="50" step="0.5" />
 				{#if growthError}<span class="text-[10px] text-error-500">{growthError}</span>{/if}
 			</label>
 			<label class="flex flex-col gap-0.5 text-xs font-medium {conversionDisabled ? 'text-surface-400 dark:text-surface-500' : 'text-surface-600 dark:text-surface-400'}">
@@ -172,21 +167,8 @@
 			</div>
 		{/if}
 
-		<!-- Run mode + Simulate -->
-		<div class="flex items-center gap-4 pt-1">
-			<label class="flex items-center gap-1.5 text-sm text-surface-600 dark:text-surface-400 cursor-pointer">
-				<input type="radio" name="runMode" value="single" bind:group={runMode} class="radio" />
-				<Play size={14} /> Single run
-			</label>
-			<label class="flex items-center gap-1.5 text-sm text-surface-600 dark:text-surface-400 cursor-pointer">
-				<input type="radio" name="runMode" value="monte_carlo" bind:group={runMode} class="radio" />
-				<Shuffle size={14} /> Monte Carlo
-			</label>
-			<InfoPopover text="Runs the simulation many times with investment returns sampled from historical market data (1928-2023). Shows how your plan holds up across a range of market conditions, not just the single average return assumed above." />
-			{#if runMode === 'monte_carlo'}
-				<input type="number" class="input w-20 text-sm" bind:value={numSimulations} min="1" max="10000" />
-				<span class="text-xs text-surface-500">iterations</span>
-			{/if}
+		<!-- Simulate button -->
+		<div class="flex items-center pt-1">
 			<div class="flex-1"></div>
 			<button class="btn preset-filled btn-sm" onclick={onrun} disabled={loading}>
 				{loading ? 'Running...' : 'Simulate'}

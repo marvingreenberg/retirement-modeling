@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import { simulationResults } from '$lib/stores';
 import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
 
@@ -36,7 +36,7 @@ const mockMCResult: MonteCarloResponse = {
 
 describe('Details page', () => {
 	beforeEach(() => {
-		simulationResults.set({ singleResult: null, mcResult: null, lastRunMode: null });
+		simulationResults.set({ singleResult: null, mcResult: null });
 	});
 
 	it('shows empty state when no results', () => {
@@ -45,7 +45,7 @@ describe('Details page', () => {
 	});
 
 	it('shows year-by-year table for single run results', () => {
-		simulationResults.set({ singleResult: mockSingleResult, mcResult: null, lastRunMode: 'single' });
+		simulationResults.set({ singleResult: mockSingleResult, mcResult: null });
 		render(DetailsPage);
 		expect(screen.getByText('Year-by-Year Detail')).toBeInTheDocument();
 		expect(screen.getByText('2026')).toBeInTheDocument();
@@ -53,9 +53,11 @@ describe('Details page', () => {
 		expect(screen.getByText('22%')).toBeInTheDocument();
 	});
 
-	it('shows Monte Carlo percentile table', () => {
-		simulationResults.set({ singleResult: null, mcResult: mockMCResult, lastRunMode: 'monte_carlo' });
+	it('shows Monte Carlo percentile table on MC tab', async () => {
+		simulationResults.set({ singleResult: null, mcResult: mockMCResult });
 		render(DetailsPage);
+		const mcTab = screen.getByText('Monte Carlo');
+		await fireEvent.click(mcTab);
 		expect(screen.getByText('Yearly Balance Percentiles')).toBeInTheDocument();
 		expect(screen.getByText('5th')).toBeInTheDocument();
 		expect(screen.getByText('Median')).toBeInTheDocument();
@@ -65,5 +67,12 @@ describe('Details page', () => {
 	it('shows heading on all states', () => {
 		render(DetailsPage);
 		expect(screen.getByText('Detailed Results')).toBeInTheDocument();
+	});
+
+	it('shows tab bar when results exist', () => {
+		simulationResults.set({ singleResult: mockSingleResult, mcResult: mockMCResult });
+		render(DetailsPage);
+		expect(screen.getByText('Simulation')).toBeInTheDocument();
+		expect(screen.getByText('Monte Carlo')).toBeInTheDocument();
 	});
 });

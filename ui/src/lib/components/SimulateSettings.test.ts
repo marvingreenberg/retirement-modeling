@@ -13,8 +13,6 @@ describe('SimulateSettings', () => {
 
 	function renderSettings(overrides: Record<string, any> = {}) {
 		return render(SimulateSettings, {
-			runMode: 'single',
-			numSimulations: 1000,
 			collapsed: false,
 			onrun: vi.fn(),
 			loading: false,
@@ -69,9 +67,10 @@ describe('SimulateSettings', () => {
 		expect(screen.getByText(/Fixed \$140K/)).toBeInTheDocument();
 	});
 
-	it('does not show Advanced section', () => {
+	it('does not show run mode radio buttons', () => {
 		renderSettings();
-		expect(screen.queryByText(/Advanced/)).not.toBeInTheDocument();
+		expect(screen.queryByText('Single run')).not.toBeInTheDocument();
+		expect(screen.queryByText('Monte Carlo')).not.toBeInTheDocument();
 	});
 
 	it('shows Simulate button', () => {
@@ -99,12 +98,6 @@ describe('SimulateSettings', () => {
 		});
 		renderSettings({ collapsed: true });
 		expect(screen.getByText(/4\.0% of Portfolio/)).toBeInTheDocument();
-	});
-
-	it('shows run mode radio buttons', () => {
-		renderSettings();
-		expect(screen.getByText('Single run')).toBeInTheDocument();
-		expect(screen.getByText('Monte Carlo')).toBeInTheDocument();
 	});
 
 	it('disables conversion dropdown when age >= RMD age', () => {
