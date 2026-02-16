@@ -6,6 +6,7 @@
 
 	const steps = [
 		{ target: 'overview', text: 'Overview — Control simulations and view results' },
+		{ target: 'spending', text: 'Spending — Plan your expenses and spending goals' },
 		{ target: 'compare', text: 'Compare — Save and compare simulation snapshots' },
 		{ target: 'details', text: 'Details — View year-by-year simulation breakdown' },
 		{ target: 'profile', text: 'Profile — Edit names, ages, and preferences' },

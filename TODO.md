@@ -1,7 +1,33 @@
-# Future Work
+# Improvements
 
-Ideas and improvements not yet promoted to OpenSpec changes.
-When an item here becomes an active change (`/opsx:new` or `/opsx:ff`), remove it from this list.
+When an item here is completed, move it to Completed.md in the order of completion.  Move all the completed sections over first.  Do each task in whatever order seems appropriate.
+
+Note that with the UI refactporing some of the changes have become no longer relevant, first review the current UI.
+
+Second, It seems like the simulation behavior is not correctly changing the single-simulation runs.  Whether this is a UX (passing wrong values) or API problem is not clear.
+
+For each TODO task, at whatever granularity makes sense, DO ALL THESE STEPS
+
+Where it makes sense, open up to three parallel agents to accomplish tasks.
+
+For each task, make a new branch off main
+opsx:ff
+opsx:apply
+Run all tests, fixing failures by correcting implementation, unless the test itself does not match the spec
+opsx:verify
+Verify results may identify issues, resolve them and list issue, resolution, and choices (briefly) in VerificationIssues.md
+opsx:sync/archive.  Change specs should remove "change language" when merging into the top level specs
+commit changes to the branch
+merge changes onto main
+push main to origin, leave local branches in place, do not push feature branches.
+
+Then advance to the next task you have identified.  I want this whole process, all tasks completed with no user intervention.  I consider that goal worth the risk that the implementation diverges some from the intent.
+
+
+# First
+
+## Review the FE/BE boundary with permutations of inputs to ensure that the changes at the UI are processed properly to cause changes in returned API requets for simulation and montecarlo.  (First verify that changes to the UX send changed requests).  Then verify changed requests return changed responses.  If needed mock the random() to make MC expect to be unchaged.
+
 
 ---
 

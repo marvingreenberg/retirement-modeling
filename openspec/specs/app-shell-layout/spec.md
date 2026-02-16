@@ -1,14 +1,12 @@
 ## Purpose
 Defines the AppBar, navigation, route structure, avatar with profile drawer, and layout shell.
-
 ## Requirements
-
 ### Requirement: AppBar with navigation
-The app SHALL display a Skeleton `AppBar` at the top of every page. The AppBar SHALL contain the app title in the lead slot, navigation links in the center, and an avatar button in the trail slot. Navigation links SHALL be: Overview, Compare, Details. Each nav tab SHALL support a `data-tour` attribute for tooltip anchoring.
+The app SHALL display a Skeleton `AppBar` at the top of every page. The AppBar SHALL contain the app title in the lead slot, navigation links in the center, and an avatar button in the trail slot. Navigation links SHALL be: Overview, Spending, Compare, Details. Each nav tab SHALL support a `data-tour` attribute for tooltip anchoring.
 
 #### Scenario: AppBar visible on all routes
-- **WHEN** the user navigates to any route (`/`, `/compare`, `/details`)
-- **THEN** the AppBar is visible with the title "Retirement Simulator", navigation links (Overview, Compare, Details), and avatar button
+- **WHEN** the user navigates to any route (`/`, `/spending`, `/compare`, `/details`)
+- **THEN** the AppBar is visible with the title "Retirement Simulator", navigation links (Overview, Spending, Compare, Details), and avatar button
 
 #### Scenario: Active navigation link
 - **WHEN** the user is on the `/compare` route
@@ -68,15 +66,26 @@ The app SHALL use SvelteKit routes for page navigation. Clicking a navigation li
 
 ### Requirement: Route definitions
 The app SHALL define the following routes:
-- `/` — Overview page (portfolio editor with simulation controls, results)
+- `/` — Overview page (simulation controls, results, accounts, income)
+- `/spending` — Spending plan management
 - `/compare` — Snapshot comparison
 - `/details` — Year-by-year simulation details
 
-Budget configuration is inline in the PortfolioEditor left panel, not a separate route.
+#### Scenario: Navigate to Spending
+- **WHEN** the user clicks the "Spending" link in the AppBar
+- **THEN** the browser URL changes to `/spending` and the spending plan view is displayed
 
 ### Requirement: Layout structure
-The root layout SHALL render the AppBar above a content area. The content area SHALL render the current route's page component with consistent padding and max-width constraints.
+The root layout SHALL render the AppBar above a color accent bar, followed by a content area. The content area SHALL render the current route's page component with consistent padding and max-width constraints.
 
-#### Scenario: Content below AppBar
+#### Scenario: Content below AppBar and color bar
 - **WHEN** any page loads
-- **THEN** the page content appears below the AppBar within a centered, max-width container
+- **THEN** the page content appears below the AppBar and color accent bar within a centered, max-width container
+
+### Requirement: Color accent bar
+The layout SHALL display a 4px gradient color bar between the AppBar and the main content area, using primary-500, tertiary-500, and success-500 colors.
+
+#### Scenario: Color bar visible on all pages
+- **WHEN** any page loads
+- **THEN** a gradient color bar is visible immediately below the AppBar
+

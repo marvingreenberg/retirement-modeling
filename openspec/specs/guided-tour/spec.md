@@ -1,8 +1,6 @@
 ## Purpose
 Defines the one-time guided tour that orients users after first setup, highlighting nav tabs and the profile button.
-
 ## Requirements
-
 ### Requirement: Tour trigger
 The guided tour SHALL start automatically after the user completes first-time setup (via Get Started or Load Sample Data). The tour SHALL run only once per session.
 
@@ -19,21 +17,15 @@ The guided tour SHALL start automatically after the user completes first-time se
 - **THEN** the tour does not start again, even if the app re-renders
 
 ### Requirement: Tour sequence
-The guided tour SHALL display tooltip popovers in sequence, one per navigation element. Each tooltip SHALL appear below the target element with an upward-pointing caret. The tooltip SHALL be clamped to viewport edges so it never overflows off-screen.
+The guided tour SHALL highlight elements in this order: Overview nav link, Spending nav link, Compare nav link, Details nav link, Profile avatar. Each step SHALL display a tooltip describing the element's purpose. The tour SHALL have 5 steps total.
 
 #### Scenario: Tour step order
-- **WHEN** the tour is active
-- **THEN** tooltips appear in order: Overview tab, Compare tab, Details tab, then the avatar/profile button
+- **WHEN** the guided tour activates
+- **THEN** the steps are: Overview, Spending, Compare, Details, Profile
 
-#### Scenario: Tour step content
-- **WHEN** the Overview tooltip is shown
-- **THEN** it displays "Overview — Control simulations and view results"
-- **WHEN** the Compare tooltip is shown
-- **THEN** it displays "Compare — Save and compare simulation snapshots"
-- **WHEN** the Details tooltip is shown
-- **THEN** it displays "Details — View year-by-year simulation breakdown"
-- **WHEN** the Profile tooltip is shown
-- **THEN** it displays "Profile — Edit names, ages, and preferences"
+#### Scenario: Spending step content
+- **WHEN** the tour reaches the Spending step
+- **THEN** the tooltip text reads "Spending — Plan your expenses and spending goals"
 
 ### Requirement: Tour advancement
 Each tour tooltip SHALL auto-advance after approximately 3 seconds, or be dismissed immediately by clicking anywhere.
@@ -49,3 +41,4 @@ Each tour tooltip SHALL auto-advance after approximately 3 seconds, or be dismis
 #### Scenario: Tour completion
 - **WHEN** the last tooltip has been shown and advances
 - **THEN** the tour ends and the `tourActive` store is set to false
+

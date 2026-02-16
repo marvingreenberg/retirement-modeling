@@ -3,10 +3,11 @@
 	import { AppBar as SkAppBar } from '@skeletonlabs/skeleton-svelte';
 	import AvatarButton from './AvatarButton.svelte';
 	import ProfileDrawer from './ProfileDrawer.svelte';
-	import { LayoutDashboard, GitCompareArrows, Table } from 'lucide-svelte';
+	import { LayoutDashboard, GitCompareArrows, Table, Wallet } from 'lucide-svelte';
 
 	const navItems = [
 		{ href: '/', label: 'Overview', icon: LayoutDashboard },
+		{ href: '/spending', label: 'Spending', icon: Wallet },
 		{ href: '/compare', label: 'Compare', icon: GitCompareArrows },
 		{ href: '/details', label: 'Details', icon: Table },
 	] as const;
