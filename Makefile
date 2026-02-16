@@ -17,7 +17,7 @@ help:
 	@echo "  dev        - Start API + UI dev servers, open browser, Ctrl-C stops both"
 	@echo "  docker-run - Build and run combined Docker image on port 8000"
 	@echo "  deploy     - Build, push, and deploy to GCP Cloud Run"
-	@echo "  e2e        - Run E2E tests against Docker image"
+	@echo "  e2e        - Run E2E tests (starts backend, builds UI, runs Playwright)"
 	@echo "  clean      - Remove all build artifacts and generated files"
 	@echo "  lint       - Run linters (black, isort, mypy)"
 	@echo "  format     - Auto-format code (black, isort)"
@@ -70,7 +70,11 @@ deploy:
 	    --set-env-vars="PYTHONUNBUFFERED=1" && \
 	  echo "Deployed: $$(gcloud run services describe $(SERVICE_NAME) --format='value(status.url)')"
 
-e2e: docker-run
+e2e:
+	@trap 'kill 0' INT TERM; \
+	  $(ACTIVATE) && uvicorn retirement_model.api:app --port 8000 & \
+	  sleep 2 && cd ui && npx playwright test; \
+	  EXIT=$$?; kill 0 2>/dev/null; exit $$EXIT
 
 lint:
 	$(ACTIVATE) && \

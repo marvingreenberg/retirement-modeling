@@ -1,7 +1,5 @@
-## Purpose
+## MODIFIED Requirements
 
-End-to-end testing infrastructure using Playwright to verify user-facing flows through a real browser against the built application.
-## Requirements
 ### Requirement: Playwright test infrastructure
 The UI project SHALL include Playwright as a devDependency with a configuration file. The webServer directive MUST build the SvelteKit app and run `pnpm preview` on port 4173. Tests run against the preview server.
 
@@ -34,4 +32,3 @@ E2E tests MUST use resilient locator strategies that survive layout changes.
 - **WHEN** writing E2E test selectors
 - **THEN** prefer accessible locators (role, label, text) over CSS selectors
 - **AND** assert on user-visible outcomes (text appears, section visible) not DOM structure
-
