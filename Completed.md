@@ -130,3 +130,9 @@ Fixed 4 UI bugs: monthly-primary spending display across all views, conversion s
 ## FE-6. Layout Restructure
 
 Reordered landing page (PortfolioEditor above SimulateSettings), added collapsed section summaries (Accounts total, Budget monthly + expenses, Income SS/streams), moved Advanced settings (tax rates, RMD, IRMAA) to ProfileDrawer, converted BalanceChart to stacked area (Pre-tax/Roth/Brokerage, no Total line), removed redundant portfolio summary bar.
+
+---
+
+## Fix Expense UX
+
+Fixed planned expense reactivity bug (recurring fields not appearing until section collapse/reopen), changed recurring expenses from start/end age to start/end year (backend + frontend), made spending input annual-primary with monthly shown as detail text, and preserved start date when switching between one-time and recurring types.
