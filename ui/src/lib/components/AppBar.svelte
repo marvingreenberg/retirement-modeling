@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { AppBar as SkAppBar } from '@skeletonlabs/skeleton-svelte';
 	import AvatarButton from './AvatarButton.svelte';
-	import ProfileDrawer from './ProfileDrawer.svelte';
+	import AvatarDropdown from './AvatarDropdown.svelte';
 	import HelpDrawer from './HelpDrawer.svelte';
 	import { LayoutDashboard, GitCompareArrows, Table, CircleHelp } from 'lucide-svelte';
 
@@ -17,7 +17,8 @@
 		return page.url.pathname.startsWith(href);
 	}
 
-	let drawerOpen = $state(false);
+	let onSettingsPage = $derived(page.url.pathname === '/settings');
+	let dropdownOpen = $state(false);
 	let helpOpen = $state(false);
 </script>
 
@@ -44,10 +45,10 @@
 			<button class="btn btn-sm preset-ghost" onclick={() => helpOpen = true} aria-label="Open help">
 				<CircleHelp size={20} />
 			</button>
-			<AvatarButton onclick={() => drawerOpen = !drawerOpen} />
+			<AvatarButton onclick={() => { if (!onSettingsPage) dropdownOpen = !dropdownOpen; }} />
 		</SkAppBar.Trail>
 	</SkAppBar.Toolbar>
 </SkAppBar>
 
-<ProfileDrawer bind:open={drawerOpen} />
+<AvatarDropdown bind:open={dropdownOpen} />
 <HelpDrawer bind:open={helpOpen} />

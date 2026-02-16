@@ -1,4 +1,4 @@
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Setup detection
 The app SHALL detect when a portfolio is unconfigured and redirect to the settings page. An unconfigured portfolio is one with primary age of 0. The redirect navigates to `/settings` with the Basic Info panel active.
@@ -25,3 +25,11 @@ The app SHALL start with an empty portfolio state: primary age 0, spouse age 0, 
 #### Scenario: Initial portfolio state
 - **WHEN** the app loads with no prior state
 - **THEN** the portfolio store contains age 0, no accounts, $0 spending, and zeroed SS benefits
+
+## REMOVED Requirements
+
+### Requirement: Setup form inputs
+(Replaced by settings page Basic Info panel)
+
+### Requirement: Setup form submission
+(Replaced by settings page Get Started button and Done navigation)

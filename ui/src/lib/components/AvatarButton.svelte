@@ -5,23 +5,28 @@
 
 	let { onclick }: { onclick: () => void } = $props();
 
-	let initials = $derived.by(() => {
-		const p = $profile;
-		if (!p.primaryName) return '';
-		const first = p.primaryName[0].toUpperCase();
-		if (p.spouseName) return `${first},${p.spouseName[0].toUpperCase()}`;
-		return first;
+	let avatarUrl = $derived.by(() => {
+		const seed = $profile.primaryName || '';
+		if (!seed) return '';
+		return `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(seed)}`;
 	});
+
+	let imgFailed = $state(false);
+	$effect(() => {
+		avatarUrl;
+		imgFailed = false;
+	});
+
+	let showImage = $derived(avatarUrl && !imgFailed);
 </script>
 
 <button class="cursor-pointer" {onclick} aria-label="Open profile">
 	<Avatar>
+		{#if showImage}
+			<Avatar.Image src={avatarUrl} alt="User avatar" onerror={() => imgFailed = true} />
+		{/if}
 		<Avatar.Fallback>
-			{#if initials}
-				<span class="text-sm font-semibold">{initials}</span>
-			{:else}
-				<User size={20} />
-			{/if}
+			<User size={20} />
 		</Avatar.Fallback>
 	</Avatar>
 </button>

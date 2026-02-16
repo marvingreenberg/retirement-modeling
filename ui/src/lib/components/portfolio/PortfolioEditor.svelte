@@ -7,7 +7,6 @@
 	}
 	import { validatePortfolio } from '$lib/validation';
 	import CollapsibleSection from '$lib/components/CollapsibleSection.svelte';
-	import FileControls from '$lib/components/FileControls.svelte';
 	import AccountsEditor from './AccountsEditor.svelte';
 	import ImportPortfolio from './ImportPortfolio.svelte';
 	import IncomeEditor from './IncomeEditor.svelte';
@@ -98,8 +97,6 @@
 </script>
 
 <div class="space-y-2" onfocusout={handleFocusOut}>
-	<FileControls />
-
 	{#if errorList.length > 0}
 		<div class="bg-error-50 dark:bg-error-950 border border-error-200 dark:border-error-800 rounded p-3">
 			<p class="text-error-700 dark:text-error-300 text-sm font-medium mb-2">Validation errors:</p>
