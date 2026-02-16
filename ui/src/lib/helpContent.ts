@@ -59,7 +59,6 @@ export const helpTopics: HelpTopic[] = [
 
 export const routeTopicMap: Record<string, string> = {
 	'/': 'spending-strategies',
-	'/spending': 'spending-strategies',
 	'/compare': 'spending-strategies',
 	'/details': 'tax-indexing',
 };

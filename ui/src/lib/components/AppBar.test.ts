@@ -32,7 +32,6 @@ describe('AppBar', () => {
 	it('renders navigation links', () => {
 		render(AppBar);
 		expect(screen.getByRole('link', { name: /overview/i })).toBeInTheDocument();
-		expect(screen.getByRole('link', { name: /spending/i })).toBeInTheDocument();
 		expect(screen.getByRole('link', { name: /compare/i })).toBeInTheDocument();
 		expect(screen.getByRole('link', { name: /details/i })).toBeInTheDocument();
 	});
@@ -40,7 +39,6 @@ describe('AppBar', () => {
 	it('navigation links have correct hrefs', () => {
 		render(AppBar);
 		expect(screen.getByRole('link', { name: /overview/i })).toHaveAttribute('href', '/');
-		expect(screen.getByRole('link', { name: /spending/i })).toHaveAttribute('href', '/spending');
 		expect(screen.getByRole('link', { name: /compare/i })).toHaveAttribute('href', '/compare');
 		expect(screen.getByRole('link', { name: /details/i })).toHaveAttribute('href', '/details');
 	});

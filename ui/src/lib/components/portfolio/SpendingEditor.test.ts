@@ -37,15 +37,40 @@ describe('SpendingEditor', () => {
 		expect(input).toBeInTheDocument();
 	});
 
-	it('shows planned expenses header', () => {
+	it('shows table column headers when expenses exist', () => {
 		renderEditor();
-		expect(screen.getByText('Planned Expenses')).toBeInTheDocument();
+		expect(screen.getByText('Name')).toBeInTheDocument();
+		expect(screen.getByText('Amount ($)')).toBeInTheDocument();
+		expect(screen.getByText('Type')).toBeInTheDocument();
+		expect(screen.getByText('When')).toBeInTheDocument();
 	});
 
-	it('renders existing planned expenses', () => {
+	it('does not show table when no expenses', () => {
+		renderEditor({ plannedExpenses: [] });
+		expect(screen.queryByText('Name')).not.toBeInTheDocument();
+	});
+
+	it('renders existing planned expenses in table', () => {
 		renderEditor();
 		expect(screen.getByDisplayValue('Kitchen remodel')).toBeInTheDocument();
 		expect(screen.getByDisplayValue('Travel')).toBeInTheDocument();
+	});
+
+	it('shows single year input for one-time expense', () => {
+		const expenses: PlannedExpense[] = [
+			{ name: 'Test', amount: 5000, expense_type: 'one_time', year: 2028, inflation_adjusted: true },
+		];
+		renderEditor({ plannedExpenses: expenses });
+		expect(screen.getByDisplayValue('2028')).toBeInTheDocument();
+	});
+
+	it('shows start-end year inputs for recurring expense', () => {
+		const expenses: PlannedExpense[] = [
+			{ name: 'Test', amount: 5000, expense_type: 'recurring', start_year: 2026, end_year: 2035, inflation_adjusted: true },
+		];
+		renderEditor({ plannedExpenses: expenses });
+		expect(screen.getByDisplayValue('2026')).toBeInTheDocument();
+		expect(screen.getByDisplayValue('2035')).toBeInTheDocument();
 	});
 
 	it('adds a new expense on button click', async () => {
@@ -59,7 +84,7 @@ describe('SpendingEditor', () => {
 		formTouched.set(true);
 		validationErrors.set({ 'config.planned_expenses.0.amount': 'Required' });
 		renderEditor();
-		const labels = screen.getAllByText('Amount ($)');
-		expect(labels[0].className).toContain('error');
+		const amountInput = screen.getAllByLabelText('Amount')[0];
+		expect(amountInput.className).toContain('ring-error');
 	});
 });

@@ -11,7 +11,7 @@ describe('GuidedTour', () => {
 		tourActive.set(false);
 		document.body.innerHTML = '';
 		const nav = document.createElement('nav');
-		['overview', 'spending', 'compare', 'details', 'profile'].forEach((id) => {
+		['overview', 'compare', 'details', 'profile'].forEach((id) => {
 			const el = document.createElement('a');
 			el.setAttribute('data-tour', id);
 			el.textContent = id;
@@ -48,7 +48,7 @@ describe('GuidedTour', () => {
 		await vi.advanceTimersByTimeAsync(50);
 		expect(screen.getByText(/Overview/)).toBeInTheDocument();
 		await vi.advanceTimersByTimeAsync(3000);
-		expect(screen.getByText(/Spending/)).toBeInTheDocument();
+		expect(screen.getByText(/Compare/)).toBeInTheDocument();
 	});
 
 	it('advances on click', async () => {
@@ -59,15 +59,15 @@ describe('GuidedTour', () => {
 		const overlay = document.querySelector('.fixed.inset-0.z-\\[99\\]') as HTMLElement;
 		overlay?.click();
 		await vi.advanceTimersByTimeAsync(50);
-		expect(screen.getByText(/Spending/)).toBeInTheDocument();
+		expect(screen.getByText(/Compare/)).toBeInTheDocument();
 	});
 
 	it('ends tour after last step', async () => {
 		render(GuidedTour);
 		tourActive.set(true);
 		await vi.advanceTimersByTimeAsync(50);
-		// Advance through all 5 steps (3s each)
-		for (let i = 0; i < 5; i++) {
+		// Advance through all 4 steps (3s each)
+		for (let i = 0; i < 4; i++) {
 			await vi.advanceTimersByTimeAsync(3000);
 		}
 		expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('GuidedTour', () => {
 		render(GuidedTour);
 		tourActive.set(true);
 		await vi.advanceTimersByTimeAsync(50);
-		for (let i = 0; i < 5; i++) {
+		for (let i = 0; i < 4; i++) {
 			await vi.advanceTimersByTimeAsync(3000);
 		}
 		expect(get(tourActive)).toBe(false);

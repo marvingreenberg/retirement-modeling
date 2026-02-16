@@ -4,11 +4,10 @@
 	import AvatarButton from './AvatarButton.svelte';
 	import ProfileDrawer from './ProfileDrawer.svelte';
 	import HelpDrawer from './HelpDrawer.svelte';
-	import { LayoutDashboard, GitCompareArrows, Table, Wallet, CircleHelp } from 'lucide-svelte';
+	import { LayoutDashboard, GitCompareArrows, Table, CircleHelp } from 'lucide-svelte';
 
 	const navItems = [
 		{ href: '/', label: 'Overview', icon: LayoutDashboard },
-		{ href: '/spending', label: 'Spending', icon: Wallet },
 		{ href: '/compare', label: 'Compare', icon: GitCompareArrows },
 		{ href: '/details', label: 'Details', icon: Table },
 	] as const;

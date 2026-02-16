@@ -11,8 +11,9 @@
 	import AccountsEditor from './AccountsEditor.svelte';
 	import ImportPortfolio from './ImportPortfolio.svelte';
 	import IncomeEditor from './IncomeEditor.svelte';
+	import SpendingEditor from './SpendingEditor.svelte';
 	import { currency } from '$lib/format';
-	import { Landmark, Briefcase, Wallet, AlertTriangle, ArrowRight } from 'lucide-svelte';
+	import { Landmark, Briefcase, Wallet, AlertTriangle } from 'lucide-svelte';
 
 	let accountsOpen = $state(false);
 	let budgetOpen = $state(false);
@@ -132,21 +133,7 @@
 				Define expected annual spending to allow simulation
 			</div>
 		{/if}
-		<div class="flex gap-4 items-end flex-wrap">
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Annual Spending ($/yr)
-				<input type="number" class="input w-36"
-					bind:value={$portfolio.config.annual_spend_net}
-					min="0" step="1000" />
-			</label>
-			<span class="text-xs text-surface-500 self-center">{currency(Math.round($portfolio.config.annual_spend_net / 12))}/mo</span>
-			{#if ($portfolio.config.planned_expenses ?? []).length > 0}
-				<span class="text-sm text-surface-500">+ {($portfolio.config.planned_expenses ?? []).length} planned expenses ({currency(($portfolio.config.planned_expenses ?? []).reduce((s, e) => s + (e.amount ?? 0), 0))})</span>
-			{/if}
-			<a href="/spending" class="btn btn-sm preset-ghost flex items-center gap-1 text-primary-500">
-				Full spending plan <ArrowRight size={12} />
-			</a>
-		</div>
+		<SpendingEditor bind:config={$portfolio.config} bind:plannedExpenses={$portfolio.config.planned_expenses} />
 	</CollapsibleSection>
 
 	<CollapsibleSection title="Income" bind:open={incomeOpen}>

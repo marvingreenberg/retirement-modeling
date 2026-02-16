@@ -2,7 +2,7 @@
 Editable form for managing retirement accounts, budget, income streams, and portfolio import with collapsible sections.
 ## Requirements
 ### Requirement: Collapsible form sections
-The portfolio editor SHALL organize fields into collapsible sections: Accounts, Budget, and Income. Each section SHALL be independently expandable/collapsible. The Budget section contains a compact annual spending input and link to the full spending page at `/spending`.
+The portfolio editor SHALL organize fields into collapsible sections: Accounts, Budget, and Income. Each section SHALL be independently expandable/collapsible. The Budget section contains the full spending editor with annual spending input and planned expenses table.
 
 #### Scenario: Sections start collapsed
 - **WHEN** the user opens the portfolio editor
@@ -97,15 +97,38 @@ The editor SHALL provide a "Save" button that downloads the current portfolio st
 - **THEN** a JSON file is downloaded containing the portfolio data in the CLI-compatible format
 
 ### Requirement: Compact budget section
-The PortfolioEditor SHALL include a Budget collapsible section containing the annual spending input (with monthly equivalent shown as detail), a count and total of planned expenses (if any), and a link to the full `/spending` page.
+The PortfolioEditor SHALL include a Budget collapsible section containing the full SpendingEditor component: annual spending input with monthly equivalent detail, and a planned expenses table with add/remove controls.
 
 #### Scenario: Budget section with planned expenses
 - **WHEN** user has 3 planned expenses totaling $55,000 and annual spending of $120,000
-- **THEN** the Budget section shows "$120,000/yr ($10,000/mo)", "3 planned expenses ($55,000)", and a "Full spending plan" link to /spending
+- **THEN** the Budget section shows the annual spending input, monthly detail "$10,000/mo", and a planned expenses table listing all 3 expenses
 
 #### Scenario: Budget section without planned expenses
 - **WHEN** user has annual spending of $120,000 and no planned expenses
-- **THEN** the Budget section shows "$120,000/yr ($10,000/mo)" and the "Full spending plan" link
+- **THEN** the Budget section shows the annual spending input, monthly detail, and an "Add Expense" button
+
+### Requirement: Planned expenses table layout
+Planned expenses SHALL be displayed in a table with columns: Name, Amount ($), Type, When, Infl., and a remove button column. Column headers SHALL appear once at the top of the table.
+
+#### Scenario: Table columns visible
+- **WHEN** the user has one or more planned expenses in the Budget section
+- **THEN** a table displays with column headers: Name, Amount ($), Type, When, Infl., and a remove column
+
+#### Scenario: One-time expense When column
+- **WHEN** a planned expense has type "One-time" with year 2028
+- **THEN** the When column displays a single year input showing 2028
+
+#### Scenario: Recurring expense When column
+- **WHEN** a planned expense has type "Recurring" with start year 2026 and end year 2035
+- **THEN** the When column displays two year inputs showing 2026 and 2035 separated by a dash
+
+#### Scenario: Add expense from table
+- **WHEN** the user clicks "Add Expense" below the table
+- **THEN** a new row appears in the table with default values
+
+#### Scenario: Remove expense from table
+- **WHEN** the user clicks the remove button on a table row
+- **THEN** that expense row is removed from the table
 
 ### Requirement: Collapsed section summaries
 Each collapsible section (Accounts, Budget, Income) SHALL display a summary when collapsed, showing key data inline with the section title.

@@ -69,9 +69,9 @@ describe('PortfolioEditor', () => {
 		expect(screen.getByText(/Define expected annual spending/)).toBeInTheDocument();
 	});
 
-	it('shows planned expenses count in budget section', () => {
+	it('renders SpendingEditor inside budget section', () => {
 		render(PortfolioEditor);
-		expect(screen.getByText(/2 planned expenses/)).toBeInTheDocument();
+		expect(screen.getByText('+ Add Expense')).toBeInTheDocument();
 	});
 
 	it('shows accounts collapsed summary with total', () => {
