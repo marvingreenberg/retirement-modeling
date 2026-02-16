@@ -151,7 +151,6 @@ export const validationErrors = writable<FieldErrors>({});
 export const touchedFields = writable<Set<string>>(new Set());
 export const formTouched = writable<boolean>(false);
 export const comparisonSnapshots = writable<ComparisonSnapshot[]>([]);
-export const tourActive = writable<boolean>(false);
 export const simulateBlockedSection = writable<string | null>(null);
 
 export interface SimulationResultsState {

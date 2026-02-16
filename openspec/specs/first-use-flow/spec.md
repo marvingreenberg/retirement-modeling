@@ -17,7 +17,7 @@ The app SHALL detect when a portfolio is unconfigured and display a setup form i
 
 #### Scenario: Loading sample data bypasses setup
 - **WHEN** the user clicks "Load Sample Data" during setup
-- **THEN** the setup form is replaced by the normal landing page with sample data populated and the guided tour is activated
+- **THEN** the setup form is replaced by the normal landing page with sample data populated
 
 ### Requirement: Setup form inputs
 The setup form SHALL collect the minimum information needed to begin: primary person's name and age, and an optional spouse with name and age.
@@ -36,11 +36,11 @@ The setup form SHALL collect the minimum information needed to begin: primary pe
 - **THEN** the spouse name and age inputs are hidden and spouse values are cleared
 
 ### Requirement: Setup form submission
-The setup form SHALL validate inputs and initialize the portfolio with entered ages and derived simulation years. No default accounts are created. After successful initialization, the guided tour SHALL be triggered.
+The setup form SHALL validate inputs and initialize the portfolio with entered ages and derived simulation years. No default accounts are created.
 
 #### Scenario: Valid setup submission
 - **WHEN** the user enters a valid name and primary age and clicks [Get Started]
-- **THEN** the profile store is updated with the entered names, the portfolio is initialized with the entered ages, simulation_years set to (95 - primary_age), the landing page transitions to the normal two-panel layout, and the guided tour is activated
+- **THEN** the profile store is updated with the entered names, the portfolio is initialized with the entered ages, simulation_years set to (95 - primary_age), and the landing page transitions to the normal two-panel layout
 
 #### Scenario: Invalid age rejected
 - **WHEN** the user enters an age below 20 or above 120 and clicks [Get Started]

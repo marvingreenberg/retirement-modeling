@@ -33,7 +33,6 @@
 						{href}
 						class="btn btn-sm flex items-center gap-1.5 {isActive(href) ? 'preset-filled' : 'preset-ghost'}"
 						aria-current={isActive(href) ? 'page' : undefined}
-						data-tour={label.toLowerCase()}
 					>
 						<Icon size={16} />
 						{label}
@@ -45,9 +44,7 @@
 			<button class="btn btn-sm preset-ghost" onclick={() => helpOpen = true} aria-label="Open help">
 				<CircleHelp size={20} />
 			</button>
-			<span data-tour="profile">
-				<AvatarButton onclick={() => drawerOpen = !drawerOpen} />
-			</span>
+			<AvatarButton onclick={() => drawerOpen = !drawerOpen} />
 		</SkAppBar.Trail>
 	</SkAppBar.Toolbar>
 </SkAppBar>

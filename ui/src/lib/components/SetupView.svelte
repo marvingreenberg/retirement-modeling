@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { portfolio, samplePortfolio, profile, sampleProfile, tourActive } from '$lib/stores';
+	import { portfolio, samplePortfolio, profile, sampleProfile } from '$lib/stores';
 	import { TreePine } from 'lucide-svelte';
 
 	let primaryName = $state('');
@@ -34,13 +34,11 @@
 				simulation_years: simYears,
 			},
 		}));
-		tourActive.set(true);
 	}
 
 	function loadSample() {
 		profile.set(structuredClone(sampleProfile));
 		portfolio.set(structuredClone(samplePortfolio));
-		tourActive.set(true);
 	}
 </script>
 
