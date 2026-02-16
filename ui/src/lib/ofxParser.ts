@@ -55,6 +55,10 @@ export function preprocessOFX(raw: string): string {
 		return `<${tag}>${trimmed}</${tag}>`;
 	});
 
+	// Some QFX files (e.g. Wells Fargo) already have closing tags on some
+	// leaf elements. The regex above produces duplicates like </CODE></CODE>.
+	sgml = sgml.replace(/<\/([A-Z][A-Z0-9]*)>\s*<\/\1>/g, '</$1>');
+
 	return sgml;
 }
 

@@ -16,11 +16,11 @@ describe('validatePortfolio', () => {
 		expect(errors['config.current_age_primary']).toBeDefined();
 	});
 
-	it('returns errors for empty accounts', () => {
+	it('accepts empty accounts (check deferred to simulation time)', () => {
 		const p = structuredClone(samplePortfolio);
 		p.accounts = [];
 		const errors = validatePortfolio(p);
-		expect(errors['accounts']).toBeDefined();
+		expect(errors['accounts']).toBeUndefined();
 	});
 
 	it('returns errors for negative balance', () => {

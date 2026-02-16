@@ -216,9 +216,9 @@ describe('portfolioSchema', () => {
 		expect(result.success).toBe(true);
 	});
 
-	it('rejects empty accounts', () => {
+	it('accepts empty accounts (validation deferred to simulation time)', () => {
 		const result = portfolioSchema.safeParse({ config: validConfig, accounts: [] });
-		expect(result.success).toBe(false);
+		expect(result.success).toBe(true);
 	});
 
 	it('rejects missing config', () => {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { portfolio, profile } from '$lib/stores';
-	import { X } from 'lucide-svelte';
+	import { X, UserPlus, UserMinus } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 
 	let { open = $bindable(false) }: { open: boolean } = $props();
@@ -27,6 +27,22 @@
 	}
 
 	let hasSpouse = $derived($portfolio.config.current_age_spouse > 0);
+
+	function addSpouse() {
+		$portfolio.config.current_age_spouse = 62;
+		$profile.spouseName = '';
+	}
+
+	function removeSpouse() {
+		$portfolio.config.current_age_spouse = 0;
+		$profile.spouseName = '';
+		$portfolio.config.social_security.spouse_benefit = 0;
+		$portfolio.config.social_security.spouse_start_age = 67;
+		if ($portfolio.config.ss_auto) {
+			$portfolio.config.ss_auto.spouse_fra_amount = null;
+			$portfolio.config.ss_auto.spouse_start_age = null;
+		}
+	}
 </script>
 
 {#if open}
@@ -65,6 +81,16 @@
 						Spouse Age
 						<input type="number" class="input text-sm" bind:value={$portfolio.config.current_age_spouse} min="20" max="120" />
 					</label>
+
+					<button class="btn btn-sm preset-tonal text-error-600 dark:text-error-400" onclick={removeSpouse}>
+						<UserMinus size={14} />
+						Remove Spouse
+					</button>
+				{:else}
+					<button class="btn btn-sm preset-tonal" onclick={addSpouse}>
+						<UserPlus size={14} />
+						Add Spouse
+					</button>
 				{/if}
 
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">

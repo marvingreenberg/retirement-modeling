@@ -95,5 +95,5 @@ export const simulationConfigSchema = z.object({
 
 export const portfolioSchema = z.object({
 	config: simulationConfigSchema,
-	accounts: z.array(accountSchema).min(1, 'Portfolio must have at least one account'),
+	accounts: z.array(accountSchema),
 });
