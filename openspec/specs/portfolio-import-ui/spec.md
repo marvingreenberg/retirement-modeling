@@ -21,9 +21,22 @@ The UI SHALL parse OFX/QFX files in the browser without server communication.
 - **WHEN** a position's CUSIP appears in the SECLIST section
 - **THEN** the holding SHALL have its ticker symbol and security name resolved
 
+#### Scenario: Extension tags with dots (SGML-style)
+- **WHEN** a file contains SGML-style extension tags like `<INTU.BID>17260`
+- **THEN** the preprocessor SHALL strip the tag and its value before XML parsing
+
+#### Scenario: Extension tags with dots (XML-style with closing tags)
+- **WHEN** a file contains XML-style extension tags like `<INTU.BID>17260</INTU.BID>`
+- **THEN** the preprocessor SHALL strip both the opening tag with value and the closing tag
+
+#### Scenario: Non-INTU dot-extension tags
+- **WHEN** a file contains any tag with a dot in its name (e.g. `<CUSTOM.EXT>`)
+- **THEN** the preprocessor SHALL strip it, since standard OFX tags never contain dots
+
 #### Scenario: Invalid file
 - **WHEN** the file cannot be parsed as OFX
-- **THEN** the UI SHALL display a user-friendly error message
+- **THEN** the UI SHALL display "Could not load <filename>" with a brief explanation
+- **AND** SHALL NOT display raw XML parser error messages
 
 ---
 
@@ -57,8 +70,15 @@ The UI SHALL provide a file upload component that guides the user through import
 
 #### Scenario: Account type mapping
 - **WHEN** parsed accounts are displayed
-- **THEN** each account SHALL have a dropdown for the user to select type (pretax/roth/brokerage)
+- **THEN** each account SHALL have a dropdown defaulting to "-- Select type --" (unset)
+- **AND** the user SHALL be required to select a type (pretax/roth/brokerage) for every account before confirming
 - **AND** a text field for account name (pre-filled with broker + account_id)
+
+#### Scenario: Confirm button gating
+- **WHEN** any account has no type selected
+- **THEN** the Add button SHALL be disabled
+- **WHEN** all accounts have a type selected
+- **THEN** the Add button SHALL be enabled
 
 #### Scenario: Confirm import
 - **WHEN** the user confirms the import

@@ -43,8 +43,10 @@ export function preprocessOFX(raw: string): string {
 	if (ofxStart === -1) throw new Error('Not a valid OFX file: no <OFX> tag found');
 	let sgml = raw.slice(ofxStart);
 
-	// Remove Intuit extension tags (contain dots, not valid XML)
-	sgml = sgml.replace(/<INTU\.[^>]*>[^<]*/g, '');
+	// Remove extension tags containing dots (e.g. INTU.BID, INTU.USERID).
+	// These are non-standard and invalid as XML element names.
+	// Handles both SGML-style (<INTU.BID>val) and XML-style (<INTU.BID>val</INTU.BID>).
+	sgml = sgml.replace(/<\/?[A-Z][A-Z0-9]*\.[^>]*>[^<]*/g, '');
 
 	// Close leaf tags: <TAG>value → <TAG>value</TAG>
 	// Only close tags with non-whitespace content (container tags have only
@@ -70,7 +72,7 @@ export function parseOFX(content: string): ParsedAccount[] {
 
 	const parseError = doc.querySelector('parsererror');
 	if (parseError) {
-		throw new Error(`Failed to parse OFX: ${parseError.textContent?.slice(0, 200)}`);
+		throw new Error('File does not appear to be a valid OFX/QFX investment account export.');
 	}
 
 	const secMap = buildSecurityMap(doc);
