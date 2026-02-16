@@ -50,6 +50,7 @@ For each TODO task, follow these steps in order. The goal is autonomous completi
 7. **Sync/Archive**: `/opsx:archive <change-name>` — sync delta specs to main specs (remove "change language" like ADDED/MODIFIED/REMOVED headers when merging), then archive
 8. **Commit**: Commit changes to the feature branch
 9. **Merge**: Merge feature branch onto main
+   Conflicts should be resolved by user
 10. **Push**: Push main to origin. Leave local branches in place. Do NOT push feature branches.
 
 ### OpenSpec Structure
