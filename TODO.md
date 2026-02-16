@@ -99,3 +99,7 @@ These could feed into Compare — run a what-if, it auto-adds to comparison.
 ## ~~FE-5. Bug Fixes~~ ✓ DONE
 
 Fixed 4 UI bugs: monthly-primary spending display across all views, conversion strategy dropdown disabled when age >= RMD age with explanatory note, inline validation errors for inflation/growth inputs routed away from portfolio banner, effective spending display in single-run results summary.
+
+## ~~FE-6. Layout Restructure~~ ✓ DONE
+
+Reordered landing page (PortfolioEditor above SimulateSettings), added collapsed section summaries (Accounts total, Budget monthly + expenses, Income SS/streams), moved Advanced settings (tax rates, RMD, IRMAA) to ProfileDrawer, converted BalanceChart to stacked area (Pre-tax/Roth/Brokerage, no Total line), removed redundant portfolio summary bar.
