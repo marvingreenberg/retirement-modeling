@@ -38,6 +38,9 @@ retirement-model = "retirement_model.cli:main"
 where = ["src"]
 include = ["retirement_model*"]
 
+[tool.setuptools.package-data]
+retirement_model = ["static/**/*"]
+
 [tool.black]
 line-length = 100
 target-version = ["py310"]
