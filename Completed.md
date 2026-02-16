@@ -47,3 +47,15 @@ Playwright E2E test suite covering setup, navigation, simulation, spending, comp
 ## FE-3. Integrate ApplicationDetails.md Into UI
 
 Contextual help drawer with 4 topics (Tax Bracket Inflation Indexing, Spending Strategies, Social Security Benefit Formula, Income Stream COLA), route-based default topics, maximize toggle, and internal navigation between related topics. CircleHelp button in AppBar.
+
+---
+
+## FE-5. Bug Fixes
+
+Fixed 4 UI bugs: monthly-primary spending display across all views, conversion strategy dropdown disabled when age >= RMD age with explanatory note, inline validation errors for inflation/growth inputs routed away from portfolio banner, effective spending display in single-run results summary.
+
+---
+
+## BE-7. Sophisticated Portfolio Analysis (OBE)
+
+Superseded by client-side OFX/QFX portfolio import.

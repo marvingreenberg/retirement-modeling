@@ -74,11 +74,9 @@ Implemented in `be-improvements` branch:
 - `make dev` runs uvicorn + pnpm dev in parallel; `make docker-run` for integration testing
 - Deleted `Dockerfile.api`, `Dockerfile.ui`, `compose.yaml`; updated Makefile targets
 
-## BE-7. Sophisticated Portfolio Analysis
+## ~~BE-7. Sophisticated Portfolio Analysis~~ ✓ OBE
 
-Detailed portfolio import using exported files, or 3rd party connectors (expensive)? Showing stock/bond mix, make guestimates of default rate of return.
-
-Simplest starting point: CSV import from brokerage exports (Fidelity, Schwab, Vanguard all offer CSV downloads of holdings). Covers most use cases without API integration costs.
+Superseded by client-side OFX/QFX portfolio import (FE, commit 1a23213). Brokerage export import handled in the frontend.
 
 ## BE-8. Chatbot Integration
 
@@ -98,9 +96,6 @@ Rather than complicated historical configuration presets, user-friendly what-if 
 
 These could feed into Compare — run a what-if, it auto-adds to comparison.
 
-## FE-5. Bug Fixes
+## ~~FE-5. Bug Fixes~~ ✓ DONE
 
-- Inflation input says % but expects a float like 0.03; validation error incorrectly flags the Portfolio pane
-- IRA Conversion should be hidden/disabled when withdrawals exceed conversion income limits, or at least explain why conversions won't happen
-- Monthly vs annual display for desired income — make it monthly, show annual as a note?
-- BE-2 adds `initial_monthly_spend` and `initial_annual_spend` to API summary — landing page summary area should display effective spending for the chosen strategy (e.g., "$6,667/mo via 4% rule")
+Fixed 4 UI bugs: monthly-primary spending display across all views, conversion strategy dropdown disabled when age >= RMD age with explanatory note, inline validation errors for inflation/growth inputs routed away from portfolio banner, effective spending display in single-run results summary.
