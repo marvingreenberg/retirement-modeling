@@ -148,3 +148,9 @@ Removed Spending tab from AppBar and deleted the `/spending` route. Moved full S
 ## Remove Guided Tour
 
 Deleted GuidedTour.svelte, TourTooltip.svelte, tourActive store, and data-tour attributes. Removed tour activation from SetupView. First-use setup flow preserved.
+
+---
+
+## Refactor Settings
+
+Consolidated all settings into a dedicated `/settings` route with left-nav layout (Basic Info, Load/Save, Advanced Settings). Replaced ProfileDrawer and inline setup form. Avatar now uses DiceBear HTTP API with dropdown menu instead of initials-based avatar with drawer. First-use redirects to `/settings`. Added localStorage auto-save with restore on app startup. Deleted ProfileDrawer, SetupView, and FileControls from PortfolioEditor.
