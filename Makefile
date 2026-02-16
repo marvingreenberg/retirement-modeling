@@ -1,4 +1,4 @@
-.PHONY: help setup build test e2e clean lint format dev \
+.PHONY: help setup build test e2e clean lint format dev deploy \
        setup-api setup-ui build-api build-ui test-api test-ui \
        run-api run-cli run-ui dev docker-run
 
@@ -16,6 +16,7 @@ help:
 	@echo "  test       - Run all tests (API + UI)"
 	@echo "  dev        - Start API + UI dev servers, open browser, Ctrl-C stops both"
 	@echo "  docker-run - Build and run combined Docker image on port 8000"
+	@echo "  deploy     - Build, push, and deploy to GCP Cloud Run"
 	@echo "  e2e        - Run E2E tests against Docker image"
 	@echo "  clean      - Remove all build artifacts and generated files"
 	@echo "  lint       - Run linters (black, isort, mypy)"
@@ -47,6 +48,27 @@ dev:
 docker-run:
 	docker build -t retirement-app . && \
 	  docker run --rm -p 8000:8000 retirement-app
+
+GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
+GCP_REGION  ?= $(shell gcloud config get-value run/region 2>/dev/null || echo us-central1)
+SERVICE_NAME ?= retirement-sim
+IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/retirement-sim/$(SERVICE_NAME):latest
+
+deploy:
+	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
+	docker build -t $(IMAGE) . && \
+	  docker push $(IMAGE) && \
+	  gcloud run deploy $(SERVICE_NAME) \
+	    --image=$(IMAGE) \
+	    --platform=managed \
+	    --allow-unauthenticated \
+	    --port=8000 \
+	    --memory=512Mi \
+	    --cpu=1 \
+	    --min-instances=0 \
+	    --max-instances=3 \
+	    --set-env-vars="PYTHONUNBUFFERED=1" && \
+	  echo "Deployed: $$(gcloud run services describe $(SERVICE_NAME) --format='value(status.url)')"
 
 e2e: docker-run
 
