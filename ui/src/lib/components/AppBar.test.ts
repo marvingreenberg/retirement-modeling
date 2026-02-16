@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import { profile, defaultProfile, portfolio, defaultPortfolio } from '$lib/stores';
 
 Object.defineProperty(window, 'matchMedia', {
@@ -65,5 +65,17 @@ describe('AppBar', () => {
 		profile.set({ primaryName: 'Mike', spouseName: 'Karen' });
 		render(AppBar);
 		expect(screen.getByText('M,K')).toBeInTheDocument();
+	});
+
+	it('renders help button', () => {
+		render(AppBar);
+		expect(screen.getByLabelText('Open help')).toBeInTheDocument();
+	});
+
+	it('help button opens help drawer', async () => {
+		render(AppBar);
+		expect(screen.queryByRole('complementary', { name: 'Help' })).not.toBeInTheDocument();
+		await fireEvent.click(screen.getByLabelText('Open help'));
+		expect(screen.getByRole('complementary', { name: 'Help' })).toBeInTheDocument();
 	});
 });

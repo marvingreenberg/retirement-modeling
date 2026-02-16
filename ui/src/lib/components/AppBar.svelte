@@ -3,7 +3,8 @@
 	import { AppBar as SkAppBar } from '@skeletonlabs/skeleton-svelte';
 	import AvatarButton from './AvatarButton.svelte';
 	import ProfileDrawer from './ProfileDrawer.svelte';
-	import { LayoutDashboard, GitCompareArrows, Table, Wallet } from 'lucide-svelte';
+	import HelpDrawer from './HelpDrawer.svelte';
+	import { LayoutDashboard, GitCompareArrows, Table, Wallet, CircleHelp } from 'lucide-svelte';
 
 	const navItems = [
 		{ href: '/', label: 'Overview', icon: LayoutDashboard },
@@ -18,6 +19,7 @@
 	}
 
 	let drawerOpen = $state(false);
+	let helpOpen = $state(false);
 </script>
 
 <SkAppBar>
@@ -41,6 +43,9 @@
 			</nav>
 		</SkAppBar.Headline>
 		<SkAppBar.Trail>
+			<button class="btn btn-sm preset-ghost" onclick={() => helpOpen = true} aria-label="Open help">
+				<CircleHelp size={20} />
+			</button>
 			<span data-tour="profile">
 				<AvatarButton onclick={() => drawerOpen = !drawerOpen} />
 			</span>
@@ -49,3 +54,4 @@
 </SkAppBar>
 
 <ProfileDrawer bind:open={drawerOpen} />
+<HelpDrawer bind:open={helpOpen} />
