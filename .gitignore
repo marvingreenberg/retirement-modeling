@@ -1,8 +1,9 @@
 # Virtual environment
 .venv/
+# Various
 .docs/
 .accounts/
-
+ui/test-results/
 # Python
 __pycache__/
 *.py[cod]

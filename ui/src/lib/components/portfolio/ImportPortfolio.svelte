@@ -12,7 +12,7 @@
 	let error = $state('');
 	let parsedAccounts = $state<ParsedAccount[]>([]);
 	let summaries = $state<PortfolioSummary[]>([]);
-	let accountTypes = $state<AccountType[]>([]);
+	let accountTypes = $state<(AccountType | '')[]>([]);
 	let accountNames = $state<string[]>([]);
 
 	let fileInput: HTMLInputElement | undefined = $state();
@@ -31,13 +31,13 @@
 			const text = await file.text();
 			parsedAccounts = parseOFX(text);
 			summaries = parsedAccounts.map((a) => summarizePortfolio(a.holdings, a.cash_balance));
-			accountTypes = parsedAccounts.map(() => 'brokerage');
+			accountTypes = parsedAccounts.map(() => '');
 			accountNames = parsedAccounts.map(
 				(a) => `${a.broker !== 'unknown' ? a.broker + ' ' : ''}${a.account_id}`
 			);
 			showModal = true;
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to parse file';
+		} catch {
+			error = `Could not load ${file.name}. The file may not be a supported OFX/QFX investment export.`;
 		}
 
 		input.value = '';
@@ -45,15 +45,18 @@
 
 	function confirmImport() {
 		const nextId = accounts.length + 1;
-		const newAccounts: Account[] = parsedAccounts.map((parsed, i) => ({
-			id: `import_${nextId + i}`,
-			name: accountNames[i],
-			balance: Math.round(parsed.total_value),
-			type: accountTypes[i],
-			owner: 'primary' as const,
-			cost_basis_ratio: accountTypes[i] === 'brokerage' ? 0.65 : 1.0,
-			available_at_age: 0,
-		}));
+		const newAccounts: Account[] = parsedAccounts.map((parsed, i) => {
+			const acctType = accountTypes[i] as AccountType;
+			return {
+				id: `import_${nextId + i}`,
+				name: accountNames[i],
+				balance: Math.round(parsed.total_value),
+				type: acctType,
+				owner: 'primary' as const,
+				cost_basis_ratio: acctType === 'brokerage' ? 0.65 : 1.0,
+				available_at_age: 0,
+			};
+		});
 		accounts = [...accounts, ...newAccounts];
 
 		// Use blended estimated return from imported holdings to suggest growth rate
@@ -80,6 +83,8 @@
 		summaries = [];
 		error = '';
 	}
+
+	let allTypesSet = $derived(accountTypes.length > 0 && accountTypes.every((t) => t !== ''));
 
 	function formatMoney(n: number): string {
 		return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -142,7 +147,8 @@
 						</label>
 						<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 							Account Type
-							<select class="select w-32" bind:value={accountTypes[i]}>
+							<select class="select w-36" bind:value={accountTypes[i]}>
+								<option value="" disabled>-- Select type --</option>
 								<option value="pretax">Pre-tax</option>
 								<option value="roth">Roth</option>
 								<option value="brokerage">Brokerage</option>
@@ -179,7 +185,7 @@
 
 			<div class="flex gap-3 justify-end pt-2">
 				<button class="btn preset-tonal" onclick={cancel}>Cancel</button>
-				<button class="btn preset-filled" onclick={confirmImport}>
+				<button class="btn preset-filled" onclick={confirmImport} disabled={!allTypesSet}>
 					Add {parsedAccounts.length} Account{parsedAccounts.length > 1 ? 's' : ''}
 				</button>
 			</div>

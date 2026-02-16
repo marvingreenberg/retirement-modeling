@@ -190,11 +190,27 @@ describe('preprocessOFX', () => {
 		expect(xml).toContain('<SEVERITY>INFO</SEVERITY>');
 	});
 
-	it('strips Intuit extension tags', () => {
+	it('strips dot-extension tags (SGML-style, no closing tags)', () => {
 		const input = '<OFX><INTU.BID>12345<CODE>0</OFX>';
 		const xml = preprocessOFX(input);
 		expect(xml).not.toContain('INTU.BID');
 		expect(xml).toContain('<CODE>0</CODE>');
+	});
+
+	it('strips dot-extension tags (XML-style, with closing tags)', () => {
+		const input = '<OFX><SONRS><INTU.BID>17260</INTU.BID><INTU.USERID>12345</INTU.USERID></SONRS></OFX>';
+		const xml = preprocessOFX(input);
+		expect(xml).not.toContain('INTU.BID');
+		expect(xml).not.toContain('INTU.USERID');
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(xml, 'text/xml');
+		expect(doc.querySelector('parsererror')).toBeNull();
+	});
+
+	it('strips non-INTU dot-extension tags', () => {
+		const input = '<OFX><SONRS><CUSTOM.EXT>foo</CUSTOM.EXT></SONRS></OFX>';
+		const xml = preprocessOFX(input);
+		expect(xml).not.toContain('CUSTOM.EXT');
 	});
 
 	it('handles tags with extra whitespace in values', () => {
@@ -299,6 +315,70 @@ describe('parseOFX', () => {
 	it('sets account_type to null (OFX cannot encode this)', () => {
 		const accounts = parseOFX(MINIMAL_OFX);
 		expect(accounts[0].account_type).toBeNull();
+	});
+
+	it('parses Wealthfront-style pre-closed XML with INTU tags', () => {
+		const ofx = `OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+<OFX>
+<SIGNONMSGSRSV1>
+<SONRS>
+<STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS>
+<DTSERVER>20250910072206.647</DTSERVER>
+<LANGUAGE>ENG</LANGUAGE>
+<FI><ORG>8437</ORG><FID>17260</FID></FI>
+<INTU.BID>17260</INTU.BID>
+<INTU.USERID>1234567890</INTU.USERID>
+</SONRS>
+</SIGNONMSGSRSV1>
+<INVSTMTMSGSRSV1>
+<INVSTMTTRNRS>
+<TRNUID>0</TRNUID>
+<STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS>
+<INVSTMTRS>
+<DTASOF>20250910000000.000</DTASOF>
+<CURDEF>USD</CURDEF>
+<INVACCTFROM><BROKERID>17260</BROKERID><ACCTID>8W543724</ACCTID></INVACCTFROM>
+<INVPOSLIST>
+<POSSTOCK>
+<INVPOS>
+<SECID><UNIQUEID>WFDIC01</UNIQUEID><UNIQUEIDTYPE>CUSIP</UNIQUEIDTYPE></SECID>
+<HELDINACCT>CASH</HELDINACCT>
+<POSTYPE>LONG</POSTYPE>
+<UNITS>74.87</UNITS>
+<UNITPRICE>1.0</UNITPRICE>
+<MKTVAL>74.87</MKTVAL>
+</INVPOS>
+</POSSTOCK>
+</INVPOSLIST>
+<INVBAL><AVAILCASH>0.00</AVAILCASH></INVBAL>
+</INVSTMTRS>
+</INVSTMTTRNRS>
+</INVSTMTMSGSRSV1>
+<SECLISTMSGSRSV1>
+<SECLIST>
+<STOCKINFO>
+<SECINFO>
+<SECID><UNIQUEID>WFDIC01</UNIQUEID><UNIQUEIDTYPE>CUSIP</UNIQUEIDTYPE></SECID>
+<SECNAME>Wealthfront FDIC Cash</SECNAME>
+<TICKER>WFDIC01</TICKER>
+</SECINFO>
+</STOCKINFO>
+</SECLIST>
+</SECLISTMSGSRSV1>
+</OFX>`;
+		const accounts = parseOFX(ofx);
+		expect(accounts).toHaveLength(1);
+		expect(accounts[0].broker).toBe('Wealthfront');
+		expect(accounts[0].holdings).toHaveLength(1);
+		expect(accounts[0].holdings[0].quantity).toBe(74.87);
+	});
+
+	it('provides friendly error message for unparseable XML', () => {
+		const ofx = `OFXHEADER:100
+<OFX><SONRS></MISMATCH></OFX>`;
+		expect(() => parseOFX(ofx)).toThrow('does not appear to be a valid OFX/QFX');
 	});
 
 	it('handles OFX date with time component', () => {
