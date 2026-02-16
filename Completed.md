@@ -142,3 +142,9 @@ Fixed planned expense reactivity bug (recurring fields not appearing until secti
 ## Inline Spending Editor
 
 Removed Spending tab from AppBar and deleted the `/spending` route. Moved full SpendingEditor into the Budget collapsible section of PortfolioEditor. Converted planned expenses from repeated label blocks to a compact table with columns: Name, Amount, Type, When (year or start–end range), Inflation Adj., and remove button.
+
+---
+
+## Remove Guided Tour
+
+Deleted GuidedTour.svelte, TourTooltip.svelte, tourActive store, and data-tour attributes. Removed tour activation from SetupView. First-use setup flow preserved.
