@@ -102,11 +102,11 @@ class TestPlannedExpense:
             name="Care",
             amount=100000,
             expense_type="recurring",
-            start_age=80,
-            end_age=95,
+            start_year=2030,
+            end_year=2045,
         )
         assert exp.expense_type == "recurring"
-        assert exp.start_age == 80
+        assert exp.start_year == 2030
 
     def test_zero_amount_rejected(self):
         with pytest.raises(ValidationError):

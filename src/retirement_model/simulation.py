@@ -57,7 +57,6 @@ def get_conversion_ceiling(
 def calculate_planned_expenses(
     expenses: list[PlannedExpense],
     year: int,
-    age_primary: int,
     base_inflation_factor: float,
 ) -> float:
     """Calculate total planned expenses for a given year."""
@@ -68,9 +67,9 @@ def calculate_planned_expenses(
         if expense.expense_type == "one_time" and expense.year == year:
             applies = True
         elif expense.expense_type == "recurring":
-            start = expense.start_age or 0
-            end = expense.end_age or 150
-            if start <= age_primary <= end:
+            start = expense.start_year or 0
+            end = expense.end_year or 9999
+            if start <= year <= end:
                 applies = True
 
         if applies:
@@ -193,7 +192,7 @@ def run_simulation(
         )
 
         planned_expense_amount = calculate_planned_expenses(
-            cfg.planned_expenses, current_year, age_primary, inflation_factor
+            cfg.planned_expenses, current_year, inflation_factor
         )
         total_spend_needed = base_spending + planned_expense_amount
 

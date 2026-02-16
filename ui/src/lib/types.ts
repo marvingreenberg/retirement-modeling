@@ -59,8 +59,8 @@ export interface PlannedExpense {
 	amount: number;
 	expense_type: 'one_time' | 'recurring';
 	year?: number;
-	start_age?: number;
-	end_age?: number;
+	start_year?: number;
+	end_year?: number;
 	inflation_adjusted: boolean;
 }
 

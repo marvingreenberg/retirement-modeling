@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { SimulationConfig, PlannedExpense } from '$lib/types';
+	import { currency } from '$lib/format';
 	import { validationErrors, formTouched } from '$lib/stores';
 
 	let {
@@ -30,6 +31,20 @@
 		plannedExpenses = plannedExpenses.filter((_, i) => i !== index);
 	}
 
+	function handleTypeChange(expense: PlannedExpense, newType: 'one_time' | 'recurring') {
+		if (newType === 'recurring') {
+			expense.start_year = expense.year;
+			expense.end_year = undefined;
+			expense.year = undefined;
+		} else {
+			expense.year = expense.start_year;
+			expense.start_year = undefined;
+			expense.end_year = undefined;
+		}
+		expense.expense_type = newType;
+		plannedExpenses = [...plannedExpenses];
+	}
+
 	function hasError(path: string): boolean {
 		if (!$formTouched) return false;
 		return Object.keys($validationErrors).some((k) => k.startsWith(path));
@@ -39,13 +54,12 @@
 <div class="flex flex-col gap-3">
 	<div class="flex gap-3 items-end">
 		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-			Monthly Spending ($/mo)
+			Annual Spending ($/yr)
 			<input type="number" class="input w-36"
-				value={Math.round(config.annual_spend_net / 12)}
-				oninput={(e) => config.annual_spend_net = +(e.target as HTMLInputElement).value * 12}
-				min="0" step="500" />
+				bind:value={config.annual_spend_net}
+				min="0" step="1000" />
 		</label>
-		<span class="text-xs text-surface-500 self-center">{config.annual_spend_net.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}/yr</span>
+		<span class="text-xs text-surface-500 self-center">{currency(Math.round(config.annual_spend_net / 12))}/mo</span>
 	</div>
 
 	<h4 class="text-sm text-surface-500 dark:text-surface-400 font-medium mt-2">Planned Expenses</h4>
@@ -69,7 +83,8 @@
 			</label>
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 				Type
-				<select class="select w-30" bind:value={expense.expense_type}>
+				<select class="select w-30" value={expense.expense_type}
+					onchange={(e) => handleTypeChange(expense, (e.target as HTMLSelectElement).value as 'one_time' | 'recurring')}>
 					<option value="one_time">One-time</option>
 					<option value="recurring">Recurring</option>
 				</select>
@@ -81,12 +96,12 @@
 				</label>
 			{:else}
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-					Start Age
-					<input type="number" class="input w-20" bind:value={expense.start_age} min="0" />
+					Start Year
+					<input type="number" class="input w-24 no-spinner" bind:value={expense.start_year} min="2000" />
 				</label>
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-					End Age
-					<input type="number" class="input w-20" bind:value={expense.end_age} min="0" />
+					End Year
+					<input type="number" class="input w-24 no-spinner" bind:value={expense.end_year} min="2000" />
 				</label>
 			{/if}
 			<label class="flex items-center gap-2 text-sm font-medium text-surface-600 dark:text-surface-400">

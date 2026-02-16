@@ -19,21 +19,21 @@ describe('SpendingEditor', () => {
 		formTouched.set(false);
 	});
 
-	it('shows monthly spending label', () => {
+	it('shows annual spending label', () => {
 		renderEditor();
-		expect(screen.getByText(/Monthly Spending/)).toBeInTheDocument();
+		expect(screen.getByText(/Annual Spending/)).toBeInTheDocument();
 	});
 
-	it('shows annual equivalent', () => {
+	it('shows monthly equivalent as detail', () => {
 		renderEditor();
-		expect(screen.getByText(/\/yr$/)).toBeInTheDocument();
+		expect(screen.getByText(/\/mo$/)).toBeInTheDocument();
 	});
 
-	it('displays monthly value derived from annual', () => {
+	it('displays annual value directly in input', () => {
 		const config = structuredClone(samplePortfolio.config);
 		config.annual_spend_net = 120000;
 		renderEditor({ config });
-		const input = screen.getByDisplayValue('10000');
+		const input = screen.getByDisplayValue('120000');
 		expect(input).toBeInTheDocument();
 	});
 

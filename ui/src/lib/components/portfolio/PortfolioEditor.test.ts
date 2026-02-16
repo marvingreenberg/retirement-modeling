@@ -11,14 +11,14 @@ describe('PortfolioEditor', () => {
 		formTouched.set(false);
 	});
 
-	it('shows monthly spending label in budget section', () => {
+	it('shows annual spending label in budget section', () => {
 		render(PortfolioEditor);
-		expect(screen.getByText(/Monthly Spending/)).toBeInTheDocument();
+		expect(screen.getByText(/Annual Spending/)).toBeInTheDocument();
 	});
 
-	it('shows annual equivalent next to monthly input', () => {
+	it('shows monthly equivalent next to annual input', () => {
 		render(PortfolioEditor);
-		expect(screen.getByText(/\$120,000\/yr/)).toBeInTheDocument();
+		expect(screen.getByText(/\$10,000\/mo/)).toBeInTheDocument();
 	});
 
 	it('shows collapsible sections for accounts, budget, income', () => {
@@ -66,7 +66,7 @@ describe('PortfolioEditor', () => {
 			return p;
 		});
 		render(PortfolioEditor);
-		expect(screen.getByText(/Define expected monthly spending/)).toBeInTheDocument();
+		expect(screen.getByText(/Define expected annual spending/)).toBeInTheDocument();
 	});
 
 	it('shows planned expenses count in budget section', () => {
@@ -88,9 +88,9 @@ describe('PortfolioEditor', () => {
 		expect(screen.getByText(/No accounts/)).toBeInTheDocument();
 	});
 
-	it('shows budget collapsed summary with monthly spending', () => {
+	it('shows budget collapsed summary with annual spending', () => {
 		render(PortfolioEditor);
-		expect(screen.getByText(/\$10,000\/mo/)).toBeInTheDocument();
+		expect(screen.getByText(/\$120,000\/yr/)).toBeInTheDocument();
 	});
 
 	it('shows budget summary with expense count', () => {

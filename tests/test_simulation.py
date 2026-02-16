@@ -58,14 +58,14 @@ class TestCalculatePlannedExpenses:
         expenses = [
             PlannedExpense(name="Renovation", amount=50000, expense_type="one_time", year=2026)
         ]
-        total = calculate_planned_expenses(expenses, 2026, 65, 1.0)
+        total = calculate_planned_expenses(expenses, 2026, 1.0)
         assert total == 50000
 
     def test_one_time_expense_different_year(self):
         expenses = [
             PlannedExpense(name="Renovation", amount=50000, expense_type="one_time", year=2027)
         ]
-        total = calculate_planned_expenses(expenses, 2026, 65, 1.0)
+        total = calculate_planned_expenses(expenses, 2026, 1.0)
         assert total == 0
 
     def test_recurring_expense_in_range(self):
@@ -74,11 +74,11 @@ class TestCalculatePlannedExpenses:
                 name="Care",
                 amount=100000,
                 expense_type="recurring",
-                start_age=80,
-                end_age=90,
+                start_year=2025,
+                end_year=2035,
             )
         ]
-        total = calculate_planned_expenses(expenses, 2026, 85, 1.0)
+        total = calculate_planned_expenses(expenses, 2030, 1.0)
         assert total == 100000
 
     def test_recurring_expense_outside_range(self):
@@ -87,11 +87,11 @@ class TestCalculatePlannedExpenses:
                 name="Care",
                 amount=100000,
                 expense_type="recurring",
-                start_age=80,
-                end_age=90,
+                start_year=2025,
+                end_year=2035,
             )
         ]
-        total = calculate_planned_expenses(expenses, 2026, 75, 1.0)
+        total = calculate_planned_expenses(expenses, 2040, 1.0)
         assert total == 0
 
     def test_inflation_adjustment(self):
@@ -100,12 +100,12 @@ class TestCalculatePlannedExpenses:
                 name="Care",
                 amount=100000,
                 expense_type="recurring",
-                start_age=80,
-                end_age=90,
+                start_year=2025,
+                end_year=2035,
                 inflation_adjusted=True,
             )
         ]
-        total = calculate_planned_expenses(expenses, 2026, 85, 1.5)
+        total = calculate_planned_expenses(expenses, 2030, 1.5)
         assert total == 150000
 
     def test_no_inflation_adjustment(self):
@@ -114,12 +114,12 @@ class TestCalculatePlannedExpenses:
                 name="Care",
                 amount=100000,
                 expense_type="recurring",
-                start_age=80,
-                end_age=90,
+                start_year=2025,
+                end_year=2035,
                 inflation_adjusted=False,
             )
         ]
-        total = calculate_planned_expenses(expenses, 2026, 85, 1.5)
+        total = calculate_planned_expenses(expenses, 2030, 1.5)
         assert total == 100000
 
 

@@ -64,8 +64,8 @@
 			balance: 'Balance',
 			amount: 'Amount',
 			year: 'Year',
-			start_age: 'Start Age',
-			end_age: 'End Age',
+			start_year: 'Start Year',
+			end_year: 'End Year',
 			cost_basis_ratio: 'Cost Basis %',
 			available_at_age: 'Available Age',
 		};
@@ -125,22 +125,21 @@
 
 	<CollapsibleSection title="Budget" bind:open={budgetOpen}>
 		{#snippet icon()}<Wallet size={16} class="text-primary-500" />{/snippet}
-		{#snippet summary()}{currency(Math.round($portfolio.config.annual_spend_net / 12))}/mo{#if ($portfolio.config.planned_expenses ?? []).length > 0} + {($portfolio.config.planned_expenses ?? []).length} expenses{/if}{/snippet}
+		{#snippet summary()}{currency($portfolio.config.annual_spend_net)}/yr{#if ($portfolio.config.planned_expenses ?? []).length > 0} + {($portfolio.config.planned_expenses ?? []).length} expenses{/if}{/snippet}
 		{#if noBudget && !noAccounts}
 			<div class="flex items-center gap-2 text-warning-600 dark:text-warning-400 text-sm font-semibold py-2">
 				<AlertTriangle size={16} />
-				Define expected monthly spending to allow simulation
+				Define expected annual spending to allow simulation
 			</div>
 		{/if}
 		<div class="flex gap-4 items-end flex-wrap">
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Monthly Spending ($/mo)
+				Annual Spending ($/yr)
 				<input type="number" class="input w-36"
-					value={Math.round($portfolio.config.annual_spend_net / 12)}
-					oninput={(e) => $portfolio.config.annual_spend_net = +(e.target as HTMLInputElement).value * 12}
-					min="0" step="500" />
+					bind:value={$portfolio.config.annual_spend_net}
+					min="0" step="1000" />
 			</label>
-			<span class="text-xs text-surface-500 self-center">{currency($portfolio.config.annual_spend_net)}/yr</span>
+			<span class="text-xs text-surface-500 self-center">{currency(Math.round($portfolio.config.annual_spend_net / 12))}/mo</span>
 			{#if ($portfolio.config.planned_expenses ?? []).length > 0}
 				<span class="text-sm text-surface-500">+ {($portfolio.config.planned_expenses ?? []).length} planned expenses ({currency(($portfolio.config.planned_expenses ?? []).reduce((s, e) => s + (e.amount ?? 0), 0))})</span>
 			{/if}

@@ -1,6 +1,5 @@
-## Purpose
-Defines the budget page at `/budget` for configuring annual spending and planned expenses.
-## Requirements
+## MODIFIED Requirements
+
 ### Requirement: Budget configuration page
 The `/budget` route SHALL display a dedicated budget configuration page with annual spending amount and planned expenses. The page heading SHALL read "Budget".
 
@@ -17,6 +16,8 @@ The `/budget` route SHALL display a dedicated budget configuration page with ann
 #### Scenario: Planned expenses editor
 - **WHEN** the user views the budget page
 - **THEN** the planned expenses editor is visible with add/remove expense controls
+
+## ADDED Requirements
 
 ### Requirement: Planned expense year-based fields
 Planned expenses SHALL use calendar year fields for both one-time and recurring types. One-time expenses use a single "Year" field. Recurring expenses use "Start Year" and "End Year" fields.

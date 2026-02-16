@@ -96,11 +96,11 @@ class PlannedExpense(BaseModel):
     amount: float = Field(gt=0)
     expense_type: Literal["one_time", "recurring"] = "one_time"
     year: int | None = None
-    start_age: int | None = None
-    end_age: int | None = None
+    start_year: int | None = None
+    end_year: int | None = None
     inflation_adjusted: bool = True
 
-    @field_validator("year", "start_age", "end_age", mode="before")
+    @field_validator("year", "start_year", "end_year", mode="before")
     @classmethod
     def validate_timing(cls, v: int | None) -> int | None:
         if v is not None and v < 0:

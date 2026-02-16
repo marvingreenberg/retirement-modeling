@@ -97,15 +97,15 @@ The editor SHALL provide a "Save" button that downloads the current portfolio st
 - **THEN** a JSON file is downloaded containing the portfolio data in the CLI-compatible format
 
 ### Requirement: Compact budget section
-The PortfolioEditor SHALL include a Budget collapsible section containing the monthly spending input (with annual equivalent shown), a count and total of planned expenses (if any), and a link to the full `/spending` page.
+The PortfolioEditor SHALL include a Budget collapsible section containing the annual spending input (with monthly equivalent shown as detail), a count and total of planned expenses (if any), and a link to the full `/spending` page.
 
 #### Scenario: Budget section with planned expenses
 - **WHEN** user has 3 planned expenses totaling $55,000 and annual spending of $120,000
-- **THEN** the Budget section shows "$10,000/mo ($120,000/yr)", "3 planned expenses ($55,000)", and a "Full spending plan" link to /spending
+- **THEN** the Budget section shows "$120,000/yr ($10,000/mo)", "3 planned expenses ($55,000)", and a "Full spending plan" link to /spending
 
 #### Scenario: Budget section without planned expenses
 - **WHEN** user has annual spending of $120,000 and no planned expenses
-- **THEN** the Budget section shows "$10,000/mo ($120,000/yr)" and the "Full spending plan" link
+- **THEN** the Budget section shows "$120,000/yr ($10,000/mo)" and the "Full spending plan" link
 
 ### Requirement: Collapsed section summaries
 Each collapsible section (Accounts, Budget, Income) SHALL display a summary when collapsed, showing key data inline with the section title.
@@ -120,11 +120,11 @@ Each collapsible section (Accounts, Budget, Income) SHALL display a summary when
 
 #### Scenario: Budget collapsed summary
 - **WHEN** the Budget section is collapsed and annual spending is $120,000
-- **THEN** the section header shows "Budget — $10,000/mo"
+- **THEN** the section header shows "Budget — $120,000/yr"
 
 #### Scenario: Budget collapsed with planned expenses
 - **WHEN** the Budget section is collapsed with $120,000 annual and 2 planned expenses totaling $55,000
-- **THEN** the section header shows "Budget — $10,000/mo + 2 expenses"
+- **THEN** the section header shows "Budget — $120,000/yr + 2 expenses"
 
 #### Scenario: Income collapsed summary with SS and pension
 - **WHEN** the Income section is collapsed with SS starting at age 70 and a $24K/yr pension

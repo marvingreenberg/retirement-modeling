@@ -60,8 +60,8 @@ export const plannedExpenseSchema = z.object({
 	amount: z.number().positive(),
 	expense_type: z.enum(['one_time', 'recurring']),
 	year: z.number().int().min(2000).max(2100).optional(),
-	start_age: z.number().int().min(0).optional(),
-	end_age: z.number().int().min(0).optional(),
+	start_year: z.number().int().min(2000).max(2100).optional(),
+	end_year: z.number().int().min(2000).max(2100).optional(),
 	inflation_adjusted: z.boolean(),
 });
 

@@ -304,8 +304,8 @@ class TestPlannedExpensesAffectResults:
                 "name": "Travel",
                 "amount": 15000,
                 "expense_type": "recurring",
-                "start_age": 65,
-                "end_age": 80,
+                "start_year": 2027,
+                "end_year": 2042,
             }
         ]
         r_recurring = _simulate(client, with_recurring)
