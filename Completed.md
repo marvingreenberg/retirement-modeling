@@ -136,3 +136,9 @@ Reordered landing page (PortfolioEditor above SimulateSettings), added collapsed
 ## Fix Expense UX
 
 Fixed planned expense reactivity bug (recurring fields not appearing until section collapse/reopen), changed recurring expenses from start/end age to start/end year (backend + frontend), made spending input annual-primary with monthly shown as detail text, and preserved start date when switching between one-time and recurring types.
+
+---
+
+## Inline Spending Editor
+
+Removed Spending tab from AppBar and deleted the `/spending` route. Moved full SpendingEditor into the Budget collapsible section of PortfolioEditor. Converted planned expenses from repeated label blocks to a compact table with columns: Name, Amount, Type, When (year or start–end range), Inflation Adj., and remove button.
