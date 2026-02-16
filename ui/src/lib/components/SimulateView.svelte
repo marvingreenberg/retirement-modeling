@@ -97,6 +97,12 @@
 		<div class="card bg-surface-100 dark:bg-surface-800 p-4">
 			<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"><BarChart3 size={18} class="text-primary-500" /> Summary</h3>
 			<div class="flex gap-6 flex-wrap">
+				{#if singleResult.summary.initial_monthly_spend}
+					<div class="flex flex-col gap-0.5">
+						<span class="text-xs text-surface-500">Initial Spending</span>
+						<span class="text-base font-bold text-surface-900 dark:text-surface-50">{currency(Math.round(singleResult.summary.initial_monthly_spend))}/mo <span class="text-sm font-normal text-surface-500">({currency(singleResult.summary.initial_annual_spend ?? 0)}/yr)</span></span>
+					</div>
+				{/if}
 				<div class="flex flex-col gap-0.5">
 					<span class="text-xs text-surface-500">Final Balance</span>
 					<span class="text-base font-bold text-surface-900 dark:text-surface-50">{currency(singleResult.summary.final_balance)}</span>

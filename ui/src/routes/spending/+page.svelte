@@ -30,7 +30,7 @@
 			<Wallet size={22} class="text-primary-500" /> Spending Plan
 		</h2>
 		<div class="text-sm text-surface-500">
-			Base: {currency($portfolio.config.annual_spend_net)}/yr
+			Base: {currency(Math.round($portfolio.config.annual_spend_net / 12))}/mo ({currency($portfolio.config.annual_spend_net)}/yr)
 			{#if totalPlanned > 0}
 				+ {currency(totalPlanned)} planned
 			{/if}

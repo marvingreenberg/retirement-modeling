@@ -18,7 +18,13 @@ test.describe('Spending Page', () => {
 		await page.getByRole('banner').getByRole('link', { name: /spending/i }).click();
 		await expect(page).toHaveURL(/\/spending/);
 		await expect(page.getByText('Spending Plan')).toBeVisible();
-		// Base spending amount shown in the header summary
-		await expect(page.getByText(/Base:.*\/yr/)).toBeVisible();
+		// Base spending shows monthly primary with annual in parentheses
+		await expect(page.getByText(/Base:.*\/mo/)).toBeVisible();
+		await expect(page.getByText(/\/yr\)/)).toBeVisible();
+	});
+
+	test('spending editor shows monthly input label', async ({ page }) => {
+		await page.getByRole('banner').getByRole('link', { name: /spending/i }).click();
+		await expect(page.getByText('Monthly Spending')).toBeVisible();
 	});
 });

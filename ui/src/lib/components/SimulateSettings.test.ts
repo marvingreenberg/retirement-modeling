@@ -1,12 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import { portfolio, samplePortfolio } from '$lib/stores';
+import { portfolio, samplePortfolio, validationErrors, formTouched } from '$lib/stores';
 
 const { default: SimulateSettings } = await import('./SimulateSettings.svelte');
 
 describe('SimulateSettings', () => {
 	beforeEach(() => {
 		portfolio.set(structuredClone(samplePortfolio));
+		validationErrors.set({});
+		formTouched.set(false);
 	});
 
 	function renderSettings(overrides: Record<string, any> = {}) {
@@ -134,5 +136,62 @@ describe('SimulateSettings', () => {
 		renderSettings();
 		expect(screen.getByText('Single run')).toBeInTheDocument();
 		expect(screen.getByText('Monte Carlo')).toBeInTheDocument();
+	});
+
+	it('disables conversion dropdown when age >= RMD age', () => {
+		portfolio.update((p) => {
+			p.config.current_age_primary = 75;
+			p.config.rmd_start_age = 73;
+			return p;
+		});
+		renderSettings();
+		const select = screen.getByRole('combobox');
+		expect(select).toBeDisabled();
+	});
+
+	it('enables conversion dropdown when age < RMD age', () => {
+		portfolio.update((p) => {
+			p.config.current_age_primary = 60;
+			p.config.rmd_start_age = 73;
+			return p;
+		});
+		renderSettings();
+		const select = screen.getByRole('combobox');
+		expect(select).not.toBeDisabled();
+	});
+
+	it('shows warning text when conversion disabled', () => {
+		portfolio.update((p) => {
+			p.config.current_age_primary = 73;
+			p.config.rmd_start_age = 73;
+			return p;
+		});
+		renderSettings();
+		expect(screen.getByText(/Conversions only apply before RMD age/)).toBeInTheDocument();
+	});
+
+	it('shows inline error for inflation input when validation fails', () => {
+		portfolio.update((p) => {
+			p.config.inflation_rate = -0.01;
+			return p;
+		});
+		formTouched.set(true);
+		validationErrors.set({ 'config.inflation_rate': 'Must be >= 0' });
+		renderSettings();
+		expect(screen.getByText('Must be >= 0')).toBeInTheDocument();
+	});
+
+	it('shows inline error for growth input when validation fails', () => {
+		formTouched.set(true);
+		validationErrors.set({ 'config.investment_growth_rate': 'Invalid rate' });
+		renderSettings();
+		expect(screen.getByText('Invalid rate')).toBeInTheDocument();
+	});
+
+	it('does not show inline errors when form is not touched', () => {
+		formTouched.set(false);
+		validationErrors.set({ 'config.inflation_rate': 'Must be >= 0' });
+		renderSettings();
+		expect(screen.queryByText('Must be >= 0')).not.toBeInTheDocument();
 	});
 });

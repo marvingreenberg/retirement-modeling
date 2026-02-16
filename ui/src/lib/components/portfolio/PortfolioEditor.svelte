@@ -22,8 +22,9 @@
 		validationErrors.set(errors);
 	});
 
+	const configInputPaths = ['config.inflation_rate', 'config.investment_growth_rate'];
 	let errorList = $derived(
-		$formTouched ? Object.entries(errors) : []
+		$formTouched ? Object.entries(errors).filter(([k]) => !configInputPaths.includes(k)) : []
 	);
 
 	let noAccounts = $derived($portfolio.accounts.length === 0);
@@ -103,14 +104,18 @@
 		{#if noBudget && !noAccounts}
 			<div class="flex items-center gap-2 text-warning-600 dark:text-warning-400 text-sm font-semibold py-2">
 				<AlertTriangle size={16} />
-				Define expected annual spending to allow simulation
+				Define expected monthly spending to allow simulation
 			</div>
 		{/if}
 		<div class="flex gap-4 items-end flex-wrap">
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Annual Spending ($/yr)
-				<input type="number" class="input w-36" bind:value={$portfolio.config.annual_spend_net} min="0" step="1000" />
+				Monthly Spending ($/mo)
+				<input type="number" class="input w-36"
+					value={Math.round($portfolio.config.annual_spend_net / 12)}
+					oninput={(e) => $portfolio.config.annual_spend_net = +(e.target as HTMLInputElement).value * 12}
+					min="0" step="500" />
 			</label>
+			<span class="text-xs text-surface-500 self-center">{currency($portfolio.config.annual_spend_net)}/yr</span>
 			{#if ($portfolio.config.planned_expenses ?? []).length > 0}
 				<span class="text-sm text-surface-500">+ {($portfolio.config.planned_expenses ?? []).length} planned expenses ({currency(($portfolio.config.planned_expenses ?? []).reduce((s, e) => s + (e.amount ?? 0), 0))})</span>
 			{/if}

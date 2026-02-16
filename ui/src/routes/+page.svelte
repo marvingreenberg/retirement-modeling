@@ -103,7 +103,7 @@
 				</div>
 				<div class="flex flex-col gap-0.5">
 					<span class="text-xs text-surface-400">Spending</span>
-					<span class="font-semibold text-surface-900 dark:text-surface-50">{currency(spending)}/yr</span>
+					<span class="font-semibold text-surface-900 dark:text-surface-50">{currency(Math.round(spending / 12))}/mo <span class="text-xs font-normal text-surface-500">({currency(spending)}/yr)</span></span>
 				</div>
 				{#if $portfolio.config.spending_strategy && $portfolio.config.spending_strategy !== 'fixed_dollar'}
 					<div class="flex flex-col gap-0.5">

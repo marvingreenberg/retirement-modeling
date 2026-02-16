@@ -124,4 +124,28 @@ describe('SimulateView (results-only)', () => {
 		expect(link).toBeInTheDocument();
 		expect(link.getAttribute('href')).toBe('/details');
 	});
+
+	it('shows initial spending when initial_monthly_spend is present', () => {
+		const resultWithSpending: SimulationResponse = {
+			...mockSingleResult,
+			summary: {
+				...mockSingleResult.summary,
+				initial_monthly_spend: 10000,
+				initial_annual_spend: 120000,
+			},
+		};
+		render(SimulateView, {
+			singleResult: resultWithSpending, mcResult: null, lastRunMode: 'single', error: '',
+		});
+		expect(screen.getByText('Initial Spending')).toBeInTheDocument();
+		expect(screen.getByText(/\$10,000\/mo/)).toBeInTheDocument();
+		expect(screen.getByText(/\$120,000\/yr/)).toBeInTheDocument();
+	});
+
+	it('does not show initial spending when field is absent', () => {
+		render(SimulateView, {
+			singleResult: mockSingleResult, mcResult: null, lastRunMode: 'single', error: '',
+		});
+		expect(screen.queryByText('Initial Spending')).not.toBeInTheDocument();
+	});
 });

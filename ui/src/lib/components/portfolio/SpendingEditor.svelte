@@ -39,9 +39,13 @@
 <div class="flex flex-col gap-3">
 	<div class="flex gap-3 items-end">
 		<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-			Annual Spending ($/yr)
-			<input type="number" class="input w-36" bind:value={config.annual_spend_net} min="0" step="1000" />
+			Monthly Spending ($/mo)
+			<input type="number" class="input w-36"
+				value={Math.round(config.annual_spend_net / 12)}
+				oninput={(e) => config.annual_spend_net = +(e.target as HTMLInputElement).value * 12}
+				min="0" step="500" />
 		</label>
+		<span class="text-xs text-surface-500 self-center">{config.annual_spend_net.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}/yr</span>
 	</div>
 
 	<h4 class="text-sm text-surface-500 dark:text-surface-400 font-medium mt-2">Planned Expenses</h4>

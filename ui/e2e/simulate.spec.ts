@@ -57,4 +57,11 @@ test.describe('Simulation Flow', () => {
 		// Collapsed summary bar has a Simulate button (use exact match to avoid the wrapper)
 		await expect(page.getByRole('button', { name: 'Simulate', exact: true })).toBeVisible();
 	});
+
+	test('portfolio summary bar shows monthly spending', async ({ page }) => {
+		// The summary bar at the bottom should show monthly spending with annual note
+		const summaryBar = page.locator('.bg-surface-100, .dark\\:bg-surface-800').filter({ hasText: 'Spending' });
+		await expect(summaryBar.getByText(/\/mo/)).toBeVisible();
+		await expect(summaryBar.getByText(/\/yr\)/)).toBeVisible();
+	});
 });

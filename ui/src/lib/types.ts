@@ -130,6 +130,8 @@ export interface SimulationResponse {
 		simulation_years: number;
 		strategy: string;
 		spending_strategy: string;
+		initial_annual_spend?: number;
+		initial_monthly_spend?: number;
 	};
 }
 
