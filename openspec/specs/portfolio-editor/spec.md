@@ -1,5 +1,5 @@
 ## Purpose
-Editable form for managing retirement accounts, budget, income streams, and portfolio import with collapsible sections.
+Editable form for managing retirement accounts, budget, income streams with collapsible sections.
 ## Requirements
 ### Requirement: Collapsible form sections
 The portfolio editor SHALL organize fields into collapsible sections: Accounts, Budget, and Income. Each section SHALL be independently expandable/collapsible. The Budget section contains the full spending editor with annual spending input and planned expenses table.
@@ -11,17 +11,6 @@ The portfolio editor SHALL organize fields into collapsible sections: Accounts, 
 #### Scenario: Toggle section
 - **WHEN** the user clicks a collapsed section header
 - **THEN** that section expands to show its fields
-
-### Requirement: People & Timeline fields
-The editor SHALL provide inputs for primary age, spouse age, simulation years, and start year with numeric validation matching the backend constraints (ages 0-120, years 1-100, start year 2000-2100).
-
-#### Scenario: Valid ages entered
-- **WHEN** the user enters age 65 for primary and 62 for spouse
-- **THEN** the values are accepted without error
-
-#### Scenario: Invalid age rejected
-- **WHEN** the user enters age 150 for primary
-- **THEN** a validation error is displayed indicating the maximum is 120
 
 ### Requirement: Accounts editor
 The editor SHALL allow adding, editing, and removing accounts. Each account has fields for name, type (pretax/roth/brokerage), balance, owner (primary/spouse/joint), cost basis ratio, and available-at-age. At least one account is required.
@@ -49,13 +38,6 @@ The editor SHALL provide the income editor component within the Income collapsib
 - **WHEN** the user modifies SS or income stream values
 - **THEN** the changes are reflected in the shared portfolio store
 
-### Requirement: Tax section
-The editor SHALL provide fields for state tax rate, capital gains rate, RMD start age, and IRMAA tier 1 limit.
-
-#### Scenario: Tax defaults populated
-- **WHEN** the user opens a new portfolio editor
-- **THEN** tax fields show defaults: state rate 5.75%, capital gains 15%, RMD age 73, IRMAA limit $206,000
-
 ### Requirement: Strategy section
 The editor SHALL provide a dropdown for conversion strategy selection from the available options (standard, irmaa_tier_1, 22_percent_bracket, 24_percent_bracket).
 
@@ -77,24 +59,6 @@ All portfolio fields SHALL be validated using Zod schemas that match the backend
 #### Scenario: Config validation error appears at input
 - **WHEN** the user enters an out-of-range inflation rate (e.g., 103%)
 - **THEN** the error message appears next to the inflation rate input, not in the portfolio error banner
-
-### Requirement: JSON file import
-The editor SHALL provide a "Load" button that opens a file picker for JSON files. Loading a valid portfolio JSON SHALL populate all form fields.
-
-#### Scenario: Load valid portfolio file
-- **WHEN** the user selects a valid portfolio JSON file
-- **THEN** all form fields are populated with the file's values
-
-#### Scenario: Load invalid file
-- **WHEN** the user selects a file that fails Zod validation
-- **THEN** an error message is displayed describing what's wrong
-
-### Requirement: JSON file export
-The editor SHALL provide a "Save" button that downloads the current portfolio state as a JSON file compatible with the CLI tool.
-
-#### Scenario: Save portfolio
-- **WHEN** the user clicks "Save" with a valid portfolio
-- **THEN** a JSON file is downloaded containing the portfolio data in the CLI-compatible format
 
 ### Requirement: Compact budget section
 The PortfolioEditor SHALL include a Budget collapsible section containing the full SpendingEditor component: annual spending input with monthly equivalent detail, and a planned expenses table with add/remove controls.
@@ -168,4 +132,3 @@ The single-run balance chart SHALL use a stacked area chart with three series: P
 #### Scenario: Chart tooltip shows all values
 - **WHEN** the user hovers over the chart
 - **THEN** the tooltip shows the value for each account type and the total
-

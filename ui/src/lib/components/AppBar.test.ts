@@ -36,6 +36,11 @@ describe('AppBar', () => {
 		expect(screen.getByRole('link', { name: /details/i })).toBeInTheDocument();
 	});
 
+	it('does not show a Spending navigation link', () => {
+		render(AppBar);
+		expect(screen.queryByRole('link', { name: /spending/i })).not.toBeInTheDocument();
+	});
+
 	it('navigation links have correct hrefs', () => {
 		render(AppBar);
 		expect(screen.getByRole('link', { name: /overview/i })).toHaveAttribute('href', '/');
@@ -59,12 +64,6 @@ describe('AppBar', () => {
 		expect(screen.getByLabelText('Open profile')).toBeInTheDocument();
 	});
 
-	it('avatar shows initials when profile has names', () => {
-		profile.set({ primaryName: 'Mike', spouseName: 'Karen' });
-		render(AppBar);
-		expect(screen.getByText('M,K')).toBeInTheDocument();
-	});
-
 	it('renders help button', () => {
 		render(AppBar);
 		expect(screen.getByLabelText('Open help')).toBeInTheDocument();
@@ -75,5 +74,12 @@ describe('AppBar', () => {
 		expect(screen.queryByRole('complementary', { name: 'Help' })).not.toBeInTheDocument();
 		await fireEvent.click(screen.getByLabelText('Open help'));
 		expect(screen.getByRole('complementary', { name: 'Help' })).toBeInTheDocument();
+	});
+
+	it('avatar click opens dropdown with Settings link', async () => {
+		profile.set({ primaryName: 'Mike', spouseName: '' });
+		render(AppBar);
+		await fireEvent.click(screen.getByLabelText('Open profile'));
+		expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument();
 	});
 });

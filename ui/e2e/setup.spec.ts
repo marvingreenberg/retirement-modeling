@@ -5,10 +5,18 @@ test.describe('First-use setup flow', () => {
 		await page.goto('/');
 	});
 
-	test('shows setup view on first visit', async ({ page }) => {
-		await expect(page.getByRole('heading', { name: 'Retirement Simulator' })).toBeVisible();
-		await expect(page.getByPlaceholder('e.g. Mike')).toBeVisible();
-		await expect(page.getByPlaceholder('e.g. 55')).toBeVisible();
+	test('redirects to settings on first visit', async ({ page }) => {
+		await expect(page).toHaveURL(/\/settings/);
+		await expect(page.getByText('Basic Info')).toBeVisible();
+		await expect(page.getByText('Your Name')).toBeVisible();
+		await expect(page.getByText('Your Age')).toBeVisible();
+	});
+
+	test('shows context banner when needs setup', async ({ page }) => {
+		await expect(page.getByText(/enter your info to get started/i)).toBeVisible();
+	});
+
+	test('shows Get Started and Load Sample Data buttons', async ({ page }) => {
 		await expect(page.getByRole('button', { name: 'Get Started' })).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Load Sample Data' })).toBeVisible();
 	});
@@ -26,28 +34,24 @@ test.describe('First-use setup flow', () => {
 		await expect(page.getByText('valid age')).toBeVisible();
 	});
 
-	test('completes setup and shows main UI', async ({ page }) => {
+	test('completes setup and navigates to overview', async ({ page }) => {
 		await page.getByPlaceholder('e.g. Mike').fill('Alice');
 		await page.getByPlaceholder('e.g. 55').fill('60');
 		await page.getByRole('button', { name: 'Get Started' }).click();
-
-		// Setup view disappears, main UI appears
-		await expect(page.getByPlaceholder('e.g. Mike')).not.toBeVisible();
-		// AppBar navigation visible
+		await expect(page).toHaveURL('/');
 		await expect(page.getByRole('banner').getByRole('link', { name: /overview/i })).toBeVisible();
 	});
 
 	test('spouse fields appear when checkbox toggled', async ({ page }) => {
-		await expect(page.getByPlaceholder('e.g. Karen')).not.toBeVisible();
+		await expect(page.getByText('Spouse Name')).not.toBeVisible();
 		await page.getByLabel('I have a spouse/partner').check();
-		await expect(page.getByPlaceholder('e.g. Karen')).toBeVisible();
-		await expect(page.getByPlaceholder('e.g. 52')).toBeVisible();
+		await expect(page.getByText('Spouse Name')).toBeVisible();
+		await expect(page.getByText('Spouse Age')).toBeVisible();
 	});
 
-	test('load sample data skips setup', async ({ page }) => {
+	test('load sample data navigates to overview', async ({ page }) => {
 		await page.getByRole('button', { name: 'Load Sample Data' }).click();
-		// Setup disappears, main UI with AppBar nav appears
-		await expect(page.getByRole('heading', { name: 'Retirement Simulator' })).not.toBeVisible();
+		await expect(page).toHaveURL('/');
 		await expect(page.getByRole('banner').getByRole('link', { name: /overview/i })).toBeVisible();
 	});
 });

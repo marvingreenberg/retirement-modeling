@@ -3,10 +3,6 @@ import { test, expect } from '@playwright/test';
 async function skipSetup(page: import('@playwright/test').Page) {
 	await page.goto('/');
 	await page.getByRole('button', { name: 'Load Sample Data' }).click();
-	for (let i = 0; i < 6; i++) {
-		await page.mouse.click(10, 10);
-		await page.waitForTimeout(200);
-	}
 }
 
 test.describe('Compare Page', () => {

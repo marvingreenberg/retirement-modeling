@@ -6,11 +6,15 @@
 	import SimulateSettings from '$lib/components/SimulateSettings.svelte';
 	import SimulateView from '$lib/components/SimulateView.svelte';
 	import WelcomeState from '$lib/components/WelcomeState.svelte';
-	import SetupView from '$lib/components/SetupView.svelte';
 	import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
 	import { get } from 'svelte/store';
+	import { goto } from '$app/navigation';
 
 	let needsSetup = $derived($portfolio.config.current_age_primary === 0);
+
+	$effect(() => {
+		if (needsSetup) goto('/settings');
+	});
 
 	let loading = $state(false);
 	let mcLoading = $state(false);
@@ -73,27 +77,23 @@
 	let hasResults = $derived(singleResult !== null || mcResult !== null);
 </script>
 
-{#if needsSetup}
-	<SetupView />
-{:else}
-	<div class="space-y-6">
-		<PortfolioEditor />
+<div class="space-y-6">
+	<PortfolioEditor />
 
-		<SimulateSettings
-			bind:collapsed={settingsCollapsed}
-			onrun={handleRun}
-			{loading}
-		/>
+	<SimulateSettings
+		bind:collapsed={settingsCollapsed}
+		onrun={handleRun}
+		{loading}
+	/>
 
-		{#if hasResults || error}
-			<SimulateView {singleResult} {mcResult} {mcLoading} {error} />
-		{:else if loading}
-			<div class="flex flex-col items-center justify-center py-16 gap-3">
-				<div class="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></div>
-				<span class="text-surface-500">Running simulation...</span>
-			</div>
-		{:else}
-			<WelcomeState />
-		{/if}
-	</div>
-{/if}
+	{#if hasResults || error}
+		<SimulateView {singleResult} {mcResult} {mcLoading} {error} />
+	{:else if loading}
+		<div class="flex flex-col items-center justify-center py-16 gap-3">
+			<div class="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></div>
+			<span class="text-surface-500">Running simulation...</span>
+		</div>
+	{:else}
+		<WelcomeState />
+	{/if}
+</div>

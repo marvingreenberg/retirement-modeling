@@ -1,6 +1,5 @@
-## Purpose
-Defines the AppBar, navigation, route structure, avatar with dropdown menu, and layout shell.
-## Requirements
+## MODIFIED Requirements
+
 ### Requirement: AppBar with navigation
 The app SHALL display a Skeleton `AppBar` at the top of every page. The AppBar SHALL contain the app title in the lead slot, navigation links in the center, and an avatar button plus a help button in the trail slot. Navigation links SHALL be: Overview, Compare, Details. The help button SHALL use a `CircleHelp` icon and be placed before the avatar button.
 
@@ -11,10 +10,6 @@ The app SHALL display a Skeleton `AppBar` at the top of every page. The AppBar S
 #### Scenario: Active navigation link
 - **WHEN** the user is on the `/compare` route
 - **THEN** the "Compare" navigation link is visually marked as active
-
-#### Scenario: Help button opens help drawer
-- **WHEN** the user clicks the help button in the AppBar
-- **THEN** the help drawer opens from the right side
 
 ### Requirement: Avatar button with generated image
 The AppBar SHALL display an avatar button showing a DiceBear-generated image based on the user's primary name. The image URL uses the DiceBear HTTP API: `https://api.dicebear.com/9.x/thumbs/svg?seed={name}`. If the image fails to load or no name is set, a fallback lucide User icon is displayed. Clicking the avatar SHALL open a dropdown menu.
@@ -57,17 +52,6 @@ The dark/light mode toggle SHALL be accessible from the settings page, not from 
 - **WHEN** the user views the AppBar
 - **THEN** no dark/light mode toggle is visible in the bar itself
 
-### Requirement: Route-based page navigation
-The app SHALL use SvelteKit routes for page navigation. Clicking a navigation link in the AppBar SHALL navigate to the corresponding route without a full page reload.
-
-#### Scenario: Navigate to Compare
-- **WHEN** the user clicks the "Compare" link in the AppBar
-- **THEN** the browser URL changes to `/compare` and the compare view is displayed
-
-#### Scenario: Navigate to Overview
-- **WHEN** the user clicks the "Overview" link or the app title in the AppBar
-- **THEN** the browser URL changes to `/` and the Overview page content is displayed
-
 ### Requirement: Route definitions
 The app SHALL define the following routes:
 - `/` — Overview page (simulation controls, results, accounts, income)
@@ -79,16 +63,13 @@ The app SHALL define the following routes:
 - **WHEN** the user clicks "Settings" in the avatar dropdown
 - **THEN** the browser URL changes to `/settings` and the settings page is displayed
 
-### Requirement: Layout structure
-The root layout SHALL render the AppBar above a color accent bar, followed by a content area. The content area SHALL render the current route's page component with consistent padding and max-width constraints.
+## REMOVED Requirements
 
-#### Scenario: Content below AppBar and color bar
-- **WHEN** any page loads
-- **THEN** the page content appears below the AppBar and color accent bar within a centered, max-width container
+### Requirement: Avatar button with initials
+(Replaced by DiceBear-generated avatar image)
 
-### Requirement: Color accent bar
-The layout SHALL display a 4px gradient color bar between the AppBar and the main content area, using primary-500, tertiary-500, and success-500 colors.
+### Requirement: Profile drawer
+(Replaced by avatar dropdown menu + settings page)
 
-#### Scenario: Color bar visible on all pages
-- **WHEN** any page loads
-- **THEN** a gradient color bar is visible immediately below the AppBar
+### Requirement: ProfileDrawer includes Advanced settings
+(Moved to settings page Advanced Settings panel)
