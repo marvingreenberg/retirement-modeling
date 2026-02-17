@@ -7,6 +7,11 @@ vi.mock('$app/navigation', () => ({
 	goto: vi.fn(),
 }));
 
+const mockPage = { url: new URL('http://localhost/settings') };
+vi.mock('$app/state', () => ({
+	page: mockPage,
+}));
+
 const { default: SettingsPage } = await import('./+page.svelte');
 const { goto } = await import('$app/navigation');
 
@@ -17,6 +22,7 @@ describe('Settings Page', () => {
 		numSimulations.set(1000);
 		vi.mocked(goto).mockClear();
 		localStorage.clear();
+		mockPage.url = new URL('http://localhost/settings');
 	});
 
 	describe('Layout', () => {
@@ -175,6 +181,32 @@ describe('Settings Page', () => {
 			render(SettingsPage);
 			await fireEvent.click(screen.getByText('Advanced Settings'));
 			expect(screen.getByText(/RMD Age/)).toBeInTheDocument();
+		});
+	});
+
+	describe('Query param section selection', () => {
+		it('defaults to Basic Info with no query param', () => {
+			mockPage.url = new URL('http://localhost/settings');
+			render(SettingsPage);
+			expect(screen.getByText('Your Name')).toBeInTheDocument();
+		});
+
+		it('selects Advanced Settings from query param', () => {
+			mockPage.url = new URL('http://localhost/settings?section=advanced');
+			render(SettingsPage);
+			expect(screen.getByText('State Tax %')).toBeInTheDocument();
+		});
+
+		it('selects Load/Save from query param', () => {
+			mockPage.url = new URL('http://localhost/settings?section=loadsave');
+			render(SettingsPage);
+			expect(screen.getByText('Load Portfolio')).toBeInTheDocument();
+		});
+
+		it('defaults to Basic Info for invalid section param', () => {
+			mockPage.url = new URL('http://localhost/settings?section=bogus');
+			render(SettingsPage);
+			expect(screen.getByText('Your Name')).toBeInTheDocument();
 		});
 	});
 });

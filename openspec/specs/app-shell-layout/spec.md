@@ -32,30 +32,46 @@ The AppBar SHALL display an avatar button showing a DiceBear-generated image bas
 - **THEN** a dropdown menu appears anchored to the avatar
 
 ### Requirement: Avatar dropdown menu
-Clicking the avatar button SHALL open a small dropdown menu anchored to the avatar. The dropdown contains the avatar image, name(s) below it, a divider, and a "Settings" link that navigates to `/settings`. Clicking outside the dropdown closes it. On the `/settings` route, the avatar click does nothing (already on settings).
+Clicking the avatar button SHALL open a dropdown menu anchored to the avatar. The dropdown contains the avatar image, name(s) below it, a divider, three settings section links (Basic Info, Load/Save, Advanced Settings) with icons, a second divider, and two checkbox toggles (Dark Mode, Auto-save). Clicking a section link navigates to `/settings?section=<id>` and closes the dropdown. Clicking outside the dropdown closes it. The avatar dropdown SHALL work on all routes including `/settings`.
 
 #### Scenario: Dropdown contents
 - **WHEN** the avatar dropdown is open with primaryName "Mike" and spouseName "Karen"
-- **THEN** it displays the avatar image, "Mike & Karen" text, a divider, and a "Settings" link
+- **THEN** it displays the avatar image, "Mike & Karen" text, a divider, Basic Info / Load/Save / Advanced Settings links with icons, a second divider, and Dark Mode and Auto-save checkboxes
 
-#### Scenario: Dropdown Settings link
-- **WHEN** the user clicks "Settings" in the dropdown
-- **THEN** the app navigates to `/settings` and the dropdown closes
+#### Scenario: Dropdown section link navigates to settings
+- **WHEN** the user clicks "Basic Info" in the dropdown
+- **THEN** the app navigates to `/settings?section=basic` and the dropdown closes
+
+#### Scenario: Dropdown section link for Advanced Settings
+- **WHEN** the user clicks "Advanced Settings" in the dropdown
+- **THEN** the app navigates to `/settings?section=advanced` and the dropdown closes
+
+#### Scenario: Dropdown dark mode toggle
+- **WHEN** the user clicks the Dark Mode checkbox in the dropdown
+- **THEN** the app theme switches between dark and light mode without closing the dropdown
+
+#### Scenario: Dropdown auto-save toggle
+- **WHEN** the user clicks the Auto-save checkbox in the dropdown
+- **THEN** auto-save is toggled and localStorage preference is updated without closing the dropdown
 
 #### Scenario: Dropdown closes on outside click
 - **WHEN** the dropdown is open and the user clicks outside it
 - **THEN** the dropdown closes
 
-#### Scenario: Avatar on settings page
+#### Scenario: Avatar works on settings page
 - **WHEN** the user is on the `/settings` route and clicks the avatar
-- **THEN** nothing happens (no dropdown opens)
+- **THEN** the dropdown opens normally
 
 ### Requirement: Dark mode toggle location
-The dark/light mode toggle SHALL be accessible from the settings page, not from the AppBar or a profile drawer.
+The dark/light mode toggle SHALL be accessible from the avatar dropdown on every page and from the settings page left-nav footer.
 
 #### Scenario: No toggle in AppBar
 - **WHEN** the user views the AppBar
 - **THEN** no dark/light mode toggle is visible in the bar itself
+
+#### Scenario: Toggle in dropdown
+- **WHEN** the user opens the avatar dropdown
+- **THEN** a dark/light mode toggle checkbox is visible below the section links
 
 ### Requirement: Route-based page navigation
 The app SHALL use SvelteKit routes for page navigation. Clicking a navigation link in the AppBar SHALL navigate to the corresponding route without a full page reload.

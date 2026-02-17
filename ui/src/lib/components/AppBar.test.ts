@@ -76,10 +76,20 @@ describe('AppBar', () => {
 		expect(screen.getByRole('complementary', { name: 'Help' })).toBeInTheDocument();
 	});
 
-	it('avatar click opens dropdown with Settings link', async () => {
+	it('avatar click opens dropdown with section links', async () => {
 		profile.set({ primaryName: 'Mike', spouseName: '' });
 		render(AppBar);
 		await fireEvent.click(screen.getByLabelText('Open profile'));
-		expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: /basic info/i })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: /load \/ save/i })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: /advanced settings/i })).toBeInTheDocument();
+	});
+
+	it('dropdown shows dark mode and auto-save toggles', async () => {
+		profile.set({ primaryName: 'Mike', spouseName: '' });
+		render(AppBar);
+		await fireEvent.click(screen.getByLabelText('Open profile'));
+		expect(screen.getByLabelText('Toggle dark mode')).toBeInTheDocument();
+		expect(screen.getByLabelText('Toggle auto-save')).toBeInTheDocument();
 	});
 });

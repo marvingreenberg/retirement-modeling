@@ -41,15 +41,32 @@ test.describe('Navigation', () => {
 		await expect(colorBar).toBeVisible();
 	});
 
-	test('avatar opens dropdown with Settings link', async ({ page }) => {
+	test('avatar opens dropdown with section links and toggles', async ({ page }) => {
 		await page.getByLabel('Open profile').click();
-		await expect(page.getByRole('link', { name: /settings/i })).toBeVisible();
+		await expect(page.getByRole('link', { name: /basic info/i })).toBeVisible();
+		await expect(page.getByRole('link', { name: /load \/ save/i })).toBeVisible();
+		await expect(page.getByRole('link', { name: /advanced settings/i })).toBeVisible();
+		await expect(page.getByLabel('Toggle dark mode')).toBeVisible();
+		await expect(page.getByLabel('Toggle auto-save')).toBeVisible();
 	});
 
-	test('Settings link navigates to settings page', async ({ page }) => {
+	test('dropdown Basic Info link navigates to settings', async ({ page }) => {
 		await page.getByLabel('Open profile').click();
-		await page.getByRole('link', { name: /settings/i }).click();
-		await expect(page).toHaveURL(/\/settings/);
-		await expect(page.getByText('Basic Info')).toBeVisible();
+		await page.getByRole('link', { name: /basic info/i }).click();
+		await expect(page).toHaveURL(/\/settings\?section=basic/);
+		await expect(page.getByText('Your Name')).toBeVisible();
+	});
+
+	test('dropdown Advanced Settings link navigates to settings', async ({ page }) => {
+		await page.getByLabel('Open profile').click();
+		await page.getByRole('link', { name: /advanced settings/i }).click();
+		await expect(page).toHaveURL(/\/settings\?section=advanced/);
+		await expect(page.getByText('State Tax %')).toBeVisible();
+	});
+
+	test('dropdown dark mode toggle switches theme', async ({ page }) => {
+		await page.getByLabel('Open profile').click();
+		await page.getByLabel('Toggle dark mode').check();
+		await expect(page.locator('html')).toHaveClass(/dark/);
 	});
 });
