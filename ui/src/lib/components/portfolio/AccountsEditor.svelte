@@ -46,7 +46,7 @@
 			</div>
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 				Name
-				<input type="text" class="input w-36" bind:value={account.name} placeholder="Account name" />
+				<input type="text" class="input w-36" bind:value={account.name} onfocus={(e) => e.currentTarget.select()} placeholder="Account name" />
 			</label>
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 				Type
@@ -62,6 +62,7 @@
 					type="number"
 					class="input w-30 no-spinner {balanceError ? 'ring-2 ring-error-500 border-error-500' : ''}"
 					bind:value={account.balance}
+					onfocus={(e) => e.currentTarget.select()}
 					min="0"
 					step="1000"
 				/>
@@ -80,6 +81,7 @@
 					type="number"
 					class="input w-24 no-spinner"
 					value={Math.round((account.cost_basis_ratio ?? 0) * 100)}
+					onfocus={(e) => e.currentTarget.select()}
 					onchange={(e) => {
 						const pct = Math.max(0, Math.min(100, Number(e.currentTarget.value) || 0));
 						account.cost_basis_ratio = pct / 100;
@@ -92,7 +94,7 @@
 			</label>
 			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 				Avail. Age
-				<input type="number" class="input w-20 no-spinner" bind:value={account.available_at_age} min="0" />
+				<input type="number" class="input w-20 no-spinner" bind:value={account.available_at_age} onfocus={(e) => e.currentTarget.select()} min="0" />
 			</label>
 			<button
 				class="btn preset-outlined btn-sm"

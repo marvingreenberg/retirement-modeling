@@ -46,28 +46,28 @@
 </script>
 
 <div class="flex flex-col gap-4">
-	<div>
+	<div class="p-3 bg-surface-100 dark:bg-surface-800 rounded">
 		<h4 class="text-sm text-surface-500 dark:text-surface-400 font-medium mb-2">Social Security</h4>
 		{#if config.ss_auto}
 			<div class="flex gap-4 flex-wrap">
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 					Primary FRA Benefit ($/yr)
-					<input type="number" class="input w-36" bind:value={config.ss_auto.primary_fra_amount} min="0" step="1000" />
+					<input type="number" class="input w-36" bind:value={config.ss_auto.primary_fra_amount} onfocus={(e) => e.currentTarget.select()} min="0" step="1000" />
 				</label>
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 					Primary Start Age
-					<input type="number" class="input w-24" bind:value={config.ss_auto.primary_start_age} min="62" max="70" />
+					<input type="number" class="input w-24" bind:value={config.ss_auto.primary_start_age} onfocus={(e) => e.currentTarget.select()} min="62" max="70" />
 				</label>
 			</div>
 			{#if hasSpouse}
 				<div class="flex gap-4 flex-wrap mt-2">
 					<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 						Spouse FRA Benefit ($/yr)
-						<input type="number" class="input w-36" bind:value={config.ss_auto.spouse_fra_amount} min="0" step="1000" />
+						<input type="number" class="input w-36" bind:value={config.ss_auto.spouse_fra_amount} onfocus={(e) => e.currentTarget.select()} min="0" step="1000" />
 					</label>
 					<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 						Spouse Start Age
-						<input type="number" class="input w-24" bind:value={config.ss_auto.spouse_start_age} min="62" max="70" />
+						<input type="number" class="input w-24" bind:value={config.ss_auto.spouse_start_age} onfocus={(e) => e.currentTarget.select()} min="62" max="70" />
 					</label>
 				</div>
 			{/if}
@@ -77,32 +77,32 @@
 	<div>
 		<h4 class="text-sm text-surface-500 dark:text-surface-400 font-medium mb-2">Other Income</h4>
 		{#each config.income_streams as stream, idx}
-			<div class="flex gap-2 items-end flex-wrap mb-2">
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+			<div class="flex gap-3 items-end p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap mb-2">
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 					Name
-					<input type="text" class="input w-32 text-sm" bind:value={stream.name} placeholder="e.g. Pension" />
+					<input type="text" class="input w-32 text-sm" bind:value={stream.name} onfocus={(e) => e.currentTarget.select()} placeholder="e.g. Pension" />
 				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 					Amount ($/yr)
-					<input type="number" class="input w-28 text-sm" bind:value={stream.amount} min="0" step="1000" />
+					<input type="number" class="input w-28 text-sm" bind:value={stream.amount} onfocus={(e) => e.currentTarget.select()} min="0" step="1000" />
 				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 					Start Age
-					<input type="number" class="input w-20 text-sm" bind:value={stream.start_age} min="0" />
+					<input type="number" class="input w-20 text-sm" bind:value={stream.start_age} onfocus={(e) => e.currentTarget.select()} min="0" />
 				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 					End Age
-					<input type="number" class="input w-20 text-sm" bind:value={stream.end_age} min="0" />
+					<input type="number" class="input w-20 text-sm" bind:value={stream.end_age} onfocus={(e) => e.currentTarget.select()} min="0" />
 				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 					COLA %
-					<input type="number" class="input w-20 text-sm" bind:value={stream.cola_rate} min="0" max="0.2" step="0.005" />
+					<input type="number" class="input w-20 text-sm" bind:value={stream.cola_rate} onfocus={(e) => e.currentTarget.select()} min="0" max="0.2" step="0.005" />
 				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
+				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
 					Taxable
-					<input type="number" class="input w-20 text-sm" bind:value={stream.taxable_pct} min="0" max="1" step="0.05" />
+					<input type="number" class="input w-20 text-sm" bind:value={stream.taxable_pct} onfocus={(e) => e.currentTarget.select()} min="0" max="1" step="0.05" />
 				</label>
-				<button class="btn btn-sm preset-tonal p-1" onclick={() => removeStream(idx)} aria-label="Remove income stream">
+				<button class="btn btn-sm preset-tonal p-1 self-center" onclick={() => removeStream(idx)} aria-label="Remove income stream">
 					<Trash2 size={14} />
 				</button>
 			</div>

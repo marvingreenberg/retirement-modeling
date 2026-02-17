@@ -37,20 +37,20 @@ describe('SpendingEditor', () => {
 		expect(input).toBeInTheDocument();
 	});
 
-	it('shows table column headers when expenses exist', () => {
+	it('shows card labels when expenses exist', () => {
 		renderEditor();
-		expect(screen.getByText('Name')).toBeInTheDocument();
-		expect(screen.getByText('Amount ($)')).toBeInTheDocument();
-		expect(screen.getByText('Type')).toBeInTheDocument();
-		expect(screen.getByText('When')).toBeInTheDocument();
+		expect(screen.getAllByText('Name').length).toBeGreaterThan(0);
+		expect(screen.getAllByText('Amount ($)').length).toBeGreaterThan(0);
+		expect(screen.getAllByText('Type').length).toBeGreaterThan(0);
+		expect(screen.getAllByText('When').length).toBeGreaterThan(0);
 	});
 
-	it('does not show table when no expenses', () => {
+	it('does not show card labels when no expenses', () => {
 		renderEditor({ plannedExpenses: [] });
 		expect(screen.queryByText('Name')).not.toBeInTheDocument();
 	});
 
-	it('renders existing planned expenses in table', () => {
+	it('renders existing planned expenses as cards', () => {
 		renderEditor();
 		expect(screen.getByDisplayValue('Kitchen remodel')).toBeInTheDocument();
 		expect(screen.getByDisplayValue('Travel')).toBeInTheDocument();
