@@ -1,8 +1,16 @@
 <script lang="ts">
 	import { profile } from '$lib/stores';
-	import { User, Settings } from 'lucide-svelte';
+	import { isDark, initDarkMode, toggleDarkMode } from '$lib/darkMode.svelte';
+	import { isAutoSave, initAutoSave, toggleAutoSave } from '$lib/autoSave.svelte';
+	import { User, FolderOpen, Sliders, Sun, Moon, Save } from 'lucide-svelte';
+	import { onMount } from 'svelte';
 
 	let { open = $bindable(false) }: { open: boolean } = $props();
+
+	onMount(() => {
+		initDarkMode();
+		initAutoSave();
+	});
 
 	let avatarUrl = $derived.by(() => {
 		const seed = $profile.primaryName || '';
@@ -21,6 +29,12 @@
 		if (p.spouseName) return `${p.primaryName} & ${p.spouseName}`;
 		return p.primaryName;
 	});
+
+	const sectionLinks = [
+		{ href: '/settings?section=basic', label: 'Basic Info', icon: User },
+		{ href: '/settings?section=loadsave', label: 'Load / Save', icon: FolderOpen },
+		{ href: '/settings?section=advanced', label: 'Advanced Settings', icon: Sliders },
+	] as const;
 
 	function handleBackdrop(e: MouseEvent) {
 		if (e.target === e.currentTarget) open = false;
@@ -56,14 +70,36 @@
 
 			<hr class="border-surface-300 dark:border-surface-700 mb-2" />
 
-			<a
-				href="/settings"
-				class="flex items-center gap-2 px-3 py-2 text-sm text-surface-700 dark:text-surface-300 rounded hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
-				onclick={() => open = false}
-			>
-				<Settings size={16} />
-				Settings
-			</a>
+			<!-- Section navigation links -->
+			{#each sectionLinks as { href, label, icon: Icon }}
+				<a
+					{href}
+					class="flex items-center gap-2 px-3 py-2 text-sm text-surface-700 dark:text-surface-300 rounded hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
+					onclick={() => open = false}
+				>
+					<Icon size={16} />
+					{label}
+				</a>
+			{/each}
+
+			<hr class="border-surface-300 dark:border-surface-700 my-2" />
+
+			<!-- Toggle checkboxes -->
+			<label class="flex items-center gap-2 px-3 py-2 text-sm text-surface-700 dark:text-surface-300 rounded hover:bg-surface-200 dark:hover:bg-surface-700 cursor-pointer">
+				{#if isDark()}
+					<Moon size={16} />
+				{:else}
+					<Sun size={16} />
+				{/if}
+				<input type="checkbox" class="checkbox" checked={isDark()} onchange={toggleDarkMode} aria-label="Toggle dark mode" />
+				Dark Mode
+			</label>
+
+			<label class="flex items-center gap-2 px-3 py-2 text-sm text-surface-700 dark:text-surface-300 rounded hover:bg-surface-200 dark:hover:bg-surface-700 cursor-pointer">
+				<Save size={16} />
+				<input type="checkbox" class="checkbox" checked={isAutoSave()} onchange={toggleAutoSave} aria-label="Toggle auto-save" />
+				Auto-save
+			</label>
 		</div>
 	</div>
 {/if}

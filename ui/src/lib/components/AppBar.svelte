@@ -17,7 +17,6 @@
 		return page.url.pathname.startsWith(href);
 	}
 
-	let onSettingsPage = $derived(page.url.pathname === '/settings');
 	let dropdownOpen = $state(false);
 	let helpOpen = $state(false);
 </script>
@@ -45,7 +44,7 @@
 			<button class="btn btn-sm preset-ghost" onclick={() => helpOpen = true} aria-label="Open help">
 				<CircleHelp size={20} />
 			</button>
-			<AvatarButton onclick={() => { if (!onSettingsPage) dropdownOpen = !dropdownOpen; }} />
+			<AvatarButton onclick={() => dropdownOpen = !dropdownOpen} />
 		</SkAppBar.Trail>
 	</SkAppBar.Toolbar>
 </SkAppBar>

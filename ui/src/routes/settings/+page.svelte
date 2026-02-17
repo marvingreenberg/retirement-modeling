@@ -1,20 +1,37 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { portfolio, profile, numSimulations, samplePortfolio, sampleProfile, markFormTouched } from '$lib/stores';
 	import { portfolioSchema } from '$lib/schema';
 	import type { Portfolio } from '$lib/types';
+	import { isDark, initDarkMode, toggleDarkMode } from '$lib/darkMode.svelte';
+	import { isAutoSave, initAutoSave, toggleAutoSave } from '$lib/autoSave.svelte';
 	import InfoPopover from '$lib/components/InfoPopover.svelte';
 	import { User, UserPlus, UserMinus, Settings, FolderOpen, Sliders, Sun, Moon } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 
 	type Section = 'basic' | 'loadsave' | 'advanced';
-	let activeSection = $state<Section>('basic');
+	const validSections: Section[] = ['basic', 'loadsave', 'advanced'];
+
+	function sectionFromUrl(): Section {
+		const s = page.url.searchParams.get('section');
+		return validSections.includes(s as Section) ? (s as Section) : 'basic';
+	}
+
+	let activeSection = $state<Section>(sectionFromUrl());
+
+	// Re-read query param when URL changes (e.g. navigating from dropdown)
+	$effect(() => {
+		activeSection = sectionFromUrl();
+	});
 
 	// Track initial setup state at mount time, not reactively (so button doesn't vanish as user types age)
 	let initialNeedsSetup = $state(false);
 	let needsSetup = $derived($portfolio.config.current_age_primary === 0);
 	onMount(() => {
 		initialNeedsSetup = $portfolio.config.current_age_primary === 0;
+		initDarkMode();
+		initAutoSave();
 	});
 
 	let avatarUrl = $derived.by(() => {
@@ -32,17 +49,6 @@
 		if (p.spouseName) return `${p.primaryName} & ${p.spouseName}`;
 		return p.primaryName;
 	});
-
-	// Dark mode
-	let dark = $state(false);
-	onMount(() => {
-		dark = localStorage.getItem('color-scheme') === 'dark';
-	});
-	function toggleDarkMode() {
-		dark = !dark;
-		document.documentElement.classList.toggle('dark', dark);
-		localStorage.setItem('color-scheme', dark ? 'dark' : 'light');
-	}
 
 	// Basic Info
 	let hasSpouse = $derived($portfolio.config.current_age_spouse > 0);
@@ -127,21 +133,9 @@
 		URL.revokeObjectURL(url);
 	}
 
-	// Auto-save
-	let autoSave = $state(localStorage.getItem('retirement-sim-autosave') === 'true');
-	function toggleAutoSave() {
-		autoSave = !autoSave;
-		localStorage.setItem('retirement-sim-autosave', String(autoSave));
-		if (autoSave) saveToLocalStorage();
-	}
-
-	function saveToLocalStorage() {
-		const data = { portfolio: $portfolio, profile: $profile, numSimulations: $numSimulations };
-		localStorage.setItem('retirement-sim-state', JSON.stringify(data));
-	}
-
+	// Auto-save effect — uses shared module state
 	$effect(() => {
-		if (autoSave) {
+		if (isAutoSave()) {
 			const data = { portfolio: $portfolio, profile: $profile, numSimulations: $numSimulations };
 			localStorage.setItem('retirement-sim-state', JSON.stringify(data));
 		}
@@ -212,12 +206,12 @@
 		<!-- Footer: Dark Mode + Done -->
 		<div class="p-4 border-t border-surface-300 dark:border-surface-700 space-y-3">
 			<label class="flex items-center gap-3 cursor-pointer text-sm text-surface-700 dark:text-surface-300">
-				{#if dark}
+				{#if isDark()}
 					<Moon size={16} />
 				{:else}
 					<Sun size={16} />
 				{/if}
-				<input type="checkbox" class="checkbox" checked={dark} onchange={toggleDarkMode} aria-label="Toggle dark mode" />
+				<input type="checkbox" class="checkbox" checked={isDark()} onchange={toggleDarkMode} aria-label="Toggle dark mode" />
 				Dark Mode
 			</label>
 			<button class="btn preset-filled w-full" onclick={handleDone}>Done</button>
@@ -310,7 +304,7 @@
 				<hr class="border-surface-300 dark:border-surface-700" />
 
 				<label class="flex items-center gap-3 cursor-pointer text-sm text-surface-700 dark:text-surface-300">
-					<input type="checkbox" class="checkbox" checked={autoSave} onchange={toggleAutoSave} aria-label="Toggle auto-save" />
+					<input type="checkbox" class="checkbox" checked={isAutoSave()} onchange={toggleAutoSave} aria-label="Toggle auto-save" />
 					Auto-save to browser storage
 					<span class="text-xs text-surface-400">(persists between sessions)</span>
 				</label>
