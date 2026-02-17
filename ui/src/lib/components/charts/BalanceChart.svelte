@@ -23,6 +23,7 @@
 						borderColor: '#dc2626',
 						backgroundColor: 'rgba(220,38,38,0.3)',
 						borderWidth: 1.5,
+						pointRadius: 0,
 						fill: true,
 					},
 					{
@@ -31,6 +32,7 @@
 						borderColor: '#16a34a',
 						backgroundColor: 'rgba(22,163,74,0.3)',
 						borderWidth: 1.5,
+						pointRadius: 0,
 						fill: true,
 					},
 					{
@@ -39,6 +41,7 @@
 						borderColor: '#ca8a04',
 						backgroundColor: 'rgba(202,138,4,0.3)',
 						borderWidth: 1.5,
+						pointRadius: 0,
 						fill: true,
 					},
 				],
