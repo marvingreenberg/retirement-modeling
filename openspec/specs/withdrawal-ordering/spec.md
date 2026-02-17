@@ -6,14 +6,23 @@ Define the priority order for withdrawing funds from different account types to 
 ## Requirements
 
 ### Requirement: Standard Withdrawal Priority
-The system SHALL withdraw from account types in a specific order to minimize taxes.
+The system SHALL withdraw from account types in a specific order to minimize taxes, using `tax_category()` to group accounts rather than matching individual account type values.
 
 #### Scenario: Basic withdrawal order
 - WHEN the user needs to withdraw funds for spending
 - THEN the system withdraws in this order:
-  1. Brokerage accounts (taxable)
-  2. Roth accounts (tax-free)
-  3. Pre-tax accounts (fully taxable)
+  1. Cash/CD accounts (tax-free, return of principal)
+  2. Brokerage accounts (taxable gains only)
+  3. Roth accounts (tax-free)
+  4. Pre-tax accounts (fully taxable)
+
+#### Scenario: Cash withdrawn before brokerage
+- **WHEN** spending requires $80K and user has $50K cash_cd and $200K brokerage
+- **THEN** the $50K cash_cd is fully withdrawn first (no tax), then $30K from brokerage (with capital gains)
+
+#### Scenario: Multiple pre-tax types in withdrawal
+- **WHEN** spending falls through to pre-tax and user has both IRA ($100K) and 401k ($200K)
+- **THEN** both are eligible for withdrawal in the pretax category, drained sequentially
 
 #### Scenario: Brokerage first rationale
 - WHEN withdrawing from brokerage accounts
@@ -83,6 +92,15 @@ The system SHALL withdraw proportionally from multiple accounts of the same type
 - AND brokerage withdrawals are needed
 - THEN accounts are drained sequentially until spending is met
 - AND weighted average cost basis is tracked for tax purposes
+
+---
+
+### Requirement: RMD from all pre-tax account types
+Required Minimum Distributions SHALL be calculated from the aggregate balance of ALL pretax-category accounts (`ira`, `sep_ira`, `simple_ira`, `401k`, `403b`, `457b`), not just accounts with a specific type value.
+
+#### Scenario: RMD includes 401k and IRA
+- **WHEN** the user is age 73 with an IRA ($200K) and a 401k ($300K)
+- **THEN** RMD is calculated on the combined $500K pretax balance
 
 ---
 

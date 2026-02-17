@@ -1,14 +1,9 @@
 import { test, expect } from '@playwright/test';
-
-async function skipSetup(page: import('@playwright/test').Page) {
-	await page.goto('/');
-	// First visit redirects to /settings; click Load Sample Data to complete setup
-	await page.getByRole('button', { name: 'Load Sample Data' }).click();
-}
+import { loadSampleData } from './helpers';
 
 test.describe('Navigation', () => {
 	test.beforeEach(async ({ page }) => {
-		await skipSetup(page);
+		await loadSampleData(page);
 	});
 
 	test('AppBar shows all nav links', async ({ page }) => {

@@ -12,8 +12,8 @@ describe('samplePortfolio', () => {
 	it('has multiple accounts with different types', () => {
 		const types = new Set(samplePortfolio.accounts.map((a) => a.type));
 		expect(types.size).toBeGreaterThanOrEqual(3);
-		expect(types).toContain('pretax');
-		expect(types).toContain('roth');
+		expect(types).toContain('401k');
+		expect(types).toContain('roth_ira');
 		expect(types).toContain('brokerage');
 	});
 

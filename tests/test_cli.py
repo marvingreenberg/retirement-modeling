@@ -51,7 +51,7 @@ def sample_portfolio_file() -> Path:
                 "id": "ira",
                 "name": "IRA",
                 "balance": 300000,
-                "type": "pretax",
+                "type": "ira",
                 "owner": "primary",
             },
         ],

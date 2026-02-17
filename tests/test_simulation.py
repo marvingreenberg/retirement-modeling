@@ -318,11 +318,11 @@ class TestInflationIndexedTaxBrackets:
             accounts=[
                 Account(
                     id="pretax", name="IRA", balance=1000000,
-                    type=AccountType.PRETAX, owner=Owner.PRIMARY,
+                    type=AccountType.IRA, owner=Owner.PRIMARY,
                 ),
                 Account(
                     id="roth", name="Roth", balance=200000,
-                    type=AccountType.ROTH, owner=Owner.PRIMARY,
+                    type=AccountType.ROTH_IRA, owner=Owner.PRIMARY,
                 ),
                 Account(
                     id="brokerage", name="Brokerage", balance=500000,
@@ -402,7 +402,7 @@ class TestTaxRegimeSequence:
             accounts=[
                 Account(
                     id="pretax", name="IRA", balance=800000,
-                    type=AccountType.PRETAX, owner=Owner.PRIMARY,
+                    type=AccountType.IRA, owner=Owner.PRIMARY,
                 ),
                 Account(
                     id="brokerage", name="Brokerage", balance=400000,

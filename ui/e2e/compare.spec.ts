@@ -1,13 +1,9 @@
 import { test, expect } from '@playwright/test';
-
-async function skipSetup(page: import('@playwright/test').Page) {
-	await page.goto('/');
-	await page.getByRole('button', { name: 'Load Sample Data' }).click();
-}
+import { requiresApi, loadSampleData } from './helpers';
 
 test.describe('Compare Page', () => {
 	test.beforeEach(async ({ page }) => {
-		await skipSetup(page);
+		await loadSampleData(page);
 	});
 
 	test('shows empty state with no comparisons', async ({ page }) => {
@@ -17,6 +13,7 @@ test.describe('Compare Page', () => {
 	});
 
 	test('shows snapshot after simulation and add-to-comparison', async ({ page }) => {
+		await requiresApi();
 		test.setTimeout(60000);
 		await page.getByRole('button', { name: 'Simulate' }).click();
 		await expect(page.getByText('Final Balance')).toBeVisible({ timeout: 20000 });

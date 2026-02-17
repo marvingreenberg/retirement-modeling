@@ -3,6 +3,8 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import AppBar from '$lib/components/AppBar.svelte';
 	import { portfolio, profile, numSimulations } from '$lib/stores';
+	import { portfolioSchema, userProfileSchema } from '$lib/schema';
+	import type { Portfolio } from '$lib/types';
 	import { onMount } from 'svelte';
 
 	let { children } = $props();
@@ -13,9 +15,13 @@
 				const raw = localStorage.getItem('retirement-sim-state');
 				if (raw) {
 					const data = JSON.parse(raw);
-					if (data.portfolio) portfolio.set(data.portfolio);
-					if (data.profile) profile.set(data.profile);
-					if (data.numSimulations) numSimulations.set(data.numSimulations);
+					const pResult = portfolioSchema.safeParse(data.portfolio);
+					if (pResult.success) {
+						portfolio.set(pResult.data as Portfolio);
+						const profResult = userProfileSchema.safeParse(data.profile);
+						if (profResult.success) profile.set(profResult.data);
+						if (data.numSimulations) numSimulations.set(data.numSimulations);
+					}
 				}
 			} catch { /* ignore corrupt data */ }
 		}

@@ -33,14 +33,14 @@ def sample_portfolio() -> dict:
                 "id": "pretax",
                 "name": "401k",
                 "balance": 1000000,
-                "type": "pretax",
+                "type": "ira",
                 "owner": "primary",
             },
             {
                 "id": "roth",
                 "name": "Roth IRA",
                 "balance": 200000,
-                "type": "roth",
+                "type": "roth_ira",
                 "owner": "primary",
             },
             {
@@ -303,7 +303,7 @@ class TestNewIncomeFeatures:
             "accounts": [
                 {
                     "id": "ira", "name": "IRA", "balance": 500000,
-                    "type": "pretax", "owner": "primary",
+                    "type": "ira", "owner": "primary",
                 },
                 {
                     "id": "brokerage", "name": "Brokerage", "balance": 300000,

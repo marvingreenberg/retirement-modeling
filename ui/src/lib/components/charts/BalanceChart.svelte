@@ -9,43 +9,58 @@
 
 	Chart.register(...registerables);
 
+	function hasNonZero(data: number[]): boolean {
+		return data.some((v) => v > 0);
+	}
+
 	function buildChart() {
 		chart?.destroy();
 		const labels = years.map((y) => `Age ${y.age_primary}`);
+
+		const allDatasets = [
+			{
+				label: 'Pre-tax',
+				data: years.map((y) => y.pretax_balance),
+				borderColor: '#dc2626',
+				backgroundColor: 'rgba(220,38,38,0.3)',
+				borderWidth: 1.5,
+				pointRadius: 0,
+				fill: true,
+			},
+			{
+				label: 'Roth Conversions',
+				data: years.map((y) => y.roth_conversion_balance ?? 0),
+				borderColor: '#7c3aed',
+				backgroundColor: 'rgba(124,58,237,0.3)',
+				borderWidth: 1.5,
+				pointRadius: 0,
+				fill: true,
+			},
+			{
+				label: 'Roth',
+				data: years.map((y) => y.roth_balance),
+				borderColor: '#16a34a',
+				backgroundColor: 'rgba(22,163,74,0.3)',
+				borderWidth: 1.5,
+				pointRadius: 0,
+				fill: true,
+			},
+			{
+				label: 'Brokerage',
+				data: years.map((y) => y.brokerage_balance),
+				borderColor: '#ca8a04',
+				backgroundColor: 'rgba(202,138,4,0.3)',
+				borderWidth: 1.5,
+				pointRadius: 0,
+				fill: true,
+			},
+		];
+
+		const datasets = allDatasets.filter((ds) => hasNonZero(ds.data));
+
 		chart = new Chart(canvas, {
 			type: 'line',
-			data: {
-				labels,
-				datasets: [
-					{
-						label: 'Pre-tax',
-						data: years.map((y) => y.pretax_balance),
-						borderColor: '#dc2626',
-						backgroundColor: 'rgba(220,38,38,0.3)',
-						borderWidth: 1.5,
-						pointRadius: 0,
-						fill: true,
-					},
-					{
-						label: 'Roth',
-						data: years.map((y) => y.roth_balance),
-						borderColor: '#16a34a',
-						backgroundColor: 'rgba(22,163,74,0.3)',
-						borderWidth: 1.5,
-						pointRadius: 0,
-						fill: true,
-					},
-					{
-						label: 'Brokerage',
-						data: years.map((y) => y.brokerage_balance),
-						borderColor: '#ca8a04',
-						backgroundColor: 'rgba(202,138,4,0.3)',
-						borderWidth: 1.5,
-						pointRadius: 0,
-						fill: true,
-					},
-				],
-			},
+			data: { labels, datasets },
 			options: {
 				responsive: true,
 				interaction: { mode: 'index', intersect: false },

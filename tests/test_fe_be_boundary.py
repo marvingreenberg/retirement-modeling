@@ -48,14 +48,14 @@ def base_portfolio() -> dict:
                 "id": "pretax",
                 "name": "401k",
                 "balance": 1000000,
-                "type": "pretax",
+                "type": "ira",
                 "owner": "primary",
             },
             {
                 "id": "roth",
                 "name": "Roth IRA",
                 "balance": 200000,
-                "type": "roth",
+                "type": "roth_ira",
                 "owner": "primary",
             },
             {
@@ -205,12 +205,12 @@ class TestAccountBalancesAffectResults:
         # All pretax
         pretax_heavy = copy.deepcopy(base_portfolio)
         pretax_heavy["accounts"] = [
-            {"id": "p1", "name": "IRA", "balance": 1700000, "type": "pretax", "owner": "primary"}
+            {"id": "p1", "name": "IRA", "balance": 1700000, "type": "ira", "owner": "primary"}
         ]
         # All roth
         roth_heavy = copy.deepcopy(base_portfolio)
         roth_heavy["accounts"] = [
-            {"id": "r1", "name": "Roth", "balance": 1700000, "type": "roth", "owner": "primary"}
+            {"id": "r1", "name": "Roth", "balance": 1700000, "type": "roth_ira", "owner": "primary"}
         ]
         r_pretax = _simulate(client, pretax_heavy)
         r_roth = _simulate(client, roth_heavy)

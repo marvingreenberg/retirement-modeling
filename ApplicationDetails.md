@@ -35,3 +35,41 @@ The simulation computes SS benefits using the actual actuarial adjustment formul
 ## Income Stream COLA
 
 Income streams (pensions, annuities, etc.) can have a per-stream cost-of-living adjustment (COLA) rate. The effective amount in any year is `base_amount × (1 + cola_rate) ^ years_active`, where `years_active` is the number of years since the stream started. Year 0 (the start age) uses the base amount with no adjustment.
+
+## Roth Conversions
+
+Roth conversions move money from pre-tax retirement accounts into Roth accounts, paying income tax now to avoid it later. This is valuable when current tax rates are lower than expected future rates — common in early retirement before Social Security and RMDs begin.
+
+**Conversion-eligible accounts:** Only IRA-type accounts (Traditional IRA, SEP IRA, SIMPLE IRA) can be directly converted to Roth. Employer plans (401(k), 403(b), 457(b)) must first be rolled over to an IRA before conversion. The simulation models direct conversion from IRA-eligible accounts only.
+
+**Conversion tracking:** Roth conversions are deposited into a separate "Roth Conversions" account to track their growth independently from original Roth contributions. This distinction matters because conversion amounts have a 5-year seasoning period before tax-free withdrawal (though the simulation does not model this constraint). The balance chart shows four layers: Pre-tax, Roth Conversions, Roth, and Brokerage.
+
+**Conversion strategies:** The simulator offers several strategies that limit annual conversion amounts to stay within tax-efficient thresholds:
+- **Standard:** No conversions beyond RMDs
+- **IRMAA Tier 1:** Convert up to the IRMAA income threshold to avoid Medicare surcharges
+- **22% Bracket / 24% Bracket:** Convert up to the top of the specified federal tax bracket
+
+## Required Minimum Distributions (RMDs)
+
+Starting at age 73 (under SECURE 2.0), the IRS requires annual withdrawals from pre-tax retirement accounts based on life expectancy divisors. RMDs apply to all pre-tax account types (IRA, 401(k), 403(b), 457(b), SEP IRA, SIMPLE IRA). Roth IRAs and Roth 401(k)s are exempt from RMDs during the owner's lifetime (SECURE 2.0, effective 2024).
+
+**The "tax time bomb":** Large pre-tax balances force large RMDs which push retirees into higher tax brackets and can trigger IRMAA surcharges. Roth conversions before RMD age can reduce this exposure.
+
+**Aggregation rules:** An individual with multiple IRAs can take the total RMD amount from any of the IRA accounts. However, 401(k) and 457(b) plans require separate RMD withdrawals from each account. The simulation computes RMDs per owner across all their pre-tax accounts.
+
+## Cost Basis by Account Type
+
+Cost basis ratio represents what fraction of an account's value is original contributions (not gains). This affects taxation on withdrawals:
+
+- **Pre-tax accounts (IRA, 401(k), 403(b), etc.):** Cost basis 0% — all withdrawals are taxed as ordinary income since contributions were tax-deductible
+- **Roth accounts (Roth IRA, Roth 401(k), Roth Conversions):** Cost basis 100% — withdrawals are tax-free (contributions were after-tax)
+- **Cash/CD:** Cost basis 100% — no tax on withdrawal of principal (interest taxed as earned, not modeled)
+- **Brokerage:** Variable (default 40%) — only the gains portion (1 - cost_basis_ratio) is subject to capital gains tax on withdrawal
+
+## Capital Gains vs Ordinary Income
+
+Brokerage account withdrawals are taxed differently from pre-tax account withdrawals:
+- **Pre-tax withdrawals:** Taxed as ordinary income (federal brackets + state tax)
+- **Brokerage withdrawals:** Only the gains portion is taxed, and at the capital gains rate (typically 15%), not ordinary income rates
+
+This distinction means brokerage accounts are more tax-efficient for withdrawals when the capital gains rate is lower than the marginal income tax rate.

@@ -3,6 +3,7 @@
 import copy
 
 from retirement_model.models import (
+    Account,
     AccountType,
     ConversionStrategy,
     Owner,
@@ -10,7 +11,9 @@ from retirement_model.models import (
     Portfolio,
     SimulationResult,
     SpendingStrategy,
+    TaxCategory,
     YearResult,
+    is_conversion_eligible,
 )
 from retirement_model.social_security import generate_ss_streams
 from retirement_model.strategies import calculate_spending_target, create_initial_state
@@ -31,9 +34,12 @@ from retirement_model.taxes import (
 from retirement_model.withdrawals import (
     apply_growth,
     deposit_to_account,
+    get_eligible_pretax_balance,
+    get_total_balance_by_category,
     get_total_balance_by_owner,
     get_total_balance_by_type,
     withdraw_from_accounts,
+    withdraw_from_eligible_pretax,
 )
 
 
@@ -87,14 +93,7 @@ def run_simulation(
     inflation_sequence: list[float] | None = None,
     tax_regime_sequence: list[dict] | None = None,
 ) -> SimulationResult:
-    """Run the retirement simulation and return year-by-year results.
-
-    Args:
-        portfolio: The portfolio to simulate
-        returns_sequence: Optional list of annual returns for each year (for Monte Carlo)
-        inflation_sequence: Optional list of inflation rates for each year (for Monte Carlo)
-        tax_regime_sequence: Optional list of tax regime dicts per year (for Monte Carlo)
-    """
+    """Run the retirement simulation and return year-by-year results."""
     cfg = portfolio.config
     accounts = copy.deepcopy(portfolio.accounts)
     results: list[YearResult] = []
@@ -123,6 +122,23 @@ def run_simulation(
         spending_state.guardrails_config = GuardrailsConfig(
             initial_withdrawal_rate=cfg.withdrawal_rate
         )
+
+    # Auto-create roth_conversion tracking account if conversions will happen
+    has_conversion_strategy = cfg.strategy_target != ConversionStrategy.STANDARD
+    has_eligible_ira = any(is_conversion_eligible(a.type) for a in accounts)
+    if has_conversion_strategy and has_eligible_ira:
+        existing_conv = any(a.type == AccountType.ROTH_CONVERSION for a in accounts)
+        if not existing_conv:
+            accounts.append(
+                Account(
+                    id="roth_conversions",
+                    name="Roth Conversions",
+                    balance=0.0,
+                    type=AccountType.ROTH_CONVERSION,
+                    owner=Owner.PRIMARY,
+                    cost_basis_ratio=1.0,
+                )
+            )
 
     # Track cumulative inflation for expense adjustments
     cumulative_inflation = 1.0
@@ -220,15 +236,19 @@ def run_simulation(
 
         current_agi = ss_income * 0.85 + stream_taxable
 
-        # Mandatory RMDs
-        pretax_bal_primary = get_total_balance_by_owner(accounts, AccountType.PRETAX, Owner.PRIMARY)
+        # Mandatory RMDs (from ALL pretax-category accounts)
+        pretax_bal_primary = get_total_balance_by_owner(
+            accounts, TaxCategory.PRETAX, Owner.PRIMARY
+        )
         rmd_primary = calculate_rmd_amount(age_primary, pretax_bal_primary, cfg.rmd_start_age)
 
-        pretax_bal_spouse = get_total_balance_by_owner(accounts, AccountType.PRETAX, Owner.SPOUSE)
+        pretax_bal_spouse = get_total_balance_by_owner(
+            accounts, TaxCategory.PRETAX, Owner.SPOUSE
+        )
         rmd_spouse = calculate_rmd_amount(age_spouse, pretax_bal_spouse, cfg.rmd_start_age)
 
         total_rmd = rmd_primary + rmd_spouse
-        rmd_result = withdraw_from_accounts(total_rmd, accounts, AccountType.PRETAX, age_map)
+        rmd_result = withdraw_from_accounts(total_rmd, accounts, TaxCategory.PRETAX, age_map)
         current_agi += rmd_result.amount_withdrawn
 
         # Estimate tax rate for withholding (using inflation-adjusted brackets)
@@ -250,7 +270,7 @@ def run_simulation(
         conversion_tax_paid = 0.0
         brokerage_gains_tax = 0.0
 
-        # Spending logic
+        # Spending logic: brokerage/cash first, then roth, then pretax
         if remaining_spend > 0:
             agi_headroom = max(0, conversion_ceiling - current_agi) if conversion_ceiling > 0 else 0
 
@@ -261,23 +281,32 @@ def run_simulation(
 
             amount_from_brokerage = min(remaining_spend, max_safe_brokerage)
 
+            # Withdraw from cash first (no tax impact), then brokerage
             if amount_from_brokerage > 0:
-                result = withdraw_from_accounts(
-                    amount_from_brokerage, accounts, AccountType.BROKERAGE, age_map
+                cash_result = withdraw_from_accounts(
+                    amount_from_brokerage, accounts, TaxCategory.CASH, age_map
                 )
-                brokerage_withdrawn += result.amount_withdrawn
+                brokerage_withdrawn += cash_result.amount_withdrawn
+                remaining_from_brokerage = amount_from_brokerage - cash_result.amount_withdrawn
 
-                gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
-                current_agi += gains
-                brokerage_gains_tax += calculate_capital_gains_tax(
-                    gains, current_agi, cfg.tax_rate_capital_gains, adj_capgains_brackets
-                )
-                remaining_spend -= result.amount_withdrawn
+                if remaining_from_brokerage > 1.0:
+                    result = withdraw_from_accounts(
+                        remaining_from_brokerage, accounts, TaxCategory.BROKERAGE, age_map
+                    )
+                    brokerage_withdrawn += result.amount_withdrawn
+
+                    gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
+                    current_agi += gains
+                    brokerage_gains_tax += calculate_capital_gains_tax(
+                        gains, current_agi, cfg.tax_rate_capital_gains, adj_capgains_brackets
+                    )
+
+                remaining_spend -= brokerage_withdrawn
 
             # Use Roth if still needed (doesn't affect AGI)
             if remaining_spend > 1.0:
                 result = withdraw_from_accounts(
-                    remaining_spend, accounts, AccountType.ROTH, age_map
+                    remaining_spend, accounts, TaxCategory.ROTH, age_map
                 )
                 roth_withdrawn += result.amount_withdrawn
                 remaining_spend -= result.amount_withdrawn
@@ -285,50 +314,59 @@ def run_simulation(
             # Use pre-tax as last resort
             if remaining_spend > 1.0:
                 gross_need = remaining_spend / (1 - est_tax_rate)
-                result = withdraw_from_accounts(gross_need, accounts, AccountType.PRETAX, age_map)
+                result = withdraw_from_accounts(
+                    gross_need, accounts, TaxCategory.PRETAX, age_map
+                )
                 voluntary_pretax += result.amount_withdrawn
                 current_agi += result.amount_withdrawn
                 remaining_spend = 0
 
-        # Roth conversion logic (only pre-RMD age)
+        # Roth conversion logic (only pre-RMD age, only from IRA-eligible accounts)
         if conversion_ceiling > 0 and age_primary < cfg.rmd_start_age:
             agi_headroom = max(0, conversion_ceiling - current_agi)
 
             if agi_headroom > 5000:
-                available_pretax = get_total_balance_by_type(accounts, AccountType.PRETAX)
-                conversion_target = min(agi_headroom, available_pretax)
+                available_ira = get_eligible_pretax_balance(accounts)
+                conversion_target = min(agi_headroom, available_ira)
 
                 if conversion_target > 0:
                     tax_bill = conversion_target * est_tax_rate
                     conversion_tax_paid = tax_bill
 
-                    # Pay tax from brokerage
-                    tax_result = withdraw_from_accounts(
-                        tax_bill, accounts, AccountType.BROKERAGE, age_map
+                    # Pay tax from brokerage/cash
+                    tax_from_cash = withdraw_from_accounts(
+                        tax_bill, accounts, TaxCategory.CASH, age_map
                     )
-                    brokerage_withdrawn += tax_result.amount_withdrawn
+                    remaining_tax = tax_bill - tax_from_cash.amount_withdrawn
+                    tax_result = withdraw_from_accounts(
+                        remaining_tax, accounts, TaxCategory.BROKERAGE, age_map
+                    )
+                    total_tax_withdrawn = tax_from_cash.amount_withdrawn + tax_result.amount_withdrawn
+                    brokerage_withdrawn += total_tax_withdrawn
 
-                    # AGI impact from paying tax (gains on the withdrawal)
+                    # AGI impact from brokerage gains (cash has no gains)
                     tax_gains = tax_result.amount_withdrawn * (1 - tax_result.average_basis_ratio)
                     current_agi += tax_gains
                     brokerage_gains_tax += calculate_capital_gains_tax(
                         tax_gains, current_agi, cfg.tax_rate_capital_gains, adj_capgains_brackets
                     )
 
-                    # Execute conversion
-                    conv_result = withdraw_from_accounts(
-                        conversion_target, accounts, AccountType.PRETAX, age_map
+                    # Execute conversion from IRA-eligible accounts only
+                    conv_result = withdraw_from_eligible_pretax(
+                        conversion_target, accounts, age_map, eligible_only=True
                     )
 
-                    # If brokerage ran out, net the unpaid tax from deposit
-                    if tax_result.amount_withdrawn < tax_bill:
+                    # If brokerage/cash ran out, net the unpaid tax from deposit
+                    if total_tax_withdrawn < tax_bill:
                         net_deposit = conv_result.amount_withdrawn - (
-                            tax_bill - tax_result.amount_withdrawn
+                            tax_bill - total_tax_withdrawn
                         )
                     else:
                         net_deposit = conv_result.amount_withdrawn
 
-                    deposit_to_account(net_deposit, accounts, AccountType.ROTH, Owner.PRIMARY)
+                    deposit_to_account(
+                        net_deposit, accounts, AccountType.ROTH_CONVERSION, Owner.PRIMARY
+                    )
                     converted_amount += conv_result.amount_withdrawn
                     current_agi += conv_result.amount_withdrawn
 
@@ -363,9 +401,20 @@ def run_simulation(
                 irmaa_cost=irmaa_cost,
                 total_balance=round(total_balance),
                 spending_target=round(total_spend_needed),
-                pretax_balance=round(get_total_balance_by_type(accounts, AccountType.PRETAX)),
-                roth_balance=round(get_total_balance_by_type(accounts, AccountType.ROTH)),
-                brokerage_balance=round(get_total_balance_by_type(accounts, AccountType.BROKERAGE)),
+                pretax_balance=round(
+                    get_total_balance_by_category(accounts, TaxCategory.PRETAX)
+                ),
+                roth_balance=round(
+                    get_total_balance_by_category(accounts, TaxCategory.ROTH)
+                    - get_total_balance_by_type(accounts, AccountType.ROTH_CONVERSION)
+                ),
+                roth_conversion_balance=round(
+                    get_total_balance_by_type(accounts, AccountType.ROTH_CONVERSION)
+                ),
+                brokerage_balance=round(
+                    get_total_balance_by_category(accounts, TaxCategory.BROKERAGE)
+                    + get_total_balance_by_category(accounts, TaxCategory.CASH)
+                ),
             )
         )
 

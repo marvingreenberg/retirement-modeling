@@ -1,16 +1,13 @@
 import { test, expect } from '@playwright/test';
-
-async function skipSetup(page: import('@playwright/test').Page) {
-	await page.goto('/');
-	await page.getByRole('button', { name: 'Load Sample Data' }).click();
-}
+import { requiresApi, loadSampleData } from './helpers';
 
 test.describe('Simulation Flow', () => {
 	test.beforeEach(async ({ page }) => {
-		await skipSetup(page);
+		await loadSampleData(page);
 	});
 
 	test('run single simulation produces results', async ({ page }) => {
+		await requiresApi();
 		test.setTimeout(60000);
 		await page.getByRole('button', { name: 'Simulate' }).click();
 
@@ -22,6 +19,7 @@ test.describe('Simulation Flow', () => {
 	});
 
 	test('run Monte Carlo simulation shows success rate', async ({ page }) => {
+		await requiresApi();
 		test.setTimeout(90000);
 		await page.getByRole('button', { name: 'Simulate' }).click();
 		// Both simulations run; switch to Monte Carlo tab
@@ -34,6 +32,7 @@ test.describe('Simulation Flow', () => {
 	});
 
 	test('add to comparison shows feedback', async ({ page }) => {
+		await requiresApi();
 		test.setTimeout(60000);
 		await page.getByRole('button', { name: 'Simulate' }).click();
 		await expect(page.getByText('Final Balance')).toBeVisible({ timeout: 20000 });
@@ -43,6 +42,7 @@ test.describe('Simulation Flow', () => {
 	});
 
 	test('settings collapse after simulation', async ({ page }) => {
+		await requiresApi();
 		test.setTimeout(60000);
 		await expect(page.getByText('Inflation %')).toBeVisible();
 

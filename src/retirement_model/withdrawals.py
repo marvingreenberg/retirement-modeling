@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from retirement_model.models import Account, AccountType, Owner
+from retirement_model.models import Account, AccountType, Owner, TaxCategory, tax_category
 
 
 @dataclass
@@ -16,11 +16,10 @@ class WithdrawalResult:
 def withdraw_from_accounts(
     amount_needed: float,
     accounts: list[Account],
-    account_type: AccountType,
+    category: TaxCategory,
     owner_age_map: dict[str, int],
 ) -> WithdrawalResult:
-    """
-    Withdraw money from accounts of a specific type.
+    """Withdraw from accounts matching a tax category.
 
     Returns the amount actually withdrawn and the weighted average cost basis ratio.
     Modifies account balances in place.
@@ -35,7 +34,7 @@ def withdraw_from_accounts(
     for acc in accounts:
         if remaining_need <= 1.0:
             break
-        if acc.type != account_type:
+        if tax_category(acc.type) != category:
             continue
 
         current_age = owner_age_map.get(acc.owner.value, 0)
@@ -53,14 +52,51 @@ def withdraw_from_accounts(
     return WithdrawalResult(total_withdrawn, avg_basis)
 
 
+def withdraw_from_eligible_pretax(
+    amount_needed: float,
+    accounts: list[Account],
+    owner_age_map: dict[str, int],
+    eligible_only: bool = False,
+) -> WithdrawalResult:
+    """Withdraw from pre-tax accounts. When eligible_only=True, only IRA-category accounts."""
+    from retirement_model.models import is_conversion_eligible
+
+    if amount_needed <= 0:
+        return WithdrawalResult(0.0, 0.0)
+
+    remaining_need = amount_needed
+    total_withdrawn = 0.0
+    weighted_basis_accum = 0.0
+
+    for acc in accounts:
+        if remaining_need <= 1.0:
+            break
+        if tax_category(acc.type) != TaxCategory.PRETAX:
+            continue
+        if eligible_only and not is_conversion_eligible(acc.type):
+            continue
+
+        current_age = owner_age_map.get(acc.owner.value, 0)
+        if current_age < acc.available_at_age:
+            continue
+
+        withdrawal = min(acc.balance, remaining_need)
+        acc.balance -= withdrawal
+        remaining_need -= withdrawal
+        total_withdrawn += withdrawal
+        weighted_basis_accum += withdrawal * acc.cost_basis_ratio
+
+    avg_basis = weighted_basis_accum / total_withdrawn if total_withdrawn > 0 else 0.0
+    return WithdrawalResult(total_withdrawn, avg_basis)
+
+
 def deposit_to_account(
     amount: float,
     accounts: list[Account],
     account_type: AccountType,
     owner: Owner = Owner.JOINT,
 ) -> None:
-    """
-    Deposit money into an account of a specific type.
+    """Deposit money into an account of a specific type.
 
     If no matching account exists, creates a new one.
     Modifies accounts list in place.
@@ -73,13 +109,16 @@ def deposit_to_account(
             acc.balance += amount
             return
 
+    from retirement_model.models import ACCOUNT_TYPE_DEFAULTS
+
+    defaults = ACCOUNT_TYPE_DEFAULTS.get(account_type, {})
     new_account = Account(
         id=f"new_{account_type.value}",
         name=f"New {account_type.value}",
         balance=amount,
         type=account_type,
         owner=owner,
-        cost_basis_ratio=1.0,
+        cost_basis_ratio=defaults.get("cost_basis_ratio", 0.0),
     )
     accounts.append(new_account)
 
@@ -94,29 +133,43 @@ def apply_growth(accounts: list[Account], rate: float) -> float:
     return total
 
 
+def get_total_balance_by_category(accounts: list[Account], category: TaxCategory) -> float:
+    """Get total balance across all accounts matching a tax category."""
+    return sum(acc.balance for acc in accounts if tax_category(acc.type) == category)
+
+
 def get_total_balance_by_type(accounts: list[Account], account_type: AccountType) -> float:
-    """Get total balance across all accounts of a given type."""
+    """Get total balance across all accounts of a specific type."""
     return sum(acc.balance for acc in accounts if acc.type == account_type)
 
 
 def get_total_balance_by_owner(
-    accounts: list[Account], account_type: AccountType, owner: Owner
+    accounts: list[Account], category: TaxCategory, owner: Owner
 ) -> float:
-    """Get total balance for accounts of a given type and owner."""
-    return sum(acc.balance for acc in accounts if acc.type == account_type and acc.owner == owner)
+    """Get total balance for accounts of a given tax category and owner."""
+    return sum(
+        acc.balance for acc in accounts if tax_category(acc.type) == category and acc.owner == owner
+    )
 
 
 def get_available_balance(
     accounts: list[Account],
-    account_type: AccountType,
+    category: TaxCategory,
     owner_age_map: dict[str, int],
 ) -> float:
-    """Get total available balance (considering age restrictions) for an account type."""
+    """Get total available balance (considering age restrictions) for a tax category."""
     total = 0.0
     for acc in accounts:
-        if acc.type != account_type:
+        if tax_category(acc.type) != category:
             continue
         current_age = owner_age_map.get(acc.owner.value, 0)
         if current_age >= acc.available_at_age:
             total += acc.balance
     return total
+
+
+def get_eligible_pretax_balance(accounts: list[Account]) -> float:
+    """Get total balance of IRA-category pre-tax accounts eligible for Roth conversion."""
+    from retirement_model.models import is_conversion_eligible
+
+    return sum(acc.balance for acc in accounts if is_conversion_eligible(acc.type))

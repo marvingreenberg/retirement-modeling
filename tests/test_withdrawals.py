@@ -2,11 +2,12 @@
 
 import pytest
 
-from retirement_model.models import Account, AccountType, Owner
+from retirement_model.models import Account, AccountType, Owner, TaxCategory
 from retirement_model.withdrawals import (
     apply_growth,
     deposit_to_account,
     get_available_balance,
+    get_total_balance_by_category,
     get_total_balance_by_owner,
     get_total_balance_by_type,
     withdraw_from_accounts,
@@ -28,14 +29,14 @@ def test_accounts() -> list[Account]:
             id="ira_primary",
             name="IRA Primary",
             balance=200000,
-            type=AccountType.PRETAX,
+            type=AccountType.IRA,
             owner=Owner.PRIMARY,
         ),
         Account(
             id="ira_spouse",
             name="IRA Spouse",
             balance=150000,
-            type=AccountType.PRETAX,
+            type=AccountType.IRA,
             owner=Owner.SPOUSE,
             available_at_age=62,
         ),
@@ -43,7 +44,7 @@ def test_accounts() -> list[Account]:
             id="roth",
             name="Roth",
             balance=50000,
-            type=AccountType.ROTH,
+            type=AccountType.ROTH_IRA,
             owner=Owner.PRIMARY,
         ),
     ]
@@ -52,7 +53,7 @@ def test_accounts() -> list[Account]:
 class TestWithdrawFromAccounts:
     def test_basic_withdrawal(self, test_accounts: list[Account]):
         age_map = {"primary": 65, "spouse": 65, "joint": 65}
-        result = withdraw_from_accounts(50000, test_accounts, AccountType.BROKERAGE, age_map)
+        result = withdraw_from_accounts(50000, test_accounts, TaxCategory.BROKERAGE, age_map)
 
         assert result.amount_withdrawn == 50000
         assert result.average_basis_ratio == 0.30
@@ -60,21 +61,21 @@ class TestWithdrawFromAccounts:
 
     def test_withdrawal_exceeds_balance(self, test_accounts: list[Account]):
         age_map = {"primary": 65, "spouse": 65, "joint": 65}
-        result = withdraw_from_accounts(150000, test_accounts, AccountType.BROKERAGE, age_map)
+        result = withdraw_from_accounts(150000, test_accounts, TaxCategory.BROKERAGE, age_map)
 
         assert result.amount_withdrawn == 100000
         assert test_accounts[0].balance == 0
 
     def test_zero_withdrawal(self, test_accounts: list[Account]):
         age_map = {"primary": 65, "spouse": 65, "joint": 65}
-        result = withdraw_from_accounts(0, test_accounts, AccountType.BROKERAGE, age_map)
+        result = withdraw_from_accounts(0, test_accounts, TaxCategory.BROKERAGE, age_map)
 
         assert result.amount_withdrawn == 0
         assert result.average_basis_ratio == 0
 
     def test_age_restricted_account(self, test_accounts: list[Account]):
         age_map = {"primary": 65, "spouse": 60, "joint": 65}
-        result = withdraw_from_accounts(300000, test_accounts, AccountType.PRETAX, age_map)
+        result = withdraw_from_accounts(300000, test_accounts, TaxCategory.PRETAX, age_map)
 
         # Spouse is 60, below required 62 for their IRA
         assert result.amount_withdrawn == 200000  # Only primary's IRA
@@ -83,7 +84,7 @@ class TestWithdrawFromAccounts:
 
     def test_age_restricted_account_accessible(self, test_accounts: list[Account]):
         age_map = {"primary": 65, "spouse": 65, "joint": 65}
-        result = withdraw_from_accounts(300000, test_accounts, AccountType.PRETAX, age_map)
+        result = withdraw_from_accounts(300000, test_accounts, TaxCategory.PRETAX, age_map)
 
         # Spouse is 65, above required 62
         assert result.amount_withdrawn == 300000
@@ -108,7 +109,7 @@ class TestWithdrawFromAccounts:
             ),
         ]
         age_map = {"joint": 65}
-        result = withdraw_from_accounts(150000, accounts, AccountType.BROKERAGE, age_map)
+        result = withdraw_from_accounts(150000, accounts, TaxCategory.BROKERAGE, age_map)
 
         # 100k at 0.20 + 50k at 0.40 = (100k*0.20 + 50k*0.40) / 150k
         expected_basis = (100000 * 0.20 + 50000 * 0.40) / 150000
@@ -161,32 +162,46 @@ class TestGetTotalBalanceByType:
         total = get_total_balance_by_type(test_accounts, AccountType.BROKERAGE)
         assert total == 100000
 
-    def test_pretax_total(self, test_accounts: list[Account]):
-        total = get_total_balance_by_type(test_accounts, AccountType.PRETAX)
+    def test_ira_total(self, test_accounts: list[Account]):
+        total = get_total_balance_by_type(test_accounts, AccountType.IRA)
         assert total == 350000  # 200k + 150k
 
-    def test_roth_total(self, test_accounts: list[Account]):
-        total = get_total_balance_by_type(test_accounts, AccountType.ROTH)
+    def test_roth_ira_total(self, test_accounts: list[Account]):
+        total = get_total_balance_by_type(test_accounts, AccountType.ROTH_IRA)
+        assert total == 50000
+
+
+class TestGetTotalBalanceByCategory:
+    def test_brokerage_category(self, test_accounts: list[Account]):
+        total = get_total_balance_by_category(test_accounts, TaxCategory.BROKERAGE)
+        assert total == 100000
+
+    def test_pretax_category(self, test_accounts: list[Account]):
+        total = get_total_balance_by_category(test_accounts, TaxCategory.PRETAX)
+        assert total == 350000  # 200k + 150k
+
+    def test_roth_category(self, test_accounts: list[Account]):
+        total = get_total_balance_by_category(test_accounts, TaxCategory.ROTH)
         assert total == 50000
 
 
 class TestGetTotalBalanceByOwner:
     def test_primary_pretax(self, test_accounts: list[Account]):
-        total = get_total_balance_by_owner(test_accounts, AccountType.PRETAX, Owner.PRIMARY)
+        total = get_total_balance_by_owner(test_accounts, TaxCategory.PRETAX, Owner.PRIMARY)
         assert total == 200000
 
     def test_spouse_pretax(self, test_accounts: list[Account]):
-        total = get_total_balance_by_owner(test_accounts, AccountType.PRETAX, Owner.SPOUSE)
+        total = get_total_balance_by_owner(test_accounts, TaxCategory.PRETAX, Owner.SPOUSE)
         assert total == 150000
 
 
 class TestGetAvailableBalance:
     def test_all_available(self, test_accounts: list[Account]):
         age_map = {"primary": 65, "spouse": 65, "joint": 65}
-        total = get_available_balance(test_accounts, AccountType.PRETAX, age_map)
+        total = get_available_balance(test_accounts, TaxCategory.PRETAX, age_map)
         assert total == 350000
 
     def test_age_restricted(self, test_accounts: list[Account]):
         age_map = {"primary": 65, "spouse": 60, "joint": 65}
-        total = get_available_balance(test_accounts, AccountType.PRETAX, age_map)
+        total = get_available_balance(test_accounts, TaxCategory.PRETAX, age_map)
         assert total == 200000  # Only primary's IRA

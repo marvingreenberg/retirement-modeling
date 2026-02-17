@@ -26,8 +26,7 @@
 				const json = JSON.parse(e.target?.result as string);
 				const result = portfolioSchema.safeParse(json);
 				if (!result.success) {
-					const msgs = result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
-					loadError = `Validation errors:\n${msgs.join('\n')}`;
+					loadError = 'Invalid portfolio file — may be pre-version 0.10.0 data.';
 					return;
 				}
 				portfolio.set(result.data as Portfolio);

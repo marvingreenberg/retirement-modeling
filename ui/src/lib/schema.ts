@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-export const accountTypeSchema = z.enum(['brokerage', 'pretax', 'roth']);
+export const accountTypeSchema = z.enum([
+	'brokerage', 'cash_cd', 'roth_ira', 'roth_401k', 'roth_conversion',
+	'401k', '403b', '457b', 'ira', 'sep_ira', 'simple_ira',
+]);
 export const ownerSchema = z.enum(['primary', 'spouse', 'joint']);
 export const conversionStrategySchema = z.enum([
 	'standard', 'irmaa_tier_1', '22_percent_bracket', '24_percent_bracket'
@@ -22,7 +25,7 @@ export const accountSchema = z.object({
 	balance: z.number().min(0),
 	type: accountTypeSchema,
 	owner: ownerSchema,
-	cost_basis_ratio: z.number().min(0).max(1).default(1.0),
+	cost_basis_ratio: z.number().min(0).max(1).default(0.0),
 	available_at_age: z.number().int().min(0).default(0),
 });
 

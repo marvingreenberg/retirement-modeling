@@ -1,13 +1,9 @@
 import { test, expect } from '@playwright/test';
-
-async function skipSetup(page: import('@playwright/test').Page) {
-	await page.goto('/');
-	await page.getByRole('button', { name: 'Load Sample Data' }).click();
-}
+import { loadSampleData } from './helpers';
 
 test.describe('Portfolio Editor UX', () => {
 	test.beforeEach(async ({ page }) => {
-		await skipSetup(page);
+		await loadSampleData(page);
 	});
 
 	test('expense type change immediately switches When field', async ({ page }) => {

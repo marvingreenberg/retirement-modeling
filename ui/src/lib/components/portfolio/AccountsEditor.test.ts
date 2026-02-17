@@ -7,7 +7,7 @@ import type { Account } from '$lib/types';
 function makeAccount(overrides: Partial<Account> = {}): Account {
 	return {
 		id: 'account_1', name: 'Traditional IRA', balance: 500000,
-		type: 'pretax', owner: 'primary', cost_basis_ratio: 1.0, available_at_age: 0,
+		type: 'ira', owner: 'primary', cost_basis_ratio: 0.0, available_at_age: 0,
 		...overrides,
 	};
 }
@@ -21,7 +21,7 @@ describe('AccountsEditor', () => {
 	it('renders account fields with correct values', () => {
 		render(AccountsEditor, { accounts: [makeAccount()] });
 		expect(screen.getByLabelText('Name')).toHaveValue('Traditional IRA');
-		expect(screen.getByLabelText('Type')).toHaveValue('pretax');
+		expect(screen.getByLabelText('Type')).toHaveValue('ira');
 		expect(screen.getByLabelText('Balance')).toHaveValue(500000);
 		expect(screen.getByLabelText('Owner')).toHaveValue('primary');
 	});
@@ -47,7 +47,7 @@ describe('AccountsEditor', () => {
 	it('removes account row when clicking remove', async () => {
 		const accounts = [
 			makeAccount(),
-			makeAccount({ id: 'account_2', name: 'Roth IRA', type: 'roth' }),
+			makeAccount({ id: 'account_2', name: 'Roth IRA', type: 'roth_ira' }),
 		];
 		render(AccountsEditor, { accounts });
 		expect(screen.getAllByLabelText('Name')).toHaveLength(2);
@@ -107,5 +107,26 @@ describe('AccountsEditor', () => {
 		const balanceInputs = screen.getAllByLabelText('Balance');
 		expect(balanceInputs[0].className).not.toContain('ring-error-500');
 		expect(balanceInputs[1].className).toContain('ring-error-500');
+	});
+
+	it('disables cost basis for non-brokerage types', () => {
+		render(AccountsEditor, { accounts: [makeAccount({ type: 'ira' })] });
+		expect(screen.getByLabelText('Cost Basis %')).toBeDisabled();
+	});
+
+	it('enables cost basis for brokerage type', () => {
+		render(AccountsEditor, { accounts: [makeAccount({ type: 'brokerage', cost_basis_ratio: 0.40 })] });
+		expect(screen.getByLabelText('Cost Basis %')).not.toBeDisabled();
+	});
+
+	it('shows all expected account types in dropdown', () => {
+		render(AccountsEditor, { accounts: [makeAccount()] });
+		const select = screen.getByLabelText('Type');
+		const options = Array.from(select.querySelectorAll('option')).map((o) => o.value);
+		expect(options).toContain('brokerage');
+		expect(options).toContain('roth_ira');
+		expect(options).toContain('401k');
+		expect(options).toContain('ira');
+		expect(options).not.toContain('roth_conversion');
 	});
 });

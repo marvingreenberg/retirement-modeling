@@ -18,7 +18,7 @@ const mockSingleResult: SimulationResponse = {
 			rmd: 0, surplus: 0, roth_conversion: 10000, conversion_tax: 2200,
 			pretax_withdrawal: 50000, roth_withdrawal: 20000, brokerage_withdrawal: 30000,
 			total_tax: 15000, irmaa_cost: 0, total_balance: 485000, spending_target: 100000,
-			pretax_balance: 350000, roth_balance: 80000, brokerage_balance: 55000,
+			pretax_balance: 350000, roth_balance: 80000, roth_conversion_balance: 0, brokerage_balance: 55000,
 		}],
 	},
 	summary: {
@@ -137,7 +137,7 @@ describe('SimulateView (tabbed results)', () => {
 		});
 		const mcTab = screen.getByText('Monte Carlo');
 		await fireEvent.click(mcTab);
-		expect(screen.getByText(/Monte Carlo uses historically-sampled returns/)).toBeInTheDocument();
+		expect(screen.getByText(/Monte Carlo uses historically-sampled inflation and growth/)).toBeInTheDocument();
 	});
 
 	it('shows View Details link for single results', () => {

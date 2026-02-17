@@ -178,7 +178,7 @@
 				<span class="text-surface-500">Running Monte Carlo simulation...</span>
 			</div>
 		{:else if mcResult}
-			<p class="text-xs text-warning-600 dark:text-warning-400">Monte Carlo uses historically-sampled returns and inflation, not the configured values above.</p>
+			<p class="text-xs text-warning-600 dark:text-warning-400">Monte Carlo uses historically-sampled inflation and growth, not the configured values above.</p>
 
 			<div class="text-center p-4 rounded-lg text-2xl font-bold"
 				class:bg-success-100={mcResult.success_rate >= 0.9}

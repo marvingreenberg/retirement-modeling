@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Account, AccountType } from '$lib/types';
+	import { ACCOUNT_TYPE_DEFAULTS, ACCOUNT_TYPE_LABELS, EDITOR_ACCOUNT_TYPES } from '$lib/types';
 	import { parseOFX, type ParsedAccount } from '$lib/ofxParser';
 	import { summarizePortfolio, type PortfolioSummary } from '$lib/assetClassification';
 	import { Upload, X, FileCheck, AlertCircle } from 'lucide-svelte';
@@ -53,7 +54,7 @@
 				balance: Math.round(parsed.total_value),
 				type: acctType,
 				owner: 'primary' as const,
-				cost_basis_ratio: acctType === 'brokerage' ? 0.65 : 1.0,
+				cost_basis_ratio: ACCOUNT_TYPE_DEFAULTS[acctType]?.cost_basis_ratio ?? 0.0,
 				available_at_age: 0,
 			};
 		});
@@ -149,9 +150,9 @@
 							Account Type
 							<select class="select w-36" bind:value={accountTypes[i]}>
 								<option value="" disabled>-- Select type --</option>
-								<option value="pretax">Pre-tax</option>
-								<option value="roth">Roth</option>
-								<option value="brokerage">Brokerage</option>
+								{#each EDITOR_ACCOUNT_TYPES as t}
+									<option value={t}>{ACCOUNT_TYPE_LABELS[t]}</option>
+								{/each}
 							</select>
 						</label>
 					</div>

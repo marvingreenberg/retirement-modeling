@@ -15,8 +15,62 @@ from retirement_model.constants import (
 
 class AccountType(str, Enum):
     BROKERAGE = "brokerage"
+    CASH_CD = "cash_cd"
+    ROTH_IRA = "roth_ira"
+    ROTH_401K = "roth_401k"
+    ROTH_CONVERSION = "roth_conversion"
+    TRADITIONAL_401K = "401k"
+    TRADITIONAL_403B = "403b"
+    TRADITIONAL_457B = "457b"
+    IRA = "ira"
+    SEP_IRA = "sep_ira"
+    SIMPLE_IRA = "simple_ira"
+
+
+class TaxCategory(str, Enum):
     PRETAX = "pretax"
     ROTH = "roth"
+    BROKERAGE = "brokerage"
+    CASH = "cash"
+
+
+TAX_CATEGORY_MAP: dict[AccountType, TaxCategory] = {
+    AccountType.BROKERAGE: TaxCategory.BROKERAGE,
+    AccountType.CASH_CD: TaxCategory.CASH,
+    AccountType.ROTH_IRA: TaxCategory.ROTH,
+    AccountType.ROTH_401K: TaxCategory.ROTH,
+    AccountType.ROTH_CONVERSION: TaxCategory.ROTH,
+    AccountType.TRADITIONAL_401K: TaxCategory.PRETAX,
+    AccountType.TRADITIONAL_403B: TaxCategory.PRETAX,
+    AccountType.TRADITIONAL_457B: TaxCategory.PRETAX,
+    AccountType.IRA: TaxCategory.PRETAX,
+    AccountType.SEP_IRA: TaxCategory.PRETAX,
+    AccountType.SIMPLE_IRA: TaxCategory.PRETAX,
+}
+
+_IRA_TYPES = frozenset({AccountType.IRA, AccountType.SEP_IRA, AccountType.SIMPLE_IRA})
+
+ACCOUNT_TYPE_DEFAULTS: dict[AccountType, dict] = {
+    AccountType.BROKERAGE: {"cost_basis_ratio": 0.40, "editable": True},
+    AccountType.CASH_CD: {"cost_basis_ratio": 1.00, "editable": False},
+    AccountType.ROTH_IRA: {"cost_basis_ratio": 1.00, "editable": False},
+    AccountType.ROTH_401K: {"cost_basis_ratio": 1.00, "editable": False},
+    AccountType.ROTH_CONVERSION: {"cost_basis_ratio": 1.00, "editable": False},
+    AccountType.TRADITIONAL_401K: {"cost_basis_ratio": 0.00, "editable": False},
+    AccountType.TRADITIONAL_403B: {"cost_basis_ratio": 0.00, "editable": False},
+    AccountType.TRADITIONAL_457B: {"cost_basis_ratio": 0.00, "editable": False},
+    AccountType.IRA: {"cost_basis_ratio": 0.00, "editable": False},
+    AccountType.SEP_IRA: {"cost_basis_ratio": 0.00, "editable": False},
+    AccountType.SIMPLE_IRA: {"cost_basis_ratio": 0.00, "editable": False},
+}
+
+
+def tax_category(account_type: AccountType) -> TaxCategory:
+    return TAX_CATEGORY_MAP[account_type]
+
+
+def is_conversion_eligible(account_type: AccountType) -> bool:
+    return account_type in _IRA_TYPES
 
 
 class Owner(str, Enum):
@@ -64,7 +118,7 @@ class Account(BaseModel):
     balance: float = Field(ge=0)
     type: AccountType
     owner: Owner
-    cost_basis_ratio: float = Field(default=1.0, ge=0, le=1.0)
+    cost_basis_ratio: float = Field(default=0.0, ge=0, le=1.0)
     available_at_age: int = Field(default=0, ge=0)
 
     @field_validator("balance", mode="before")
@@ -211,6 +265,7 @@ class YearResult(BaseModel):
     # Account balances by type
     pretax_balance: float = 0.0
     roth_balance: float = 0.0
+    roth_conversion_balance: float = 0.0
     brokerage_balance: float = 0.0
 
 

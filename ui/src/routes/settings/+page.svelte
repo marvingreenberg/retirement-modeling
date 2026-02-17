@@ -121,8 +121,7 @@
 			const json = JSON.parse(text);
 			const result = saveFileSchema.safeParse(json);
 			if (!result.success) {
-				const msgs = result.error.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`);
-				loadError = `Validation errors:\n${msgs.join('\n')}`;
+				loadError = 'Invalid portfolio file — may be pre-version 0.10.0 data.';
 				return;
 			}
 			const { profile: loadedProfile, ...portfolioData } = result.data;

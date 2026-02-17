@@ -4,7 +4,68 @@ export interface UserProfile {
 	avatarSvg?: string;
 }
 
-export type AccountType = 'brokerage' | 'pretax' | 'roth';
+export type AccountType =
+	| 'brokerage'
+	| 'cash_cd'
+	| 'roth_ira'
+	| 'roth_401k'
+	| 'roth_conversion'
+	| '401k'
+	| '403b'
+	| '457b'
+	| 'ira'
+	| 'sep_ira'
+	| 'simple_ira';
+
+export type TaxCategory = 'pretax' | 'roth' | 'brokerage' | 'cash';
+
+export const TAX_CATEGORY_MAP: Record<AccountType, TaxCategory> = {
+	brokerage: 'brokerage',
+	cash_cd: 'cash',
+	roth_ira: 'roth',
+	roth_401k: 'roth',
+	roth_conversion: 'roth',
+	'401k': 'pretax',
+	'403b': 'pretax',
+	'457b': 'pretax',
+	ira: 'pretax',
+	sep_ira: 'pretax',
+	simple_ira: 'pretax',
+};
+
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+	brokerage: 'Brokerage',
+	cash_cd: 'Cash/CD',
+	roth_ira: 'Roth IRA',
+	roth_401k: 'Roth 401(k)',
+	roth_conversion: 'Roth Conversions',
+	'401k': '401(k)',
+	'403b': '403(b)',
+	'457b': '457(b)',
+	ira: 'IRA',
+	sep_ira: 'SEP IRA',
+	simple_ira: 'SIMPLE IRA',
+};
+
+export const ACCOUNT_TYPE_DEFAULTS: Record<AccountType, { cost_basis_ratio: number; editable: boolean }> = {
+	brokerage: { cost_basis_ratio: 0.40, editable: true },
+	cash_cd: { cost_basis_ratio: 1.00, editable: false },
+	roth_ira: { cost_basis_ratio: 1.00, editable: false },
+	roth_401k: { cost_basis_ratio: 1.00, editable: false },
+	roth_conversion: { cost_basis_ratio: 1.00, editable: false },
+	'401k': { cost_basis_ratio: 0.00, editable: false },
+	'403b': { cost_basis_ratio: 0.00, editable: false },
+	'457b': { cost_basis_ratio: 0.00, editable: false },
+	ira: { cost_basis_ratio: 0.00, editable: false },
+	sep_ira: { cost_basis_ratio: 0.00, editable: false },
+	simple_ira: { cost_basis_ratio: 0.00, editable: false },
+};
+
+// Account types shown in the editor dropdown (excludes roth_conversion which is sim-only)
+export const EDITOR_ACCOUNT_TYPES: AccountType[] = [
+	'brokerage', 'cash_cd', 'roth_ira', 'roth_401k',
+	'401k', '403b', '457b', 'ira', 'sep_ira', 'simple_ira',
+];
 export type Owner = 'primary' | 'spouse' | 'joint';
 export type ConversionStrategy = 'standard' | 'irmaa_tier_1' | '22_percent_bracket' | '24_percent_bracket';
 export type SpendingStrategy = 'fixed_dollar' | 'percent_of_portfolio' | 'guardrails' | 'rmd_based';
@@ -112,6 +173,7 @@ export interface YearResult {
 	spending_target: number;
 	pretax_balance: number;
 	roth_balance: number;
+	roth_conversion_balance: number;
 	brokerage_balance: number;
 }
 

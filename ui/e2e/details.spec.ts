@@ -1,13 +1,9 @@
 import { test, expect } from '@playwright/test';
-
-async function skipSetup(page: import('@playwright/test').Page) {
-	await page.goto('/');
-	await page.getByRole('button', { name: 'Load Sample Data' }).click();
-}
+import { requiresApi, loadSampleData } from './helpers';
 
 test.describe('Details Page', () => {
 	test.beforeEach(async ({ page }) => {
-		await skipSetup(page);
+		await loadSampleData(page);
 	});
 
 	test('shows prompt when no simulation has run', async ({ page }) => {
@@ -17,6 +13,7 @@ test.describe('Details Page', () => {
 	});
 
 	test('shows year-by-year table after simulation', async ({ page }) => {
+		await requiresApi();
 		test.setTimeout(60000);
 		await page.getByRole('button', { name: 'Simulate' }).click();
 		await expect(page.getByText('Final Balance')).toBeVisible({ timeout: 20000 });

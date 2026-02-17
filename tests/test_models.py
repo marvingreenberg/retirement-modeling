@@ -28,7 +28,7 @@ class TestAccount:
             owner=Owner.PRIMARY,
         )
         assert acc.balance == 100000
-        assert acc.cost_basis_ratio == 1.0  # default
+        assert acc.cost_basis_ratio == 0.0  # default
 
     def test_balance_rounded(self):
         acc = Account(

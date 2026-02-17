@@ -5,9 +5,9 @@ const validAccount = {
 	id: 'ira_1',
 	name: 'Traditional IRA',
 	balance: 500000,
-	type: 'pretax' as const,
+	type: 'ira' as const,
 	owner: 'primary' as const,
-	cost_basis_ratio: 1.0,
+	cost_basis_ratio: 0.0,
 	available_at_age: 0,
 };
 
@@ -54,14 +54,26 @@ describe('accountSchema', () => {
 			id: 'test_1',
 			name: 'Test Account',
 			balance: 100000,
-			type: 'pretax' as const,
+			type: 'ira' as const,
 			owner: 'primary' as const,
 		};
 		const result = accountSchema.safeParse(minimalAccount);
 		expect(result.success).toBe(true);
 		if (result.success) {
-			expect(result.data.cost_basis_ratio).toBe(1.0);
+			expect(result.data.cost_basis_ratio).toBe(0.0);
 			expect(result.data.available_at_age).toBe(0);
+		}
+	});
+
+	it('rejects old pretax/roth account types', () => {
+		expect(accountSchema.safeParse({ ...validAccount, type: 'pretax' }).success).toBe(false);
+		expect(accountSchema.safeParse({ ...validAccount, type: 'roth' }).success).toBe(false);
+	});
+
+	it('accepts all specific account types', () => {
+		const types = ['brokerage', 'cash_cd', 'roth_ira', 'roth_401k', 'roth_conversion', '401k', '403b', '457b', 'ira', 'sep_ira', 'simple_ira'];
+		for (const t of types) {
+			expect(accountSchema.safeParse({ ...validAccount, type: t }).success).toBe(true);
 		}
 	});
 
