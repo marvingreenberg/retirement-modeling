@@ -6,9 +6,10 @@ import { get } from 'svelte/store';
 const { default: IncomeEditor } = await import('./IncomeEditor.svelte');
 
 describe('IncomeEditor', () => {
-	function renderEditor(configOverrides: Record<string, any> = {}) {
+	function renderEditor(configOverrides: Record<string, any> = {}, incomeOverride?: any[]) {
 		const config = { ...structuredClone(samplePortfolio.config), ...configOverrides };
-		return render(IncomeEditor, { config });
+		const incomeStreams = incomeOverride ?? config.income_streams;
+		return render(IncomeEditor, { config, incomeStreams });
 	}
 
 	it('renders Social Security section', () => {

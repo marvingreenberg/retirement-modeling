@@ -2,7 +2,13 @@
 	import type { SimulationConfig, IncomeStream } from '$lib/types';
 	import { Trash2 } from 'lucide-svelte';
 
-	let { config = $bindable() }: { config: SimulationConfig } = $props();
+	let {
+		config = $bindable(),
+		incomeStreams = $bindable(),
+	}: {
+		config: SimulationConfig;
+		incomeStreams: IncomeStream[];
+	} = $props();
 
 	let hasSpouse = $derived(config.current_age_spouse > 0);
 
@@ -19,7 +25,7 @@
 	}
 
 	function addStream() {
-		config.income_streams = [...config.income_streams, {
+		incomeStreams = [...incomeStreams, {
 			name: '',
 			amount: 0,
 			start_age: 65,
@@ -30,7 +36,7 @@
 	}
 
 	function removeStream(idx: number) {
-		config.income_streams = config.income_streams.filter((_, i) => i !== idx);
+		incomeStreams = incomeStreams.filter((_, i) => i !== idx);
 	}
 
 	$effect(() => {
@@ -76,33 +82,25 @@
 
 	<div>
 		<h4 class="text-sm text-surface-500 dark:text-surface-400 font-medium mb-2">Other Income</h4>
-		{#each config.income_streams as stream, idx}
-			<div class="flex gap-3 items-end p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap mb-2">
-				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-					Name
-					<input type="text" class="input w-32 text-sm" bind:value={stream.name} onfocus={(e) => e.currentTarget.select()} placeholder="e.g. Pension" />
-				</label>
-				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-					Amount ($/yr)
-					<input type="number" class="input w-28 text-sm" bind:value={stream.amount} onfocus={(e) => e.currentTarget.select()} min="0" step="1000" />
-				</label>
-				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-					Start Age
-					<input type="number" class="input w-20 text-sm" bind:value={stream.start_age} onfocus={(e) => e.currentTarget.select()} min="0" />
-				</label>
-				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-					End Age
-					<input type="number" class="input w-20 text-sm" bind:value={stream.end_age} onfocus={(e) => e.currentTarget.select()} min="0" />
-				</label>
-				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-					COLA %
-					<input type="number" class="input w-20 text-sm" bind:value={stream.cola_rate} onfocus={(e) => e.currentTarget.select()} min="0" max="0.2" step="0.005" />
-				</label>
-				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-					Taxable
-					<input type="number" class="input w-20 text-sm" bind:value={stream.taxable_pct} onfocus={(e) => e.currentTarget.select()} min="0" max="1" step="0.05" />
-				</label>
-				<button class="btn btn-sm preset-tonal p-1 self-center" onclick={() => removeStream(idx)} aria-label="Remove income stream">
+		{#if incomeStreams.length > 0}
+			<div class="flex gap-3 items-end px-3 mb-1 text-xs font-medium text-surface-500 dark:text-surface-400">
+				<span class="w-32">Name</span>
+				<span class="w-28">Amount ($/yr)</span>
+				<span class="w-20">Start Age</span>
+				<span class="w-20">End Age</span>
+				<span class="w-20">COLA %</span>
+				<span class="w-20">Taxable</span>
+			</div>
+		{/if}
+		{#each incomeStreams as stream, idx}
+			<div class="flex gap-3 items-center p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap mb-2">
+				<input type="text" class="input w-32 text-sm" bind:value={stream.name} onfocus={(e) => e.currentTarget.select()} placeholder="e.g. Pension" aria-label="Name" />
+				<input type="number" class="input w-28 text-sm" bind:value={stream.amount} onfocus={(e) => e.currentTarget.select()} min="0" step="1000" aria-label="Amount" />
+				<input type="number" class="input w-20 text-sm" bind:value={stream.start_age} onfocus={(e) => e.currentTarget.select()} min="0" aria-label="Start Age" />
+				<input type="number" class="input w-20 text-sm" bind:value={stream.end_age} onfocus={(e) => e.currentTarget.select()} min="0" aria-label="End Age" />
+				<input type="number" class="input w-20 text-sm" bind:value={stream.cola_rate} onfocus={(e) => e.currentTarget.select()} min="0" max="0.2" step="0.005" aria-label="COLA %" />
+				<input type="number" class="input w-20 text-sm" bind:value={stream.taxable_pct} onfocus={(e) => e.currentTarget.select()} min="0" max="1" step="0.05" aria-label="Taxable" />
+				<button class="btn btn-sm preset-tonal p-1" onclick={() => removeStream(idx)} aria-label="Remove income stream">
 					<Trash2 size={14} />
 				</button>
 			</div>

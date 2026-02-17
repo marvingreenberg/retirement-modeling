@@ -37,17 +37,19 @@ describe('SpendingEditor', () => {
 		expect(input).toBeInTheDocument();
 	});
 
-	it('shows card labels when expenses exist', () => {
+	it('shows header row when expenses exist', () => {
 		renderEditor();
-		expect(screen.getAllByText('Name').length).toBeGreaterThan(0);
-		expect(screen.getAllByText('Amount ($)').length).toBeGreaterThan(0);
-		expect(screen.getAllByText('Type').length).toBeGreaterThan(0);
-		expect(screen.getAllByText('When').length).toBeGreaterThan(0);
+		expect(screen.getByText('Name')).toBeInTheDocument();
+		expect(screen.getByText('Amount ($)')).toBeInTheDocument();
+		expect(screen.getByText('Type')).toBeInTheDocument();
+		expect(screen.getByText('When')).toBeInTheDocument();
+		expect(screen.getByText('Infl.')).toBeInTheDocument();
 	});
 
-	it('does not show card labels when no expenses', () => {
+	it('does not show header row when no expenses', () => {
 		renderEditor({ plannedExpenses: [] });
 		expect(screen.queryByText('Name')).not.toBeInTheDocument();
+		expect(screen.queryByText('When')).not.toBeInTheDocument();
 	});
 
 	it('renders existing planned expenses as cards', () => {

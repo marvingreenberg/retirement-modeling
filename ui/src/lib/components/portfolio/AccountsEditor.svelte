@@ -32,10 +32,21 @@
 </script>
 
 <div class="flex flex-col gap-3">
+	{#if accounts.length > 0}
+		<div class="flex gap-3 items-end px-3 text-xs font-medium text-surface-500 dark:text-surface-400">
+			<span class="w-5"></span>
+			<span class="w-36">Name</span>
+			<span class="w-30">Type</span>
+			<span class="w-30">Balance</span>
+			<span class="w-30">Owner</span>
+			<span class="w-24"><span class="flex items-center gap-1">Cost Basis % <InfoPopover text="The portion of the account that represents original contributions (not gains). Affects capital gains tax on brokerage withdrawals." /></span></span>
+			<span class="w-20">Avail. Age</span>
+		</div>
+	{/if}
 	{#each accounts as account, i}
 		{@const balanceError = hasError(`accounts.${i}.balance`)}
-		<div class="flex gap-3 items-end p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap">
-			<div class="flex items-center self-center pb-0.5">
+		<div class="flex gap-3 items-center p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap">
+			<div class="w-5 flex items-center justify-center">
 				{#if account.type === 'pretax'}
 					<ShieldCheck size={18} class="text-blue-500" />
 				{:else if account.type === 'roth'}
@@ -44,58 +55,42 @@
 					<TrendingUp size={18} class="text-amber-500" />
 				{/if}
 			</div>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Name
-				<input type="text" class="input w-36" bind:value={account.name} onfocus={(e) => e.currentTarget.select()} placeholder="Account name" />
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Type
-				<select class="select w-30" bind:value={account.type}>
-					<option value="pretax">Pre-tax</option>
-					<option value="roth">Roth</option>
-					<option value="brokerage">Brokerage</option>
-				</select>
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium {balanceError ? 'text-error-600 dark:text-error-400' : 'text-surface-600 dark:text-surface-400'}">
-				Balance
-				<input
-					type="number"
-					class="input w-30 no-spinner {balanceError ? 'ring-2 ring-error-500 border-error-500' : ''}"
-					bind:value={account.balance}
-					onfocus={(e) => e.currentTarget.select()}
-					min="0"
-					step="1000"
-				/>
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Owner
-				<select class="select w-30" bind:value={account.owner}>
-					<option value="primary">Primary</option>
-					<option value="spouse">Spouse</option>
-					<option value="joint">Joint</option>
-				</select>
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				<span class="flex items-center gap-1">Cost Basis % <InfoPopover text="The portion of the account that represents original contributions (not gains). Affects capital gains tax on brokerage withdrawals." /></span>
-				<input
-					type="number"
-					class="input w-24 no-spinner"
-					value={Math.round((account.cost_basis_ratio ?? 0) * 100)}
-					onfocus={(e) => e.currentTarget.select()}
-					onchange={(e) => {
-						const pct = Math.max(0, Math.min(100, Number(e.currentTarget.value) || 0));
-						account.cost_basis_ratio = pct / 100;
-						e.currentTarget.value = String(pct);
-					}}
-					min="0"
-					max="100"
-					step="1"
-				/>
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Avail. Age
-				<input type="number" class="input w-20 no-spinner" bind:value={account.available_at_age} onfocus={(e) => e.currentTarget.select()} min="0" />
-			</label>
+			<input type="text" class="input w-36" bind:value={account.name} onfocus={(e) => e.currentTarget.select()} placeholder="Account name" aria-label="Name" />
+			<select class="select w-30" bind:value={account.type} aria-label="Type">
+				<option value="pretax">Pre-tax</option>
+				<option value="roth">Roth</option>
+				<option value="brokerage">Brokerage</option>
+			</select>
+			<input
+				type="number"
+				class="input w-30 no-spinner {balanceError ? 'ring-2 ring-error-500 border-error-500' : ''}"
+				bind:value={account.balance}
+				onfocus={(e) => e.currentTarget.select()}
+				min="0"
+				step="1000"
+				aria-label="Balance"
+			/>
+			<select class="select w-30" bind:value={account.owner} aria-label="Owner">
+				<option value="primary">Primary</option>
+				<option value="spouse">Spouse</option>
+				<option value="joint">Joint</option>
+			</select>
+			<input
+				type="number"
+				class="input w-24 no-spinner"
+				value={Math.round((account.cost_basis_ratio ?? 0) * 100)}
+				onfocus={(e) => e.currentTarget.select()}
+				onchange={(e) => {
+					const pct = Math.max(0, Math.min(100, Number(e.currentTarget.value) || 0));
+					account.cost_basis_ratio = pct / 100;
+					e.currentTarget.value = String(pct);
+				}}
+				min="0"
+				max="100"
+				step="1"
+				aria-label="Cost Basis %"
+			/>
+			<input type="number" class="input w-20 no-spinner" bind:value={account.available_at_age} onfocus={(e) => e.currentTarget.select()} min="0" aria-label="Avail. Age" />
 			<button
 				class="btn preset-outlined btn-sm"
 				onclick={() => removeAccount(i)}

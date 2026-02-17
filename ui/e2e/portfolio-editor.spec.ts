@@ -35,6 +35,19 @@ test.describe('Portfolio Editor UX', () => {
 		await expect(page.getByLabel('Start Year')).toHaveCount(startYearCountBefore);
 	});
 
+	test('Add Income immediately shows new row', async ({ page }) => {
+		// Expand Income section
+		await page.getByRole('button', { name: /Income/ }).click();
+		await expect(page.getByText('Social Security')).toBeVisible();
+
+		// Count existing income stream names before adding
+		const namesBefore = await page.getByLabel('Name').count();
+
+		// Click Add Income — row should appear immediately
+		await page.getByRole('button', { name: 'Add Income' }).click();
+		await expect(page.getByLabel('Name')).toHaveCount(namesBefore + 1);
+	});
+
 	test('select-on-focus replaces value when typing', async ({ page }) => {
 		// Expand Accounts section
 		await page.getByRole('button', { name: /Accounts/ }).click();

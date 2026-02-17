@@ -65,28 +65,27 @@
 		<span class="text-xs text-surface-500 self-center">{currency(Math.round(config.annual_spend_net / 12))}/mo</span>
 	</div>
 
+	{#if plannedExpenses.length > 0}
+		<div class="flex gap-3 items-end px-3 text-xs font-medium text-surface-500 dark:text-surface-400">
+			<span class="w-28">Name</span>
+			<span class="w-24">Amount ($)</span>
+			<span class="w-32">Type</span>
+			<span class="w-44">When</span>
+			<span class="w-10 text-center">Infl.</span>
+		</div>
+	{/if}
 	{#each plannedExpenses as expense, i}
 		{@const amountError = hasError(`config.planned_expenses.${i}.amount`)}
 		{@const yearError = hasError(`config.planned_expenses.${i}.year`)}
-		<div class="flex gap-3 items-end p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap">
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Name
-				<input type="text" class="input w-28 no-spinner" bind:value={expense.name} onfocus={(e) => e.currentTarget.select()} placeholder="Expense name" aria-label="Name" />
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Amount ($)
-				<input type="number" class="input w-24 no-spinner {amountError ? 'ring-2 ring-error-500 border-error-500' : ''}" bind:value={expense.amount} onfocus={(e) => e.currentTarget.select()} min="1" step="100" aria-label="Amount" />
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				Type
-				<select class="select w-28" value={expense.expense_type} aria-label="Type"
-					onchange={(e) => handleTypeChange(i, (e.target as HTMLSelectElement).value as 'one_time' | 'recurring')}>
-					<option value="one_time">One-time</option>
-					<option value="recurring">Recurring</option>
-				</select>
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-				When
+		<div class="flex gap-3 items-center p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap">
+			<input type="text" class="input w-28 no-spinner" bind:value={expense.name} onfocus={(e) => e.currentTarget.select()} placeholder="Expense name" aria-label="Name" />
+			<input type="number" class="input w-24 no-spinner {amountError ? 'ring-2 ring-error-500 border-error-500' : ''}" bind:value={expense.amount} onfocus={(e) => e.currentTarget.select()} min="1" step="100" aria-label="Amount" />
+			<select class="select w-32" value={expense.expense_type} aria-label="Type"
+				onchange={(e) => handleTypeChange(i, (e.target as HTMLSelectElement).value as 'one_time' | 'recurring')}>
+				<option value="one_time">One-time</option>
+				<option value="recurring">Recurring</option>
+			</select>
+			<div class="w-44">
 				{#if expense.expense_type === 'one_time'}
 					<input type="number" class="input w-20 no-spinner {yearError ? 'ring-2 ring-error-500 border-error-500' : ''}" bind:value={expense.year} onfocus={(e) => e.currentTarget.select()} min="2000" aria-label="Year" />
 				{:else}
@@ -96,12 +95,11 @@
 						<input type="number" class="input w-20 no-spinner" bind:value={expense.end_year} onfocus={(e) => e.currentTarget.select()} min="2000" aria-label="End Year" />
 					</span>
 				{/if}
-			</label>
-			<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400 items-center">
-				Infl.
+			</div>
+			<div class="w-10 flex justify-center">
 				<input type="checkbox" class="checkbox" bind:checked={expense.inflation_adjusted} aria-label="Inflation adjusted" />
-			</label>
-			<button class="btn preset-outlined btn-sm self-center" onclick={() => removeExpense(i)} aria-label="Remove expense">✕</button>
+			</div>
+			<button class="btn preset-outlined btn-sm" onclick={() => removeExpense(i)} aria-label="Remove expense">✕</button>
 		</div>
 	{/each}
 	<button class="btn preset-tonal self-start" onclick={addExpense}>+ Add Expense</button>

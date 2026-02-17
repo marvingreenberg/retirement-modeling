@@ -136,7 +136,7 @@
 	<CollapsibleSection title="Income" bind:open={incomeOpen}>
 		{#snippet icon()}<Briefcase size={16} class="text-success-500" />{/snippet}
 		{#snippet summary()}{incomeSummary}{/snippet}
-		<IncomeEditor bind:config={$portfolio.config} />
+		<IncomeEditor bind:config={$portfolio.config} bind:incomeStreams={$portfolio.config.income_streams} />
 	</CollapsibleSection>
 
 </div>
