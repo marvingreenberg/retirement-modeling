@@ -1,6 +1,7 @@
 export interface UserProfile {
 	primaryName: string;
 	spouseName: string;
+	avatarSvg?: string;
 }
 
 export type AccountType = 'brokerage' | 'pretax' | 'roth';

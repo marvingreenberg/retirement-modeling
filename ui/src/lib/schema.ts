@@ -97,3 +97,15 @@ export const portfolioSchema = z.object({
 	config: simulationConfigSchema,
 	accounts: z.array(accountSchema),
 });
+
+export const userProfileSchema = z.object({
+	primaryName: z.string().default(''),
+	spouseName: z.string().default(''),
+	avatarSvg: z.string().optional(),
+});
+
+export const saveFileSchema = z.object({
+	config: simulationConfigSchema,
+	accounts: z.array(accountSchema),
+	profile: userProfileSchema.optional(),
+});

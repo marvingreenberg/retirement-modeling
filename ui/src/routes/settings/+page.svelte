@@ -2,10 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { portfolio, profile, numSimulations, samplePortfolio, sampleProfile, markFormTouched } from '$lib/stores';
-	import { portfolioSchema } from '$lib/schema';
+	import { saveFileSchema } from '$lib/schema';
 	import type { Portfolio } from '$lib/types';
 	import { initDarkMode } from '$lib/darkMode.svelte';
 	import { isAutoSave, initAutoSave } from '$lib/autoSave.svelte';
+	import { avatarSrc, fetchAvatarSvg } from '$lib/avatar.svelte';
+	import { saveJsonFile, loadJsonFile, generateFilename } from '$lib/fileIO';
 	import InfoPopover from '$lib/components/InfoPopover.svelte';
 	import { User, FolderOpen, Sliders } from 'lucide-svelte';
 	import { onMount } from 'svelte';
@@ -34,13 +36,16 @@
 		initAutoSave();
 	});
 
-	let avatarUrl = $derived.by(() => {
-		const seed = $profile.primaryName || 'user';
-		return `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(seed)}`;
-	});
+	let src = $derived(avatarSrc($profile.primaryName || 'user', $profile.avatarSvg));
 	let avatarError = $state(false);
+	$effect(() => { src; avatarError = false; });
+
+	// Cache avatar SVG when name changes (debounced)
 	$effect(() => {
-		avatarError = false;
+		const name = $profile.primaryName;
+		fetchAvatarSvg(name, (dataUri) => {
+			profile.update((p) => ({ ...p, avatarSvg: dataUri }));
+		});
 	});
 
 	let displayName = $derived.by(() => {
@@ -93,44 +98,47 @@
 	let fileInput = $state<HTMLInputElement>(undefined!);
 	let loadError = $state('');
 
-	function loadFile() {
-		fileInput.click();
+	async function loadFile() {
+		const text = await loadJsonFile();
+		if (text !== null) {
+			parseAndLoad(text);
+		} else {
+			fileInput.click();
+		}
 	}
 	function handleFile(event: Event) {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
-		loadError = '';
 		const reader = new FileReader();
-		reader.onload = (e) => {
-			try {
-				const json = JSON.parse(e.target?.result as string);
-				const result = portfolioSchema.safeParse(json);
-				if (!result.success) {
-					const msgs = result.error.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`);
-					loadError = `Validation errors:\n${msgs.join('\n')}`;
-					return;
-				}
-				portfolio.set(result.data as Portfolio);
-			} catch {
-				loadError = 'Invalid JSON file';
-			}
-		};
+		reader.onload = (e) => parseAndLoad(e.target?.result as string);
 		reader.readAsText(file);
 		input.value = '';
 	}
+	function parseAndLoad(text: string) {
+		loadError = '';
+		try {
+			const json = JSON.parse(text);
+			const result = saveFileSchema.safeParse(json);
+			if (!result.success) {
+				const msgs = result.error.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`);
+				loadError = `Validation errors:\n${msgs.join('\n')}`;
+				return;
+			}
+			const { profile: loadedProfile, ...portfolioData } = result.data;
+			portfolio.set(portfolioData as Portfolio);
+			if (loadedProfile) profile.set(loadedProfile);
+		} catch {
+			loadError = 'Invalid JSON file';
+		}
+	}
 
-	function saveFile() {
+	async function saveFile() {
 		const p = structuredClone($portfolio);
 		const profileData = structuredClone($profile);
 		const saveData = { ...p, profile: profileData };
-		const blob = new Blob([JSON.stringify(saveData, null, 2)], { type: 'application/json' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = 'portfolio.json';
-		a.click();
-		URL.revokeObjectURL(url);
+		const filename = generateFilename($profile.primaryName, $profile.spouseName);
+		await saveJsonFile(saveData, filename);
 	}
 
 	// Auto-save effect — uses shared module state
@@ -174,7 +182,7 @@
 		<div class="p-5 text-center border-b border-surface-300 dark:border-surface-700">
 			{#if !avatarError && $profile.primaryName}
 				<img
-					src={avatarUrl}
+					src={src}
 					alt="Avatar"
 					class="w-16 h-16 rounded-full mx-auto mb-2 bg-surface-200 dark:bg-surface-700"
 					onerror={() => avatarError = true}

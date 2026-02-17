@@ -1,29 +1,21 @@
 <script lang="ts">
 	import { profile } from '$lib/stores';
+	import { avatarSrc } from '$lib/avatar.svelte';
 	import { Avatar } from '@skeletonlabs/skeleton-svelte';
 	import { User } from 'lucide-svelte';
 
 	let { onclick }: { onclick: () => void } = $props();
 
-	let avatarUrl = $derived.by(() => {
-		const seed = $profile.primaryName || '';
-		if (!seed) return '';
-		return `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(seed)}`;
-	});
-
+	let src = $derived(avatarSrc($profile.primaryName, $profile.avatarSvg));
 	let imgFailed = $state(false);
-	$effect(() => {
-		avatarUrl;
-		imgFailed = false;
-	});
-
-	let showImage = $derived(avatarUrl && !imgFailed);
+	$effect(() => { src; imgFailed = false; });
+	let showImage = $derived(!!src && !imgFailed);
 </script>
 
 <button class="cursor-pointer" {onclick} aria-label="Open profile">
 	<Avatar>
 		{#if showImage}
-			<Avatar.Image src={avatarUrl} alt="User avatar" onerror={() => imgFailed = true} />
+			<Avatar.Image src={src} alt="User avatar" onerror={() => imgFailed = true} />
 		{/if}
 		<Avatar.Fallback>
 			<User size={20} />

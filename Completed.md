@@ -159,4 +159,10 @@ Consolidated all settings into a dedicated `/settings` route with left-nav layou
 
 ## Avatar Dropdown Navigation
 
-Expanded avatar dropdown from single Settings link to three section nav links (Basic Info, Load/Save, Advanced Settings) that deep-link to `/settings?section=<id>`. Added dark mode and auto-save checkbox toggles directly in dropdown. Extracted shared `darkMode.svelte.ts` and `autoSave.svelte.ts` modules. Avatar dropdown now works on all routes including `/settings`.
+Expanded avatar dropdown from single Settings link to three section nav links (Basic Info, Load/Save, Advanced Settings) that deep-link to `/settings?section=<id>`. Added dark mode and auto-save checkbox toggles directly in dropdown (removed from settings page). Extracted shared `darkMode.svelte.ts` and `autoSave.svelte.ts` modules. Avatar dropdown now works on all routes including `/settings`.
+
+---
+
+## E2E Test Fixes
+
+Fixed 3 pre-existing E2E failures: disambiguated "Basic Info" selector in setup test (`getByRole('heading')` instead of `getByText`), updated Monte Carlo test to use tabbed results view instead of removed radio button, updated settings-collapse test to check "Inflation %" visibility instead of removed "Single run" radio.

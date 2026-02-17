@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { profile } from '$lib/stores';
+	import { avatarSrc } from '$lib/avatar.svelte';
 	import { isDark, initDarkMode, toggleDarkMode } from '$lib/darkMode.svelte';
 	import { isAutoSave, initAutoSave, toggleAutoSave } from '$lib/autoSave.svelte';
 	import { User, FolderOpen, Sliders, Sun, Moon, Save } from 'lucide-svelte';
@@ -12,16 +13,9 @@
 		initAutoSave();
 	});
 
-	let avatarUrl = $derived.by(() => {
-		const seed = $profile.primaryName || '';
-		if (!seed) return '';
-		return `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(seed)}`;
-	});
+	let src = $derived(avatarSrc($profile.primaryName, $profile.avatarSvg));
 	let imgFailed = $state(false);
-	$effect(() => {
-		avatarUrl;
-		imgFailed = false;
-	});
+	$effect(() => { src; imgFailed = false; });
 
 	let displayName = $derived.by(() => {
 		const p = $profile;
@@ -51,9 +45,9 @@
 		<div class="absolute right-4 top-14 w-56 bg-surface-50 dark:bg-surface-800 rounded-lg shadow-xl border border-surface-200 dark:border-surface-700 p-4">
 			<!-- Avatar + Name -->
 			<div class="text-center mb-3">
-				{#if avatarUrl && !imgFailed}
+				{#if src && !imgFailed}
 					<img
-						src={avatarUrl}
+						src={src}
 						alt="Avatar"
 						class="w-14 h-14 rounded-full mx-auto mb-2 bg-surface-200 dark:bg-surface-700"
 						onerror={() => imgFailed = true}
