@@ -39,11 +39,6 @@ describe('Settings Page', () => {
 			expect(screen.getByRole('button', { name: /done/i })).toBeInTheDocument();
 		});
 
-		it('renders dark mode toggle', () => {
-			render(SettingsPage);
-			expect(screen.getByText('Dark Mode')).toBeInTheDocument();
-		});
-
 		it('Done button navigates to home', async () => {
 			render(SettingsPage);
 			await fireEvent.click(screen.getByRole('button', { name: /done/i }));
@@ -162,17 +157,6 @@ describe('Settings Page', () => {
 			await fireEvent.click(screen.getByText('Load / Save'));
 			expect(screen.getByText('Load Portfolio')).toBeInTheDocument();
 			expect(screen.getByText('Save Portfolio')).toBeInTheDocument();
-			expect(screen.getByLabelText(/auto-save/i)).toBeInTheDocument();
-		});
-	});
-
-	describe('Load/Save panel', () => {
-		it('auto-save toggle persists preference', async () => {
-			render(SettingsPage);
-			await fireEvent.click(screen.getByText('Load / Save'));
-			const toggle = screen.getByLabelText(/auto-save/i);
-			await fireEvent.change(toggle);
-			expect(localStorage.getItem('retirement-sim-autosave')).toBe('true');
 		});
 	});
 

@@ -23,8 +23,9 @@ test.describe('Simulation Flow', () => {
 
 	test('run Monte Carlo simulation shows success rate', async ({ page }) => {
 		test.setTimeout(90000);
-		await page.getByLabel('Monte Carlo').check();
 		await page.getByRole('button', { name: 'Simulate' }).click();
+		// Both simulations run; switch to Monte Carlo tab
+		await page.getByRole('button', { name: 'Monte Carlo' }).click();
 
 		await expect(page.getByText('Success Rate')).toBeVisible({ timeout: 60000 });
 		await expect(page.getByText('Median', { exact: true })).toBeVisible();
@@ -43,14 +44,13 @@ test.describe('Simulation Flow', () => {
 
 	test('settings collapse after simulation', async ({ page }) => {
 		test.setTimeout(60000);
-		await expect(page.getByLabel('Single run')).toBeVisible();
+		await expect(page.getByText('Inflation %')).toBeVisible();
 
 		await page.getByRole('button', { name: 'Simulate' }).click();
 		await expect(page.getByText('Final Balance')).toBeVisible({ timeout: 20000 });
 
-		// Settings collapsed — radio buttons hidden
-		await expect(page.getByLabel('Single run')).not.toBeVisible();
-		// Collapsed summary bar has a Simulate button (use exact match to avoid the wrapper)
+		// Settings collapsed — inputs hidden, summary bar with Simulate button shown
+		await expect(page.getByText('Inflation %')).not.toBeVisible();
 		await expect(page.getByRole('button', { name: 'Simulate', exact: true })).toBeVisible();
 	});
 

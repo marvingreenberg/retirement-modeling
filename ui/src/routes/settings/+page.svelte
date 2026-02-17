@@ -4,10 +4,10 @@
 	import { portfolio, profile, numSimulations, samplePortfolio, sampleProfile, markFormTouched } from '$lib/stores';
 	import { portfolioSchema } from '$lib/schema';
 	import type { Portfolio } from '$lib/types';
-	import { isDark, initDarkMode, toggleDarkMode } from '$lib/darkMode.svelte';
-	import { isAutoSave, initAutoSave, toggleAutoSave } from '$lib/autoSave.svelte';
+	import { initDarkMode } from '$lib/darkMode.svelte';
+	import { isAutoSave, initAutoSave } from '$lib/autoSave.svelte';
 	import InfoPopover from '$lib/components/InfoPopover.svelte';
-	import { User, UserPlus, UserMinus, Settings, FolderOpen, Sliders, Sun, Moon } from 'lucide-svelte';
+	import { User, FolderOpen, Sliders } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 
 	type Section = 'basic' | 'loadsave' | 'advanced';
@@ -203,17 +203,8 @@
 			{/each}
 		</div>
 
-		<!-- Footer: Dark Mode + Done -->
-		<div class="p-4 border-t border-surface-300 dark:border-surface-700 space-y-3">
-			<label class="flex items-center gap-3 cursor-pointer text-sm text-surface-700 dark:text-surface-300">
-				{#if isDark()}
-					<Moon size={16} />
-				{:else}
-					<Sun size={16} />
-				{/if}
-				<input type="checkbox" class="checkbox" checked={isDark()} onchange={toggleDarkMode} aria-label="Toggle dark mode" />
-				Dark Mode
-			</label>
+		<!-- Footer: Done -->
+		<div class="p-4 border-t border-surface-300 dark:border-surface-700">
 			<button class="btn preset-filled w-full" onclick={handleDone}>Done</button>
 		</div>
 	</nav>
@@ -301,13 +292,6 @@
 					<button class="btn preset-tonal" onclick={saveFile}>Download JSON</button>
 				</div>
 
-				<hr class="border-surface-300 dark:border-surface-700" />
-
-				<label class="flex items-center gap-3 cursor-pointer text-sm text-surface-700 dark:text-surface-300">
-					<input type="checkbox" class="checkbox" checked={isAutoSave()} onchange={toggleAutoSave} aria-label="Toggle auto-save" />
-					Auto-save to browser storage
-					<span class="text-xs text-surface-400">(persists between sessions)</span>
-				</label>
 			</div>
 
 		{:else if activeSection === 'advanced'}

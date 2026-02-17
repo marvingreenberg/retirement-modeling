@@ -7,7 +7,7 @@ test.describe('First-use setup flow', () => {
 
 	test('redirects to settings on first visit', async ({ page }) => {
 		await expect(page).toHaveURL(/\/settings/);
-		await expect(page.getByText('Basic Info')).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Basic Info' })).toBeVisible();
 		await expect(page.getByText('Your Name')).toBeVisible();
 		await expect(page.getByText('Your Age')).toBeVisible();
 	});

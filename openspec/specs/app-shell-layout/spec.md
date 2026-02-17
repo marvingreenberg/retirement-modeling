@@ -63,7 +63,7 @@ Clicking the avatar button SHALL open a dropdown menu anchored to the avatar. Th
 - **THEN** the dropdown opens normally
 
 ### Requirement: Dark mode toggle location
-The dark/light mode toggle SHALL be accessible from the avatar dropdown on every page and from the settings page left-nav footer.
+The dark/light mode toggle SHALL be accessible exclusively from the avatar dropdown on every page.
 
 #### Scenario: No toggle in AppBar
 - **WHEN** the user views the AppBar

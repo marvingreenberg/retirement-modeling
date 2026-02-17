@@ -45,7 +45,7 @@ The Basic Info panel SHALL contain: Your Name (text), Your Age (number 20-120), 
 - **THEN** sample profile and portfolio data are loaded and the app navigates to `/`
 
 ### Requirement: Load/Save panel
-The Load/Save panel SHALL contain: Load Portfolio (file picker for JSON), Save Portfolio (downloads JSON with portfolio + profile), and an Auto-save toggle. When auto-save is enabled, state persists to localStorage on changes.
+The Load/Save panel SHALL contain: Load Portfolio (file picker for JSON) and Save Portfolio (downloads JSON with portfolio + profile). Auto-save is controlled exclusively from the avatar dropdown (see app-shell-layout spec).
 
 #### Scenario: Save portfolio
 - **WHEN** the user clicks Save Portfolio
@@ -54,14 +54,6 @@ The Load/Save panel SHALL contain: Load Portfolio (file picker for JSON), Save P
 #### Scenario: Load portfolio
 - **WHEN** the user selects a valid JSON file via Load Portfolio
 - **THEN** the portfolio and profile stores are populated from the file
-
-#### Scenario: Auto-save toggle
-- **WHEN** the user enables auto-save
-- **THEN** portfolio and profile state are written to localStorage on every change
-
-#### Scenario: Auto-save restore on load
-- **WHEN** the app starts and auto-save data exists in localStorage
-- **THEN** the saved state is restored automatically
 
 ### Requirement: Advanced Settings panel
 The Advanced Settings panel SHALL contain: State Tax %, Capital Gains %, RMD Age, IRMAA Limit, and MC Iterations inputs.
@@ -76,14 +68,6 @@ The settings page SHALL display a [Done] button that navigates back to the Overv
 #### Scenario: Done navigates home
 - **WHEN** the user clicks [Done]
 - **THEN** the app navigates to `/`
-
-### Requirement: Dark mode toggle in settings
-The settings page SHALL include a dark/light mode toggle in the left nav footer area.
-
-#### Scenario: Dark mode toggle
-- **WHEN** the user clicks the dark mode toggle on the settings page
-- **THEN** the app theme switches between dark and light mode
-- **AND** the preference is persisted to localStorage
 
 ### Requirement: Enter key triggers validation
 Pressing Enter on any input within the settings page SHALL trigger validation and store updates, equivalent to a focusout event.

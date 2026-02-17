@@ -154,3 +154,9 @@ Deleted GuidedTour.svelte, TourTooltip.svelte, tourActive store, and data-tour a
 ## Refactor Settings
 
 Consolidated all settings into a dedicated `/settings` route with left-nav layout (Basic Info, Load/Save, Advanced Settings). Replaced ProfileDrawer and inline setup form. Avatar now uses DiceBear HTTP API with dropdown menu instead of initials-based avatar with drawer. First-use redirects to `/settings`. Added localStorage auto-save with restore on app startup. Deleted ProfileDrawer, SetupView, and FileControls from PortfolioEditor.
+
+---
+
+## Avatar Dropdown Navigation
+
+Expanded avatar dropdown from single Settings link to three section nav links (Basic Info, Load/Save, Advanced Settings) that deep-link to `/settings?section=<id>`. Added dark mode and auto-save checkbox toggles directly in dropdown. Extracted shared `darkMode.svelte.ts` and `autoSave.svelte.ts` modules. Avatar dropdown now works on all routes including `/settings`.
