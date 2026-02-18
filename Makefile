@@ -47,10 +47,13 @@ clean:
 
 
 dev:
-	@trap 'kill 0' INT TERM; \
-	  $(ACTIVATE) && uvicorn retirement_model.api:app --reload & \
+	@cleanup() { kill 0 2>/dev/null; wait 2>/dev/null; }; \
+	  trap cleanup INT TERM EXIT; \
+	  $(ACTIVATE) && uvicorn retirement_model.api:app --reload & API_PID=$$!; \
+	  sleep 1; \
+	  kill -0 $$API_PID 2>/dev/null || { echo "ERROR: API server failed to start (port 8000 in use?)"; exit 1; }; \
 	  (cd ui && npx vite dev) & \
-	  sleep 2 && open http://localhost:5173; \
+	  sleep 1 && open http://localhost:5173; \
 	  wait
 
 docker-run:
@@ -84,10 +87,13 @@ deploy: build-image
 	  echo "Deployed: $$(gcloud run services describe $(SERVICE_NAME) --format='value(status.url)')"
 
 e2e:
-	@trap 'kill 0' INT TERM; \
-	  $(ACTIVATE) && uvicorn retirement_model.api:app --port 8000 & \
-	  sleep 2 && cd ui && npx playwright test; \
-	  EXIT=$$?; kill 0 2>/dev/null; exit $$EXIT
+	@cleanup() { kill 0 2>/dev/null; wait 2>/dev/null; }; \
+	  trap cleanup INT TERM EXIT; \
+	  $(ACTIVATE) && uvicorn retirement_model.api:app --port 8000 & API_PID=$$!; \
+	  sleep 1; \
+	  kill -0 $$API_PID 2>/dev/null || { echo "ERROR: API server failed to start (port 8000 in use?)"; exit 1; }; \
+	  cd ui && npx playwright test; \
+	  exit $$?
 
 lint:
 	$(ACTIVATE) && \
