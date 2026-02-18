@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
-import { samplePortfolio, defaultPortfolio, simulationResults, numSimulations } from './stores';
+import { samplePortfolio, defaultPortfolio, simulationResults, numSimulations, portfolio, profile, randomizeForDemo } from './stores';
 import { portfolioSchema } from './schema';
 
 describe('samplePortfolio', () => {
@@ -84,5 +84,33 @@ describe('simulationResults store', () => {
 describe('numSimulations store', () => {
 	it('defaults to 1000', () => {
 		expect(get(numSimulations)).toBe(1000);
+	});
+});
+
+describe('randomizeForDemo', () => {
+	it('scales account balances between 0.3x and 0.7x and rounds to $1000', () => {
+		portfolio.set(structuredClone(samplePortfolio));
+		const original = structuredClone(get(portfolio));
+		randomizeForDemo();
+		const updated = get(portfolio);
+
+		for (let i = 0; i < updated.accounts.length; i++) {
+			const orig = original.accounts[i].balance;
+			const rand = updated.accounts[i].balance;
+			// Should be within 0.3-0.7x range (with rounding tolerance)
+			expect(rand).toBeGreaterThanOrEqual(Math.round(orig * 0.3 / 1000) * 1000 - 1000);
+			expect(rand).toBeLessThanOrEqual(Math.round(orig * 0.7 / 1000) * 1000 + 1000);
+			// Should be rounded to nearest $1000
+			expect(rand % 1000).toBe(0);
+		}
+	});
+
+	it('replaces profile names with placeholders', () => {
+		profile.set({ primaryName: 'John', spouseName: 'Jane' });
+		portfolio.set(structuredClone(samplePortfolio));
+		randomizeForDemo();
+		const p = get(profile);
+		expect(p.primaryName).toBe('Alex');
+		expect(p.spouseName).toBe('Sam');
 	});
 });

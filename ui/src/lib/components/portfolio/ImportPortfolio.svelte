@@ -2,6 +2,7 @@
 	import type { Account, AccountType } from '$lib/types';
 	import { ACCOUNT_TYPE_DEFAULTS, ACCOUNT_TYPE_LABELS, EDITOR_ACCOUNT_TYPES } from '$lib/types';
 	import { parseOFX, type ParsedAccount } from '$lib/ofxParser';
+	import { parseCSV } from '$lib/csvParser';
 	import { summarizePortfolio, type PortfolioSummary } from '$lib/assetClassification';
 	import { Upload, X, FileCheck, AlertCircle } from 'lucide-svelte';
 
@@ -22,23 +23,43 @@
 		fileInput?.click();
 	}
 
+	function parseByExtension(text: string, filename: string): ParsedAccount[] {
+		const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+		if (ext === 'csv') return parseCSV(text);
+		return parseOFX(text);
+	}
+
 	async function handleFile(e: Event) {
 		const input = e.target as HTMLInputElement;
-		const file = input.files?.[0];
-		if (!file) return;
+		const files = input.files;
+		if (!files || files.length === 0) return;
 
 		error = '';
-		try {
-			const text = await file.text();
-			parsedAccounts = parseOFX(text);
-			summaries = parsedAccounts.map((a) => summarizePortfolio(a.holdings, a.cash_balance));
-			accountTypes = parsedAccounts.map(() => '');
-			accountNames = parsedAccounts.map(
+		const allParsed: ParsedAccount[] = [];
+		const errors: string[] = [];
+
+		for (const file of Array.from(files)) {
+			try {
+				const text = await file.text();
+				const parsed = parseByExtension(text, file.name);
+				allParsed.push(...parsed);
+			} catch {
+				errors.push(file.name);
+			}
+		}
+
+		if (errors.length > 0) {
+			error = `Could not load: ${errors.join(', ')}. Files may not be supported OFX/QFX/CSV exports.`;
+		}
+
+		if (allParsed.length > 0) {
+			parsedAccounts = allParsed;
+			summaries = allParsed.map((a) => summarizePortfolio(a.holdings, a.cash_balance));
+			accountTypes = allParsed.map(() => '');
+			accountNames = allParsed.map(
 				(a) => `${a.broker !== 'unknown' ? a.broker + ' ' : ''}${a.account_id}`
 			);
 			showModal = true;
-		} catch {
-			error = `Could not load ${file.name}. The file may not be a supported OFX/QFX investment export.`;
 		}
 
 		input.value = '';
@@ -96,11 +117,11 @@
 	}
 </script>
 
-<input bind:this={fileInput} type="file" accept=".ofx,.qfx" class="hidden" onchange={handleFile} />
+<input bind:this={fileInput} type="file" accept=".ofx,.qfx,.csv" multiple class="hidden" onchange={handleFile} />
 
 <button class="btn preset-tonal self-start" onclick={openFilePicker}>
 	<Upload size={16} />
-	Import OFX/QFX
+	Import Accounts
 </button>
 
 {#if error}

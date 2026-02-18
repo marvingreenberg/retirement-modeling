@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { portfolio, profile, numSimulations, samplePortfolio, sampleProfile, markFormTouched } from '$lib/stores';
+	import { portfolio, profile, numSimulations, samplePortfolio, sampleProfile, markFormTouched, randomizeForDemo } from '$lib/stores';
 	import { saveFileSchema } from '$lib/schema';
 	import type { Portfolio } from '$lib/types';
 	import { initDarkMode } from '$lib/darkMode.svelte';
@@ -9,7 +9,7 @@
 	import { avatarSrc, fetchAvatarSvg } from '$lib/avatar.svelte';
 	import { saveJsonFile, loadJsonFile, generateFilename } from '$lib/fileIO';
 	import InfoPopover from '$lib/components/InfoPopover.svelte';
-	import { User, FolderOpen, Sliders } from 'lucide-svelte';
+	import { User, FolderOpen, Sliders, Shuffle } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 
 	type Section = 'basic' | 'loadsave' | 'advanced';
@@ -21,6 +21,7 @@
 	}
 
 	let activeSection = $state<Section>(sectionFromUrl());
+	let showRandomizeConfirm = $state(false);
 
 	// Re-read query param when URL changes (e.g. navigating from dropdown)
 	$effect(() => {
@@ -324,6 +325,26 @@
 					<span class="flex items-center gap-1">MC Iterations <InfoPopover text="Number of Monte Carlo simulations to run. More iterations give more stable results but take longer." /></span>
 					<input type="number" class="input text-sm" bind:value={$numSimulations} min="1" max="10000" />
 				</label>
+
+				<div class="pt-4 border-t border-surface-300 dark:border-surface-700">
+					<h3 class="text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">Demo</h3>
+					{#if showRandomizeConfirm}
+						<p class="text-xs text-surface-500 mb-2">This will randomize all account balances and replace names. Continue?</p>
+						<div class="flex gap-2">
+							<button class="btn btn-sm preset-filled-warning" onclick={() => { randomizeForDemo(); showRandomizeConfirm = false; }}>
+								Yes, Randomize
+							</button>
+							<button class="btn btn-sm preset-tonal" onclick={() => showRandomizeConfirm = false}>
+								Cancel
+							</button>
+						</div>
+					{:else}
+						<button class="btn btn-sm preset-tonal" onclick={() => showRandomizeConfirm = true}>
+							<Shuffle size={14} />
+							Randomize for Demo
+						</button>
+					{/if}
+				</div>
 			</div>
 		{/if}
 	</div>

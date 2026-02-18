@@ -170,3 +170,14 @@ export function markTouched(path: string) {
 export function markFormTouched() {
 	formTouched.set(true);
 }
+
+export function randomizeForDemo() {
+	portfolio.update((p) => ({
+		...p,
+		accounts: p.accounts.map((a) => ({
+			...a,
+			balance: Math.round((a.balance * (0.3 + Math.random() * 0.4)) / 1000) * 1000,
+		})),
+	}));
+	profile.update(() => ({ primaryName: 'Alex', spouseName: 'Sam' }));
+}
