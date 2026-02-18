@@ -26,7 +26,7 @@ describe('AppBar', () => {
 
 	it('renders the app title', () => {
 		render(AppBar);
-		expect(screen.getByText('Retirement Simulator')).toBeInTheDocument();
+		expect(screen.getByText('Retirement Planner')).toBeInTheDocument();
 	});
 
 	it('renders navigation links', () => {

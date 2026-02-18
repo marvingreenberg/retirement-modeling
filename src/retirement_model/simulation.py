@@ -489,6 +489,9 @@ def run_simulation(
                 irmaa_cost=irmaa_cost,
                 total_balance=round(total_balance),
                 spending_target=round(total_spend_needed),
+                planned_expense=round(planned_expense_amount),
+                total_income=round(ss_income + stream_income),
+                income_tax=round(income_tax),
                 pretax_balance=round(
                     get_total_balance_by_category(accounts, TaxCategory.PRETAX)
                 ),

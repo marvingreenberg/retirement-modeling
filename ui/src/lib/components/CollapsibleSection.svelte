@@ -16,7 +16,7 @@
 <Accordion collapsible {value} onValueChange={(d) => (open = d.value.includes('item'))}>
 	<Accordion.Item value="item">
 		<Accordion.ItemTrigger class="flex items-center justify-between w-full">
-			<span class="flex items-center gap-2">
+			<span class="flex items-center gap-2 text-lg font-semibold">
 				{#if icon}{@render icon()}{/if}
 				{title}
 				{#if !open && summary}

@@ -31,8 +31,8 @@ describe('InfoPopover', () => {
 	});
 
 	it('popover text for conversion strategy covers all options', () => {
-		const text = 'Controls Roth conversion aggressiveness. Standard does no conversions. Other strategies convert pre-tax to Roth up to a tax bracket or IRMAA threshold to reduce future taxes.';
-		expect(text).toContain('Standard');
+		const text = 'Controls Roth conversion aggressiveness. No Conversion skips conversions. Other strategies convert pre-tax to Roth up to a tax bracket or IRMAA threshold to reduce future taxes.';
+		expect(text).toContain('No Conversion');
 		expect(text).toContain('Roth');
 		expect(text).toContain('IRMAA');
 	});

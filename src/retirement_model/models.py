@@ -48,7 +48,10 @@ TAX_CATEGORY_MAP: dict[AccountType, TaxCategory] = {
     AccountType.SIMPLE_IRA: TaxCategory.PRETAX,
 }
 
-_IRA_TYPES = frozenset({AccountType.IRA, AccountType.SEP_IRA, AccountType.SIMPLE_IRA})
+_IRA_TYPES = frozenset({
+    AccountType.IRA, AccountType.SEP_IRA, AccountType.SIMPLE_IRA,
+    AccountType.TRADITIONAL_401K, AccountType.TRADITIONAL_403B, AccountType.TRADITIONAL_457B,
+})
 
 ACCOUNT_TYPE_DEFAULTS: dict[AccountType, dict] = {
     AccountType.BROKERAGE: {"cost_basis_ratio": 0.40, "editable": True},
@@ -268,8 +271,11 @@ class YearResult(BaseModel):
     irmaa_cost: float
     total_balance: float
 
-    # Spending info
+    # Spending & income info
     spending_target: float = 0.0
+    planned_expense: float = 0.0
+    total_income: float = 0.0
+    income_tax: float = 0.0
 
     # Account balances by type
     pretax_balance: float = 0.0

@@ -27,7 +27,7 @@ describe('Snapshot name generation', () => {
 			rmd_based: 'RMD-Based',
 		};
 		const conversionLabels: Record<string, string> = {
-			standard: 'Standard',
+			standard: 'No Conversion',
 			irmaa_tier_1: 'IRMAA Tier 1',
 			'22_percent_bracket': '22% Bracket',
 			'24_percent_bracket': '24% Bracket',
@@ -48,7 +48,7 @@ describe('Snapshot name generation', () => {
 		const config = { ...samplePortfolio.config, inflation_rate: 0.04, strategy_target: 'standard' as const };
 		const name = generateSnapshotName(config);
 		expect(name).toContain('4.0% infl');
-		expect(name).toContain('Standard');
+		expect(name).toContain('No Conversion');
 	});
 });
 
@@ -82,31 +82,35 @@ describe('Comparison store', () => {
 		expect(get(comparisonSnapshots)).toHaveLength(0);
 	});
 
-	it('can update snapshot name', () => {
-		const snap: ComparisonSnapshot = {
+	it('deduplicates snapshots with same parameters', () => {
+		const snap1: ComparisonSnapshot = {
 			id: 'test-2',
-			name: 'Original',
-			runType: 'monte_carlo',
-			numSimulations: 1000,
+			name: '',
+			runType: 'single',
 			inflationRate: 0.03,
 			growthRate: 0.07,
-			spendingStrategy: 'RMD-Based',
+			spendingStrategy: 'Fixed Dollar',
 			conversionStrategy: '22% Bracket',
 			taxRateState: 0.05,
 			finalBalance: 3000000,
-			totalTaxes: 0,
+			totalTaxes: 100000,
 			totalIrmaa: 0,
 			totalRothConversions: 0,
-			successRate: 0.92,
 		};
+		const snap2 = { ...snap1, id: 'test-3', finalBalance: 3500000 };
 
-		comparisonSnapshots.set([snap]);
-		comparisonSnapshots.update((s) =>
-			s.map((x) => (x.id === 'test-2' ? { ...x, name: 'Renamed' } : x))
-		);
-		expect(get(comparisonSnapshots)[0].name).toBe('Renamed');
+		comparisonSnapshots.set([snap1]);
+		// Same key params → should replace, not duplicate
+		const key = `${snap2.runType}|${snap2.inflationRate}|${snap2.growthRate}|${snap2.spendingStrategy}|${snap2.conversionStrategy}|${snap2.taxRateState}`;
+		comparisonSnapshots.update((snaps) => {
+			const filtered = snaps.filter((s) =>
+				`${s.runType}|${s.inflationRate}|${s.growthRate}|${s.spendingStrategy}|${s.conversionStrategy}|${s.taxRateState}` !== key
+			);
+			return [...filtered, snap2];
+		});
+		expect(get(comparisonSnapshots)).toHaveLength(1);
+		expect(get(comparisonSnapshots)[0].finalBalance).toBe(3500000);
 
-		// cleanup
 		comparisonSnapshots.set([]);
 	});
 
@@ -119,7 +123,7 @@ describe('Comparison store', () => {
 			inflationRate: 0.03,
 			growthRate: 0.07,
 			spendingStrategy: 'Fixed Dollar',
-			conversionStrategy: 'Standard',
+			conversionStrategy: 'No Conversion',
 			taxRateState: 0.05,
 			finalBalance: 2500000,
 			totalTaxes: 0,

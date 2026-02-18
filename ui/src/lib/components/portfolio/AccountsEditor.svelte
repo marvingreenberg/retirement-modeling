@@ -71,22 +71,22 @@
 	}
 </script>
 
-<div class="flex flex-col gap-3">
+<div class="flex flex-col gap-1.5">
 	{#if accounts.length > 0}
-		<div class="flex gap-3 items-end px-3 text-xs font-medium text-surface-500 dark:text-surface-400">
+		<div class="flex gap-2 items-end px-2 text-xs font-medium text-surface-500 dark:text-surface-400">
 			<span class="w-5"></span>
-			<span class="w-36">Name</span>
+			<span class="w-44">Name</span>
 			<span class="w-36">Type</span>
 			<span class="w-30">Balance</span>
 			<span class="w-30">Owner</span>
-			<span class="w-24"><span class="flex items-center gap-1">Cost Basis % <InfoPopover text="The portion of the account that represents original contributions (not gains). Affects capital gains tax on brokerage withdrawals." /></span></span>
+			<span class="w-24"><span class="flex items-center gap-1">Basis, as % <InfoPopover text="The portion of the account that represents original contributions (not gains). Affects capital gains tax on brokerage withdrawals." /></span></span>
 			<span class="w-24">{config ? 'Avail. Year' : 'Avail. Age'}</span>
 		</div>
 	{/if}
 	{#each accounts as account, i}
 		{@const balanceError = hasError(`accounts.${i}.balance`)}
 		{@const iconType = typeIcon(account.type)}
-		<div class="flex gap-3 items-center p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap">
+		<div class="flex gap-2 items-center p-2 bg-surface-100 dark:bg-surface-800 rounded flex-wrap">
 			<div class="w-5 flex items-center justify-center">
 				{#if iconType === 'pretax'}
 					<ShieldCheck size={18} class="text-blue-500" />
@@ -98,7 +98,7 @@
 					<TrendingUp size={18} class="text-amber-500" />
 				{/if}
 			</div>
-			<input type="text" class="input w-36" bind:value={account.name} onfocus={(e) => e.currentTarget.select()} placeholder="Account name" aria-label="Name" />
+			<input type="text" class="input w-44" bind:value={account.name} onfocus={(e) => e.currentTarget.select()} placeholder="Account name" aria-label="Name" />
 			<select class="select w-36" value={account.type} aria-label="Type"
 				onchange={(e) => handleTypeChange(i, (e.target as HTMLSelectElement).value as AccountType)}>
 				{#each EDITOR_ACCOUNT_TYPES as t}
@@ -132,7 +132,7 @@
 				min="0"
 				max="100"
 				step="1"
-				aria-label="Cost Basis %"
+				aria-label="Basis, as %"
 				disabled={!isCostBasisEditable(account.type)}
 			/>
 			{#if config}
@@ -148,8 +148,6 @@
 						aria-label="Avail. Year" />
 					{#if (account.available_at_age ?? 0) > 0}
 						<span class="text-xs text-surface-400">(age {account.available_at_age})</span>
-					{:else}
-						<span class="text-xs text-surface-400">(now)</span>
 					{/if}
 				</div>
 			{:else}

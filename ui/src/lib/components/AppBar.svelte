@@ -4,12 +4,13 @@
 	import AvatarButton from './AvatarButton.svelte';
 	import AvatarDropdown from './AvatarDropdown.svelte';
 	import HelpDrawer from './HelpDrawer.svelte';
-	import { LayoutDashboard, GitCompareArrows, Table, CircleHelp } from 'lucide-svelte';
+	import { LayoutDashboard, GitCompareArrows, Table, CircleHelp, LineChart } from 'lucide-svelte';
+	import { onMount } from 'svelte';
 
 	const navItems = [
 		{ href: '/', label: 'Overview', icon: LayoutDashboard },
-		{ href: '/compare', label: 'Compare', icon: GitCompareArrows },
 		{ href: '/details', label: 'Details', icon: Table },
+		{ href: '/compare', label: 'Compare', icon: GitCompareArrows },
 	] as const;
 
 	function isActive(href: string): boolean {
@@ -19,12 +20,20 @@
 
 	let dropdownOpen = $state(false);
 	let helpOpen = $state(false);
+	let appVersion = $state('');
+
+	onMount(async () => {
+		try {
+			const res = await fetch('/api/v1/status');
+			if (res.ok) appVersion = (await res.json()).version ?? '';
+		} catch { /* dev mode without backend */ }
+	});
 </script>
 
 <SkAppBar>
 	<SkAppBar.Toolbar class="grid-cols-[auto_1fr_auto]">
 		<SkAppBar.Lead>
-			<a href="/" class="flex items-center gap-2 text-lg font-bold">Retirement Simulator</a>
+			<a href="/" class="flex items-center gap-2 text-lg font-bold"><LineChart size={22} /> <span>Retirement Planner{#if appVersion}<span class="block text-[9px] font-normal text-surface-400 leading-none">v{appVersion}</span>{/if}</span></a>
 		</SkAppBar.Lead>
 		<SkAppBar.Headline>
 			<nav class="flex items-center justify-center gap-1">
@@ -34,7 +43,7 @@
 						class="btn btn-sm flex items-center gap-1.5 {isActive(href) ? 'preset-filled' : 'preset-ghost'}"
 						aria-current={isActive(href) ? 'page' : undefined}
 					>
-						<Icon size={16} />
+						<Icon size={18} />
 						{label}
 					</a>
 				{/each}
@@ -42,7 +51,7 @@
 		</SkAppBar.Headline>
 		<SkAppBar.Trail>
 			<button class="btn btn-sm preset-ghost" onclick={() => helpOpen = true} aria-label="Open help">
-				<CircleHelp size={20} />
+				<CircleHelp size={22} />
 			</button>
 			<AvatarButton onclick={() => dropdownOpen = !dropdownOpen} />
 		</SkAppBar.Trail>

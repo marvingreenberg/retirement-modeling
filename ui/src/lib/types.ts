@@ -178,6 +178,9 @@ export interface YearResult {
 	irmaa_cost: number;
 	total_balance: number;
 	spending_target: number;
+	planned_expense: number;
+	total_income: number;
+	income_tax: number;
 	pretax_balance: number;
 	roth_balance: number;
 	roth_conversion_balance: number;

@@ -109,7 +109,7 @@
 	{/if}
 
 	<CollapsibleSection title="Accounts" bind:open={accountsOpen}>
-		{#snippet icon()}<Landmark size={16} class="text-tertiary-500" />{/snippet}
+		{#snippet icon()}<Landmark size={20} class="text-tertiary-500" />{/snippet}
 		{#snippet summary()}{#if noAccounts}No accounts{:else}Total {compactCurrency(totalBalance)}{/if}{/snippet}
 		{#if noAccounts}
 			<div class="flex items-center gap-2 text-warning-600 dark:text-warning-400 text-sm font-semibold py-2">
@@ -122,7 +122,7 @@
 	</CollapsibleSection>
 
 	<CollapsibleSection title="Budget" bind:open={budgetOpen}>
-		{#snippet icon()}<Wallet size={16} class="text-primary-500" />{/snippet}
+		{#snippet icon()}<Wallet size={20} class="text-primary-500" />{/snippet}
 		{#snippet summary()}{currency($portfolio.config.annual_spend_net)}/yr{#if ($portfolio.config.planned_expenses ?? []).length > 0} + {($portfolio.config.planned_expenses ?? []).length} expenses{/if}{/snippet}
 		{#if noBudget && !noAccounts}
 			<div class="flex items-center gap-2 text-warning-600 dark:text-warning-400 text-sm font-semibold py-2">
@@ -134,7 +134,7 @@
 	</CollapsibleSection>
 
 	<CollapsibleSection title="Income" bind:open={incomeOpen}>
-		{#snippet icon()}<Briefcase size={16} class="text-success-500" />{/snippet}
+		{#snippet icon()}<Briefcase size={20} class="text-success-500" />{/snippet}
 		{#snippet summary()}{incomeSummary}{/snippet}
 		<IncomeEditor bind:config={$portfolio.config} bind:incomeStreams={$portfolio.config.income_streams} />
 	</CollapsibleSection>

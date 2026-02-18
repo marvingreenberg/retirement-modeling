@@ -24,7 +24,7 @@ describe('SimulateSettings', () => {
 		renderSettings();
 		expect(screen.getByText(/Inflation %/)).toBeInTheDocument();
 		expect(screen.getByText(/Growth %/)).toBeInTheDocument();
-		expect(screen.getByText(/Conversion/)).toBeInTheDocument();
+		expect(screen.getAllByText(/Conversion/).length).toBeGreaterThan(0);
 	});
 
 	it('shows strategy summary when collapsed', () => {
@@ -75,7 +75,7 @@ describe('SimulateSettings', () => {
 
 	it('shows Simulate button', () => {
 		renderSettings();
-		expect(screen.getByRole('button', { name: 'Simulate' })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'Run simulation' })).toBeInTheDocument();
 	});
 
 	it('shows summary text with strategy when panel collapsed', () => {

@@ -1,14 +1,48 @@
 <script lang="ts">
-	import { portfolio, validationErrors, simulationResults, simulateBlockedSection, numSimulations as numSimsStore, formTouched, markFormTouched } from '$lib/stores';
+	import { portfolio, validationErrors, simulationResults, simulateBlockedSection, numSimulations as numSimsStore, comparisonSnapshots, formTouched, markFormTouched } from '$lib/stores';
 	import { validatePortfolio } from '$lib/validation';
 	import { runSimulation, runMonteCarlo } from '$lib/api';
 	import PortfolioEditor from '$lib/components/portfolio/PortfolioEditor.svelte';
 	import SimulateSettings from '$lib/components/SimulateSettings.svelte';
 	import SimulateView from '$lib/components/SimulateView.svelte';
 	import WelcomeState from '$lib/components/WelcomeState.svelte';
-	import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
+	import type { SimulationResponse, MonteCarloResponse, ComparisonSnapshot } from '$lib/types';
 	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
+
+	const spendingLabels: Record<string, string> = {
+		fixed_dollar: 'Fixed Dollar', percent_of_portfolio: '% of Portfolio',
+		guardrails: 'Guardrails', rmd_based: 'RMD-Based',
+	};
+	const conversionLabels: Record<string, string> = {
+		standard: 'No Conversion', irmaa_tier_1: 'IRMAA Tier 1',
+		'22_percent_bracket': '22% Bracket', '24_percent_bracket': '24% Bracket',
+	};
+
+	function snapshotKey(s: Pick<ComparisonSnapshot, 'runType' | 'inflationRate' | 'growthRate' | 'spendingStrategy' | 'conversionStrategy' | 'taxRateState'>): string {
+		return `${s.runType}|${s.inflationRate}|${s.growthRate}|${s.spendingStrategy}|${s.conversionStrategy}|${s.taxRateState}`;
+	}
+
+	function addSnapshot(snap: ComparisonSnapshot) {
+		const key = snapshotKey(snap);
+		comparisonSnapshots.update((snaps) => {
+			const filtered = snaps.filter((s) => snapshotKey(s) !== key);
+			return [...filtered, snap];
+		});
+	}
+
+	function buildSnapshotBase() {
+		const c = $portfolio.config;
+		return {
+			id: crypto.randomUUID(),
+			name: '',
+			inflationRate: c.inflation_rate,
+			growthRate: c.investment_growth_rate,
+			spendingStrategy: spendingLabels[c.spending_strategy ?? 'fixed_dollar'],
+			conversionStrategy: conversionLabels[c.strategy_target],
+			taxRateState: c.tax_rate_state,
+		};
+	}
 
 	let needsSetup = $derived($portfolio.config.current_age_primary === 0);
 
@@ -19,10 +53,11 @@
 	let loading = $state(false);
 	let mcLoading = $state(false);
 	let error = $state('');
-	let settingsCollapsed = $state(false);
 
-	let singleResult = $state<SimulationResponse | null>(null);
-	let mcResult = $state<MonteCarloResponse | null>(null);
+	let stored = get(simulationResults);
+	let singleResult = $state<SimulationResponse | null>(stored.singleResult);
+	let mcResult = $state<MonteCarloResponse | null>(stored.mcResult);
+	let settingsCollapsed = $state(stored.singleResult !== null);
 
 	async function handleRun() {
 		if ($portfolio.accounts.length === 0) {
@@ -57,12 +92,30 @@
 			loading = false;
 			settingsCollapsed = true;
 			simulationResults.update((s) => ({ ...s, singleResult: res }));
+			addSnapshot({
+				...buildSnapshotBase(),
+				runType: 'single',
+				finalBalance: res.summary.final_balance,
+				totalTaxes: res.summary.total_taxes_paid,
+				totalIrmaa: res.summary.total_irmaa_paid,
+				totalRothConversions: res.summary.total_roth_conversions,
+			});
 		});
 
 		const mcPromise = runMonteCarlo(p, numSims).then((res) => {
 			mcResult = res;
 			mcLoading = false;
 			simulationResults.update((s) => ({ ...s, mcResult: res }));
+			addSnapshot({
+				...buildSnapshotBase(),
+				runType: 'monte_carlo',
+				numSimulations: res.num_simulations,
+				finalBalance: res.median_simulation.years.at(-1)?.total_balance ?? 0,
+				totalTaxes: 0,
+				totalIrmaa: 0,
+				totalRothConversions: 0,
+				successRate: res.success_rate,
+			});
 		});
 
 		try {

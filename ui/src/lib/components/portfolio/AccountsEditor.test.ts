@@ -115,12 +115,12 @@ describe('AccountsEditor', () => {
 
 	it('disables cost basis for non-brokerage types', () => {
 		render(AccountsEditor, { accounts: [makeAccount({ type: 'ira' })] });
-		expect(screen.getByLabelText('Cost Basis %')).toBeDisabled();
+		expect(screen.getByLabelText('Basis, as %')).toBeDisabled();
 	});
 
 	it('enables cost basis for brokerage type', () => {
 		render(AccountsEditor, { accounts: [makeAccount({ type: 'brokerage', cost_basis_ratio: 0.40 })] });
-		expect(screen.getByLabelText('Cost Basis %')).not.toBeDisabled();
+		expect(screen.getByLabelText('Basis, as %')).not.toBeDisabled();
 	});
 
 	it('shows all expected account types in dropdown', () => {
@@ -146,13 +146,13 @@ describe('AccountsEditor', () => {
 		expect(screen.getByText('(age 59)')).toBeInTheDocument();
 	});
 
-	it('shows (now) hint when available_at_age is 0 with config', () => {
+	it('shows no age hint when available_at_age is 0 with config', () => {
 		const config = makeConfig({ current_age_primary: 65, start_year: 2026 });
 		render(AccountsEditor, {
 			accounts: [makeAccount({ available_at_age: 0 })],
 			config,
 		});
-		expect(screen.getByText('(now)')).toBeInTheDocument();
+		expect(screen.queryByText('(age')).not.toBeInTheDocument();
 	});
 
 	it('falls back to Avail. Age without config', () => {

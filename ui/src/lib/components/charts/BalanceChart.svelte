@@ -17,15 +17,17 @@
 		chart?.destroy();
 		const labels = years.map((y) => `Age ${y.age_primary}`);
 
-		const allDatasets = [
+		const balanceDatasets = [
 			{
 				label: 'Pre-tax',
 				data: years.map((y) => y.pretax_balance),
 				borderColor: '#dc2626',
-				backgroundColor: 'rgba(220,38,38,0.3)',
+				backgroundColor: 'rgba(220,38,38,0.55)',
 				borderWidth: 1.5,
 				pointRadius: 0,
+				pointStyle: 'rectRounded' as const,
 				fill: true,
+				yAxisID: 'y',
 			},
 			{
 				label: 'Roth Conversions',
@@ -34,7 +36,9 @@
 				backgroundColor: 'rgba(124,58,237,0.3)',
 				borderWidth: 1.5,
 				pointRadius: 0,
+				pointStyle: 'rectRounded' as const,
 				fill: true,
+				yAxisID: 'y',
 			},
 			{
 				label: 'Roth',
@@ -43,7 +47,9 @@
 				backgroundColor: 'rgba(22,163,74,0.3)',
 				borderWidth: 1.5,
 				pointRadius: 0,
+				pointStyle: 'rectRounded' as const,
 				fill: true,
+				yAxisID: 'y',
 			},
 			{
 				label: 'Brokerage',
@@ -52,11 +58,37 @@
 				backgroundColor: 'rgba(202,138,4,0.3)',
 				borderWidth: 1.5,
 				pointRadius: 0,
+				pointStyle: 'rectRounded' as const,
 				fill: true,
+				yAxisID: 'y',
 			},
 		];
 
-		const datasets = allDatasets.filter((ds) => hasNonZero(ds.data));
+		const lineStyle = { borderWidth: 2, pointRadius: 0, pointStyle: 'line' as const, fill: false, yAxisID: 'y2' };
+		const cashFlowDatasets = [
+			{
+				label: 'Available to Spend',
+				data: years.map((y) =>
+					y.total_income + y.rmd + y.pretax_withdrawal + y.roth_withdrawal
+					+ y.brokerage_withdrawal - (y.conversion_tax ?? 0)
+				),
+				borderColor: '#0891b2',
+				borderDash: [] as number[],
+				...lineStyle,
+			},
+			{
+				label: 'Planned Budget',
+				data: years.map((y) => y.spending_target),
+				borderColor: '#6366f1',
+				borderDash: [6, 3],
+				...lineStyle,
+			},
+		];
+
+		const datasets = [
+			...balanceDatasets.filter((ds) => hasNonZero(ds.data)),
+			...cashFlowDatasets.filter((ds) => hasNonZero(ds.data)),
+		];
 
 		chart = new Chart(canvas, {
 			type: 'line',
@@ -69,9 +101,16 @@
 						callbacks: {
 							label: (ctx) => `${ctx.dataset.label}: $${Math.round(ctx.parsed.y ?? 0).toLocaleString()}`,
 							footer: (items) => {
-								const total = items.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
-								return `Total: $${Math.round(total).toLocaleString()}`;
+								const balanceItems = items.filter((i) => (i.dataset as any).yAxisID === 'y');
+								if (balanceItems.length === 0) return '';
+								const total = balanceItems.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
+								return `Total Balance: $${Math.round(total).toLocaleString()}`;
 							},
+						},
+					},
+					legend: {
+						labels: {
+							usePointStyle: true,
 						},
 					},
 				},
@@ -79,6 +118,15 @@
 					x: { stacked: true },
 					y: {
 						stacked: true,
+						position: 'left',
+						ticks: {
+							callback: (v) => `$${(Number(v) / 1000).toFixed(0)}K`,
+						},
+					},
+					y2: {
+						position: 'right',
+						title: { display: true, text: 'Spending & Budget' },
+						grid: { drawOnChartArea: false },
 						ticks: {
 							callback: (v) => `$${(Number(v) / 1000).toFixed(0)}K`,
 						},

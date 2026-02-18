@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { portfolio, comparisonSnapshots } from '$lib/stores';
+	import { portfolio } from '$lib/stores';
 	import { currency, pct } from '$lib/format';
 	import BalanceChart from './charts/BalanceChart.svelte';
 	import FanChart from './charts/FanChart.svelte';
 	import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
-	import { BarChart3, TrendingUp, ShieldCheck, PlusCircle } from 'lucide-svelte';
+	import { BarChart3, TrendingUp, ShieldCheck } from 'lucide-svelte';
 
 	let {
 		singleResult = null,
@@ -19,69 +19,6 @@
 	} = $props();
 
 	let activeTab = $state<'single' | 'monte_carlo'>('single');
-
-	const spendingLabels: Record<string, string> = {
-		fixed_dollar: 'Fixed Dollar',
-		percent_of_portfolio: '% of Portfolio',
-		guardrails: 'Guardrails',
-		rmd_based: 'RMD-Based',
-	};
-
-	const conversionLabels: Record<string, string> = {
-		standard: 'Standard',
-		irmaa_tier_1: 'IRMAA Tier 1',
-		'22_percent_bracket': '22% Bracket',
-		'24_percent_bracket': '24% Bracket',
-	};
-
-	let addedFeedback = $state(false);
-
-	function generateSnapshotName(): string {
-		const c = $portfolio.config;
-		const infl = (c.inflation_rate * 100).toFixed(1);
-		const growth = (c.investment_growth_rate * 100).toFixed(1);
-		const spend = spendingLabels[c.spending_strategy ?? 'fixed_dollar'];
-		const conv = conversionLabels[c.strategy_target];
-		return `${infl}% infl, ${growth}% growth, ${spend}, ${conv}`;
-	}
-
-	function addToComparison(mode: 'single' | 'monte_carlo') {
-		const c = $portfolio.config;
-		const id = crypto.randomUUID();
-		const base = {
-			id,
-			name: generateSnapshotName(),
-			inflationRate: c.inflation_rate,
-			growthRate: c.investment_growth_rate,
-			spendingStrategy: spendingLabels[c.spending_strategy ?? 'fixed_dollar'],
-			conversionStrategy: conversionLabels[c.strategy_target],
-			taxRateState: c.tax_rate_state,
-		};
-
-		if (mode === 'single' && singleResult) {
-			comparisonSnapshots.update((snaps) => [...snaps, {
-				...base,
-				runType: 'single' as const,
-				finalBalance: singleResult!.summary.final_balance,
-				totalTaxes: singleResult!.summary.total_taxes_paid,
-				totalIrmaa: singleResult!.summary.total_irmaa_paid,
-				totalRothConversions: singleResult!.summary.total_roth_conversions,
-			}]);
-		} else if (mode === 'monte_carlo' && mcResult) {
-			comparisonSnapshots.update((snaps) => [...snaps, {
-				...base,
-				runType: 'monte_carlo' as const,
-				numSimulations: mcResult!.num_simulations,
-				finalBalance: mcResult!.median_simulation.years.at(-1)?.total_balance ?? 0,
-				totalTaxes: 0,
-				totalIrmaa: 0,
-				totalRothConversions: 0,
-				successRate: mcResult!.success_rate,
-			}]);
-		}
-		addedFeedback = true;
-		setTimeout(() => { addedFeedback = false; }, 2000);
-	}
 
 	function medianDepletion(ages: number[]): number {
 		const sorted = [...ages].sort((a, b) => a - b);
@@ -155,10 +92,6 @@
 			<BalanceChart years={singleResult.result.years} />
 
 			<div class="flex items-center gap-4">
-				<button class="btn preset-tonal flex items-center gap-2" onclick={() => addToComparison('single')}>
-					<PlusCircle size={16} />
-					{addedFeedback ? 'Added!' : 'Add to Comparison'}
-				</button>
 				<a href="/details" class="text-sm text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">View year-by-year details &rarr;</a>
 			</div>
 		{:else}
@@ -231,10 +164,6 @@
 			</div>
 
 			<div class="flex items-center gap-4">
-				<button class="btn preset-tonal flex items-center gap-2" onclick={() => addToComparison('monte_carlo')}>
-					<PlusCircle size={16} />
-					{addedFeedback ? 'Added!' : 'Add to Comparison (median)'}
-				</button>
 				<a href="/details" class="text-sm text-primary-500 hover:text-primary-600 dark:hover:text-primary-400">View yearly percentiles &rarr;</a>
 			</div>
 		{/if}

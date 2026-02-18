@@ -70,11 +70,11 @@ describe('SimulateView (tabbed results)', () => {
 		expect(screen.getByText('Roth Conversions')).toBeInTheDocument();
 	});
 
-	it('shows Add to Comparison button for single results', () => {
+	it('shows details link for single results', () => {
 		render(SimulateView, {
 			singleResult: mockSingleResult, mcResult: null, mcLoading: false, error: '',
 		});
-		expect(screen.getByRole('button', { name: /add to comparison/i })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: /year-by-year details/i })).toBeInTheDocument();
 	});
 
 	it('shows loading spinner on Simulation tab when no single result', () => {

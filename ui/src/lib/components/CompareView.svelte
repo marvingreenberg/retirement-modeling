@@ -21,26 +21,19 @@
 	function removeSnapshot(id: string) {
 		comparisonSnapshots.update((snaps) => snaps.filter((s) => s.id !== id));
 	}
-
-	function updateName(id: string, name: string) {
-		comparisonSnapshots.update((snaps) =>
-			snaps.map((s) => (s.id === id ? { ...s, name } : s))
-		);
-	}
 </script>
 
 <div class="space-y-4">
 	{#if snapshots.length === 0}
 		<div class="text-center py-12 text-surface-500">
 			<p class="text-lg font-medium mb-2">No comparisons yet</p>
-			<p class="text-sm">Run a simulation and click "Add to Comparison" to start comparing scenarios.</p>
+			<p class="text-sm">Run a simulation from Overview — each run is automatically added here.</p>
 		</div>
 	{:else}
 		<div class="overflow-x-auto">
 			<table class="table table-sm">
 				<thead>
 					<tr>
-						<th class="text-left">Name</th>
 						<th>Type</th>
 						<th>Inflation</th>
 						<th>Growth</th>
@@ -56,14 +49,6 @@
 				<tbody>
 					{#each snapshots as snap}
 						<tr>
-							<td class="text-left">
-								<input
-									type="text"
-									class="input text-sm w-48 bg-transparent border-none p-0"
-									value={snap.name}
-									onchange={(e) => updateName(snap.id, (e.target as HTMLInputElement).value)}
-								/>
-							</td>
 							<td class="text-xs">
 								{#if snap.runType === 'monte_carlo'}
 									MC ({snap.numSimulations})

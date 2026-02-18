@@ -174,8 +174,8 @@ class TestWithdrawFromEligiblePretaxPerAccount:
     def test_skips_non_eligible(self):
         accounts = [
             Account(
-                id="k401", name="401k", balance=100000,
-                type=AccountType.TRADITIONAL_401K, owner=Owner.PRIMARY,
+                id="brk1", name="Brokerage", balance=100000,
+                type=AccountType.BROKERAGE, owner=Owner.PRIMARY,
             ),
             Account(
                 id="ira1", name="IRA", balance=50000,

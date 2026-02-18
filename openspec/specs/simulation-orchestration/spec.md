@@ -325,10 +325,10 @@ The API SHALL be versioned under the `/api/v1/` prefix.
 - **THEN** if static assets are mounted, the SPA SHALL be served
 - **AND** if no static assets, a JSON health/info response SHALL be returned
 
-#### Scenario: Version is 0.11.0
-- **WHEN** the `/api/v1/` root endpoint is called
-- **THEN** the version field SHALL be `0.11.0`
-- **AND** `pyproject.toml` version SHALL be `0.11.0`
+#### Scenario: Version reporting
+- **WHEN** the `/api/v1/status` or `/api/v1/` endpoint is called
+- **THEN** the response SHALL include a `version` field
+- **AND** the version SHALL be derived dynamically from `setuptools-scm` git tags
 
 #### Scenario: Backward-compatible redirects
 - **WHEN** a request hits an old unversioned route (e.g., `/simulate`)

@@ -45,19 +45,20 @@
 						<thead>
 							<tr>
 								<th>Year</th><th>Age</th><th>AGI</th><th>Bracket</th><th>RMD</th>
-								<th>Spending</th><th>Pre-tax WD</th><th>Roth WD</th><th>Brokerage WD</th>
-								<th>Roth Conv</th><th>Total Tax</th><th>IRMAA</th><th>Total Balance</th>
+								<th>Income</th><th>Spending</th><th>Pre-tax WD</th><th>Roth WD</th><th>Brokerage WD</th>
+								<th>Roth Conv</th><th>Conv Tax</th><th>Total Tax</th><th>IRMAA</th><th>Total Balance</th>
 							</tr>
 						</thead>
 						<tbody>
 							{#each years as yr}
 								<tr class={yr.total_balance <= 0 ? 'text-error-500 dark:text-error-400' : ''}>
 									<td>{yr.year}</td><td>{yr.age_primary}</td><td>{currency(yr.agi)}</td>
-									<td>{yr.bracket}</td><td>{currency(yr.rmd)}</td><td>{currency(yr.spending_target)}</td>
+									<td>{yr.bracket}</td><td>{currency(yr.rmd)}</td><td>{currency(yr.total_income)}</td>
+									<td>{currency(yr.spending_target)}</td>
 									<td>{currency(yr.pretax_withdrawal)}</td><td>{currency(yr.roth_withdrawal)}</td>
 									<td>{currency(yr.brokerage_withdrawal)}</td><td>{currency(yr.roth_conversion)}</td>
-									<td>{currency(yr.total_tax)}</td><td>{currency(yr.irmaa_cost)}</td>
-									<td>{currency(yr.total_balance)}</td>
+									<td>{currency(yr.conversion_tax)}</td><td>{currency(yr.total_tax)}</td>
+									<td>{currency(yr.irmaa_cost)}</td><td>{currency(yr.total_balance)}</td>
 								</tr>
 							{/each}
 						</tbody>
