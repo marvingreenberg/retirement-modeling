@@ -521,3 +521,124 @@ class TestTaxRegimeSequence:
 
         # Different deductions → different taxes
         assert result_tcja.years[0].total_tax != result_pre_erta.years[0].total_tax
+
+
+class TestWithdrawalDetails:
+    """Tests for per-account withdrawal details in YearResult."""
+
+    def test_year_result_has_withdrawal_details(self, sample_portfolio: Portfolio):
+        result = run_simulation(sample_portfolio)
+        for yr in result.years:
+            assert isinstance(yr.withdrawal_details, list)
+
+    def test_rmd_withdrawal_details(self):
+        """RMD withdrawals are tagged with purpose 'rmd'."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=73,
+                current_age_spouse=73,
+                simulation_years=2,
+                start_year=2026,
+                annual_spend_net=30000,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=30000, primary_start_age=70,
+                    spouse_benefit=20000, spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="ira_p", name="Primary IRA", balance=500000,
+                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="ira_s", name="Spouse IRA", balance=300000,
+                    type=AccountType.IRA, owner=Owner.SPOUSE,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr0 = result.years[0]
+
+        rmd_details = [d for d in yr0.withdrawal_details if d.purpose == "rmd"]
+        assert len(rmd_details) >= 1
+        assert all(d.account_id in ("ira_p", "ira_s") for d in rmd_details)
+        assert all(d.amount > 0 for d in rmd_details)
+
+    def test_spending_withdrawal_details(self):
+        """Spending withdrawals are tagged with purpose 'spending'."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=60,
+                current_age_spouse=60,
+                simulation_years=2,
+                start_year=2026,
+                annual_spend_net=80000,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0, primary_start_age=70,
+                    spouse_benefit=0, spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brok", name="Brokerage", balance=500000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr0 = result.years[0]
+
+        spending_details = [d for d in yr0.withdrawal_details if d.purpose == "spending"]
+        assert len(spending_details) >= 1
+        assert spending_details[0].account_id == "brok"
+        assert spending_details[0].account_name == "Brokerage"
+
+    def test_conversion_withdrawal_details(self):
+        """Roth conversion sources are tagged with purpose 'conversion'."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=60,
+                current_age_spouse=60,
+                simulation_years=2,
+                start_year=2026,
+                annual_spend_net=30000,
+                strategy_target=WithdrawalStrategy.IRMAA_TIER_1,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0, primary_start_age=70,
+                    spouse_benefit=0, spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="ira_main", name="Main IRA", balance=800000,
+                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="brok", name="Brokerage", balance=200000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr0 = result.years[0]
+
+        conv_details = [d for d in yr0.withdrawal_details if d.purpose == "conversion"]
+        # With IRMAA_TIER_1 strategy and AGI headroom, conversions should happen
+        if yr0.roth_conversion > 0:
+            assert len(conv_details) >= 1
+            assert conv_details[0].account_id == "ira_main"
+
+    def test_withdrawal_details_amounts_match_aggregates(self, sample_portfolio: Portfolio):
+        """Sum of per-account details should match aggregate YearResult fields."""
+        result = run_simulation(sample_portfolio)
+        for yr in result.years:
+            rmd_total = sum(d.amount for d in yr.withdrawal_details if d.purpose == "rmd")
+            conv_total = sum(d.amount for d in yr.withdrawal_details if d.purpose == "conversion")
+            # RMD details should approximate the aggregate RMD
+            if yr.rmd > 0:
+                assert abs(rmd_total - yr.rmd) <= 2
+            # Conversion details should approximate the aggregate
+            if yr.roth_conversion > 0:
+                assert abs(conv_total - yr.roth_conversion) <= 2

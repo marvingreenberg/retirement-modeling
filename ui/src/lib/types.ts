@@ -154,6 +154,13 @@ export interface Portfolio {
 	accounts: Account[];
 }
 
+export interface AccountWithdrawal {
+	account_id: string;
+	account_name: string;
+	amount: number;
+	purpose: 'rmd' | 'spending' | 'conversion';
+}
+
 export interface YearResult {
 	year: number;
 	age_primary: number;
@@ -175,6 +182,7 @@ export interface YearResult {
 	roth_balance: number;
 	roth_conversion_balance: number;
 	brokerage_balance: number;
+	withdrawal_details: AccountWithdrawal[];
 }
 
 export interface SimulationResult {

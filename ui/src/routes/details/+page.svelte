@@ -2,6 +2,7 @@
 	import { simulationResults } from '$lib/stores';
 	import { currency } from '$lib/format';
 	import { TableProperties, TrendingUp } from 'lucide-svelte';
+	import WithdrawalPlan from '$lib/components/WithdrawalPlan.svelte';
 
 	let activeTab = $state<'single' | 'monte_carlo'>('single');
 	let hasAny = $derived($simulationResults.singleResult !== null || $simulationResults.mcResult !== null);
@@ -34,6 +35,7 @@
 			{@const allYears = $simulationResults.singleResult.result.years}
 			{@const depletionIdx = allYears.findIndex((yr, i) => yr.total_balance <= 0 && i > 0)}
 			{@const years = depletionIdx >= 0 ? allYears.slice(0, depletionIdx + 1) : allYears}
+			<WithdrawalPlan {years} />
 			<div class="card bg-surface-100 dark:bg-surface-800 p-4">
 				<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2">
 					<TableProperties size={18} class="text-primary-500" /> Year-by-Year Detail

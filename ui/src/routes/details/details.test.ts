@@ -15,6 +15,7 @@ const mockSingleResult: SimulationResponse = {
 			pretax_withdrawal: 50000, roth_withdrawal: 20000, brokerage_withdrawal: 30000,
 			total_tax: 15000, irmaa_cost: 0, total_balance: 485000, spending_target: 100000,
 			pretax_balance: 350000, roth_balance: 80000, roth_conversion_balance: 0, brokerage_balance: 55000,
+			withdrawal_details: [],
 		}],
 	},
 	summary: {

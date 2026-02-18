@@ -11,6 +11,7 @@ from retirement_model.withdrawals import (
     get_total_balance_by_owner,
     get_total_balance_by_type,
     withdraw_from_accounts,
+    withdraw_from_eligible_pretax,
 )
 
 
@@ -114,6 +115,78 @@ class TestWithdrawFromAccounts:
         # 100k at 0.20 + 50k at 0.40 = (100k*0.20 + 50k*0.40) / 150k
         expected_basis = (100000 * 0.20 + 50000 * 0.40) / 150000
         assert result.average_basis_ratio == pytest.approx(expected_basis, rel=0.01)
+
+    def test_per_account_tracking(self, test_accounts: list[Account]):
+        age_map = {"primary": 65, "spouse": 65, "joint": 65}
+        result = withdraw_from_accounts(50000, test_accounts, TaxCategory.BROKERAGE, age_map)
+
+        assert result.per_account is not None
+        assert result.per_account == {"brokerage": 50000}
+
+    def test_per_account_multiple_accounts(self):
+        accounts = [
+            Account(
+                id="b1", name="B1", balance=30000,
+                type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.20,
+            ),
+            Account(
+                id="b2", name="B2", balance=50000,
+                type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.40,
+            ),
+        ]
+        age_map = {"joint": 65}
+        result = withdraw_from_accounts(60000, accounts, TaxCategory.BROKERAGE, age_map)
+
+        assert result.per_account == {"b1": 30000, "b2": 30000}
+
+    def test_per_account_zero_withdrawal_returns_empty(self, test_accounts: list[Account]):
+        age_map = {"primary": 65, "spouse": 65, "joint": 65}
+        result = withdraw_from_accounts(0, test_accounts, TaxCategory.BROKERAGE, age_map)
+
+        assert result.per_account == {}
+
+    def test_per_account_with_owner_filter(self, test_accounts: list[Account]):
+        age_map = {"primary": 65, "spouse": 65, "joint": 65}
+        result = withdraw_from_accounts(
+            100000, test_accounts, TaxCategory.PRETAX, age_map, owner_filter=Owner.PRIMARY
+        )
+
+        assert result.per_account == {"ira_primary": 100000}
+
+
+class TestWithdrawFromEligiblePretaxPerAccount:
+    def test_per_account_tracking(self):
+        accounts = [
+            Account(
+                id="ira1", name="IRA 1", balance=50000,
+                type=AccountType.IRA, owner=Owner.PRIMARY,
+            ),
+            Account(
+                id="sep_ira", name="SEP IRA", balance=30000,
+                type=AccountType.SEP_IRA, owner=Owner.PRIMARY,
+            ),
+        ]
+        age_map = {"primary": 65}
+        result = withdraw_from_eligible_pretax(60000, accounts, age_map, eligible_only=True)
+
+        assert result.per_account == {"ira1": 50000, "sep_ira": 10000}
+
+    def test_skips_non_eligible(self):
+        accounts = [
+            Account(
+                id="k401", name="401k", balance=100000,
+                type=AccountType.TRADITIONAL_401K, owner=Owner.PRIMARY,
+            ),
+            Account(
+                id="ira1", name="IRA", balance=50000,
+                type=AccountType.IRA, owner=Owner.PRIMARY,
+            ),
+        ]
+        age_map = {"primary": 65}
+        result = withdraw_from_eligible_pretax(80000, accounts, age_map, eligible_only=True)
+
+        assert result.per_account == {"ira1": 50000}
+        assert result.amount_withdrawn == 50000
 
 
 class TestDepositToAccount:

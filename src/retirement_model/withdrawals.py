@@ -11,6 +11,7 @@ class WithdrawalResult:
 
     amount_withdrawn: float
     average_basis_ratio: float
+    per_account: dict[str, float] | None = None
 
 
 def withdraw_from_accounts(
@@ -27,11 +28,12 @@ def withdraw_from_accounts(
     When owner_filter is set, only withdraws from accounts owned by that owner.
     """
     if amount_needed <= 0:
-        return WithdrawalResult(0.0, 0.0)
+        return WithdrawalResult(0.0, 0.0, {})
 
     remaining_need = amount_needed
     total_withdrawn = 0.0
     weighted_basis_accum = 0.0
+    per_account: dict[str, float] = {}
 
     for acc in accounts:
         if remaining_need <= 1.0:
@@ -49,11 +51,12 @@ def withdraw_from_accounts(
         acc.balance -= withdrawal
         remaining_need -= withdrawal
         total_withdrawn += withdrawal
-
         weighted_basis_accum += withdrawal * acc.cost_basis_ratio
+        if withdrawal > 0:
+            per_account[acc.id] = withdrawal
 
     avg_basis = weighted_basis_accum / total_withdrawn if total_withdrawn > 0 else 0.0
-    return WithdrawalResult(total_withdrawn, avg_basis)
+    return WithdrawalResult(total_withdrawn, avg_basis, per_account)
 
 
 def withdraw_from_eligible_pretax(
@@ -66,11 +69,12 @@ def withdraw_from_eligible_pretax(
     from retirement_model.models import is_conversion_eligible
 
     if amount_needed <= 0:
-        return WithdrawalResult(0.0, 0.0)
+        return WithdrawalResult(0.0, 0.0, {})
 
     remaining_need = amount_needed
     total_withdrawn = 0.0
     weighted_basis_accum = 0.0
+    per_account: dict[str, float] = {}
 
     for acc in accounts:
         if remaining_need <= 1.0:
@@ -89,9 +93,11 @@ def withdraw_from_eligible_pretax(
         remaining_need -= withdrawal
         total_withdrawn += withdrawal
         weighted_basis_accum += withdrawal * acc.cost_basis_ratio
+        if withdrawal > 0:
+            per_account[acc.id] = withdrawal
 
     avg_basis = weighted_basis_accum / total_withdrawn if total_withdrawn > 0 else 0.0
-    return WithdrawalResult(total_withdrawn, avg_basis)
+    return WithdrawalResult(total_withdrawn, avg_basis, per_account)
 
 
 def deposit_to_account(

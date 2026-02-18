@@ -240,6 +240,15 @@ class Portfolio(BaseModel):
         return v
 
 
+class AccountWithdrawal(BaseModel):
+    """Per-account withdrawal detail for a simulation year."""
+
+    account_id: str
+    account_name: str
+    amount: float
+    purpose: str  # "rmd", "spending", "conversion"
+
+
 class YearResult(BaseModel):
     """Results for a single simulation year."""
 
@@ -267,6 +276,9 @@ class YearResult(BaseModel):
     roth_balance: float = 0.0
     roth_conversion_balance: float = 0.0
     brokerage_balance: float = 0.0
+
+    # Per-account withdrawal details
+    withdrawal_details: list[AccountWithdrawal] = []
 
 
 class SimulationResult(BaseModel):

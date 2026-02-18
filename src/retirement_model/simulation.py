@@ -5,6 +5,7 @@ import copy
 from retirement_model.models import (
     Account,
     AccountType,
+    AccountWithdrawal,
     ConversionStrategy,
     Owner,
     PlannedExpense,
@@ -34,6 +35,7 @@ from retirement_model.taxes import (
     inflate_brackets,
 )
 from retirement_model.withdrawals import (
+    WithdrawalResult,
     apply_growth,
     deposit_to_account,
     get_eligible_pretax_balance,
@@ -46,6 +48,24 @@ from retirement_model.withdrawals import (
 
 
 EXCESS_INCOME_ACCOUNT_ID = "excess_income"
+
+
+def _collect_details(
+    result: WithdrawalResult,
+    purpose: str,
+    account_names: dict[str, str],
+) -> list[AccountWithdrawal]:
+    """Convert a WithdrawalResult's per_account dict into AccountWithdrawal entries."""
+    if not result.per_account:
+        return []
+    return [
+        AccountWithdrawal(
+            account_id=aid, account_name=account_names.get(aid, aid),
+            amount=round(amt), purpose=purpose,
+        )
+        for aid, amt in result.per_account.items()
+        if amt > 0
+    ]
 
 
 def _deposit_excess_income(amount: float, accounts: list[Account]) -> None:
@@ -176,6 +196,9 @@ def run_simulation(
         current_year = cfg.start_year + year_idx
         age_map = {"primary": age_primary, "spouse": age_spouse, "joint": age_primary}
 
+        account_names = {a.id: a.name for a in accounts}
+        withdrawal_details: list[AccountWithdrawal] = []
+
         # Get this year's rates (from sequence or config defaults)
         year_inflation = (
             inflation_sequence[year_idx]
@@ -285,11 +308,13 @@ def run_simulation(
                 rmd_primary, accounts, TaxCategory.PRETAX, age_map, owner_filter=Owner.PRIMARY
             )
             rmd_withdrawn += rmd_res_p.amount_withdrawn
+            withdrawal_details.extend(_collect_details(rmd_res_p, "rmd", account_names))
         if rmd_spouse > 0:
             rmd_res_s = withdraw_from_accounts(
                 rmd_spouse, accounts, TaxCategory.PRETAX, age_map, owner_filter=Owner.SPOUSE
             )
             rmd_withdrawn += rmd_res_s.amount_withdrawn
+            withdrawal_details.extend(_collect_details(rmd_res_s, "rmd", account_names))
         current_agi += rmd_withdrawn
 
         # Estimate tax rate for withholding (using inflation-adjusted brackets)
@@ -328,6 +353,9 @@ def run_simulation(
                     amount_from_brokerage, accounts, TaxCategory.CASH, age_map
                 )
                 brokerage_withdrawn += cash_result.amount_withdrawn
+                withdrawal_details.extend(
+                    _collect_details(cash_result, "spending", account_names)
+                )
                 remaining_from_brokerage = amount_from_brokerage - cash_result.amount_withdrawn
 
                 if remaining_from_brokerage > 1.0:
@@ -335,6 +363,9 @@ def run_simulation(
                         remaining_from_brokerage, accounts, TaxCategory.BROKERAGE, age_map
                     )
                     brokerage_withdrawn += result.amount_withdrawn
+                    withdrawal_details.extend(
+                        _collect_details(result, "spending", account_names)
+                    )
 
                     gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
                     brokerage_gains_tax += calculate_capital_gains_tax(
@@ -350,6 +381,9 @@ def run_simulation(
                     remaining_spend, accounts, TaxCategory.ROTH, age_map
                 )
                 roth_withdrawn += result.amount_withdrawn
+                withdrawal_details.extend(
+                    _collect_details(result, "spending", account_names)
+                )
                 remaining_spend -= result.amount_withdrawn
 
             # Use pre-tax as last resort
@@ -359,6 +393,9 @@ def run_simulation(
                     gross_need, accounts, TaxCategory.PRETAX, age_map
                 )
                 voluntary_pretax += result.amount_withdrawn
+                withdrawal_details.extend(
+                    _collect_details(result, "spending", account_names)
+                )
                 current_agi += result.amount_withdrawn
                 remaining_spend = 0
 
@@ -402,6 +439,9 @@ def run_simulation(
                     # Execute conversion from IRA-eligible accounts only
                     conv_result = withdraw_from_eligible_pretax(
                         conversion_target, accounts, age_map, eligible_only=True
+                    )
+                    withdrawal_details.extend(
+                        _collect_details(conv_result, "conversion", account_names)
                     )
 
                     # If brokerage/cash ran out, net the unpaid tax from deposit
@@ -463,6 +503,7 @@ def run_simulation(
                     get_total_balance_by_category(accounts, TaxCategory.BROKERAGE)
                     + get_total_balance_by_category(accounts, TaxCategory.CASH)
                 ),
+                withdrawal_details=withdrawal_details,
             )
         )
 
