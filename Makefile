@@ -2,10 +2,17 @@
        setup-api setup-ui build-api build-ui test-api test-ui \
        run-api run-cli run-ui dev docker-run
 
+VERSION := $(shell git describe --tags --always 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+
 PKG_NAME := retirement-model
 ACTIVATE := . .venv/bin/activate
 GITCLN := git clean -fdx
 FILE ?= input.json
+
+REPO = ghcr.io
+REPO_OWNER := marvingreenberg
+REPO_PATH := $(REPO)/$(REPO_OWNER)
+SERVICE_NAME := retirement-model
 
 # ── Standard targets ────────────────────────────────────────────
 
@@ -25,7 +32,8 @@ help:
 	@echo "Component targets: setup-api, setup-ui, build-api, build-ui,"
 	@echo "  test-api, test-ui, run-api, run-ui, run-cli"
 
-setup: setup-api setup-ui
+setup:
+	keyring get $(REPO) $(REPO_OWNER) | docker login $(REPO) --username $(REPO_OWNER) --password-stdin
 
 build: build-api build-ui
 
@@ -50,23 +58,28 @@ docker-run:
 	  docker run --rm -p 8000:8000 retirement-app
 
 GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
-GCP_REGION  ?= $(shell gcloud config get-value run/region 2>/dev/null || echo us-central1)
-SERVICE_NAME ?= retirement-sim
-IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/retirement-sim/$(SERVICE_NAME):latest
+GCP_REGION  ?= $(shell gcloud config get-value run/region 2>/dev/null)
+GCP_REGION := $(if $(GCP_REGION),$(GCP_REGION),us-central1)
+GH_IMAGE := ghcr.io/marvingreenberg/$(SERVICE_NAME)
+GCP_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/retirement-sim/$(SERVICE_NAME)
 
-deploy:
+build-image: build
 	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
-	docker build -t $(IMAGE) . && \
-	  docker push $(IMAGE) && \
+	docker build --progress plain -t $(GH_IMAGE):$(VERSION) .
+	docker tag $(GH_IMAGE):$(VERSION) $(GH_IMAGE):latest
+	docker tag $(GH_IMAGE):$(VERSION) $(GCP_IMAGE):$(VERSION)
+	docker tag $(GH_IMAGE):$(VERSION) $(GCP_IMAGE):latest
+	docker push $(GH_IMAGE)
+
+deploy: build-image
+	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
+    docker push $(GCP_IMAGE) && \
 	  gcloud run deploy $(SERVICE_NAME) \
-	    --image=$(IMAGE) \
+	    --image=$(GCP_IMAGE) \
 	    --platform=managed \
 	    --allow-unauthenticated \
-	    --port=8000 \
-	    --memory=512Mi \
-	    --cpu=1 \
-	    --min-instances=0 \
-	    --max-instances=3 \
+	    --port=8000 --memory=512Mi --cpu=1 \
+	    --min-instances=0 --max-instances=3 \
 	    --set-env-vars="PYTHONUNBUFFERED=1" && \
 	  echo "Deployed: $$(gcloud run services describe $(SERVICE_NAME) --format='value(status.url)')"
 

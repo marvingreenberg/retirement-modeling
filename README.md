@@ -19,70 +19,18 @@ pip install -e ".[api]"
 
 ## Quick Start
 
-```bash
-# Run a basic simulation
-retirement-model run portfolio.json
+* Start the app from a CI/CD build at github
 
-# Run with Monte Carlo to see range of outcomes
-retirement-model run portfolio.json --with-montecarlo
+  - Install Docker Desktop
+    https://docs.docker.com/desktop/setup/install/windows-install/
+    https://docs.docker.com/desktop/setup/install/mac-install/
 
-# Compare different strategies
-retirement-model compare portfolio.json -s irmaa_tier_1 -s 24_percent_bracket
+  - Run the latest build
 
-# Validate a portfolio file
-retirement-model validate portfolio.json
+    docker run --rm -p 18000:8000 ghcr.io/marvingreenberg/retirement-model:latest
 
-# List available strategies
-retirement-model strategies
-```
+  - Open a web browser at http://localhost:18000
 
-## Portfolio File Format
-
-```json
-{
-  "config": {
-    "current_age_primary": 65,
-    "current_age_spouse": 62,
-    "simulation_years": 30,
-    "start_year": 2026,
-    "annual_spend_net": 120000,
-    "investment_growth_rate": 0.06,
-    "inflation_rate": 0.03,
-    "strategy_target": "irmaa_tier_1",
-    "spending_strategy": "fixed_dollar",
-    "social_security": {
-      "primary_benefit": 36000,
-      "primary_start_age": 70,
-      "spouse_benefit": 18000,
-      "spouse_start_age": 67
-    }
-  },
-  "accounts": [
-    {
-      "id": "ira_primary",
-      "name": "Traditional IRA",
-      "balance": 1500000,
-      "type": "pretax",
-      "owner": "primary"
-    },
-    {
-      "id": "roth_primary",
-      "name": "Roth IRA",
-      "balance": 300000,
-      "type": "roth",
-      "owner": "primary"
-    },
-    {
-      "id": "brokerage",
-      "name": "Joint Brokerage",
-      "balance": 800000,
-      "type": "brokerage",
-      "owner": "joint",
-      "cost_basis_ratio": 0.65
-    }
-  ]
-}
-```
 
 ## Understanding the Simulation
 
@@ -95,7 +43,7 @@ The simulation runs year-by-year through retirement, modeling:
 3. **Spending needs**: Your annual spending target, adjusted for inflation
 4. **Withdrawal order**: Brokerage -> Roth -> Pre-tax (to minimize taxes)
 5. **Roth conversions**: Optional conversion of pre-tax to Roth based on your strategy
-6. **Taxes**: Federal income tax, capital gains, and IRMAA Medicare surcharges
+6. **Taxes**: Federal income tax, capital gains, State/Local tax, and IRMAA Medicare surcharges
 7. **Portfolio growth**: Investment returns applied to remaining balances
 
 ### Single Run vs Monte Carlo
