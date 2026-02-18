@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import AccountsEditor from './AccountsEditor.svelte';
-import { validationErrors, formTouched } from '$lib/stores';
-import type { Account } from '$lib/types';
+import { validationErrors, formTouched, samplePortfolio } from '$lib/stores';
+import type { Account, SimulationConfig } from '$lib/types';
 
 function makeAccount(overrides: Partial<Account> = {}): Account {
 	return {
@@ -10,6 +10,10 @@ function makeAccount(overrides: Partial<Account> = {}): Account {
 		type: 'ira', owner: 'primary', cost_basis_ratio: 0.0, available_at_age: 0,
 		...overrides,
 	};
+}
+
+function makeConfig(overrides: Partial<SimulationConfig> = {}): SimulationConfig {
+	return { ...structuredClone(samplePortfolio.config), ...overrides };
 }
 
 describe('AccountsEditor', () => {
@@ -128,5 +132,32 @@ describe('AccountsEditor', () => {
 		expect(options).toContain('401k');
 		expect(options).toContain('ira');
 		expect(options).not.toContain('roth_conversion');
+	});
+
+	it('shows Avail. Year header and year display when config provided', () => {
+		const config = makeConfig({ current_age_primary: 65, start_year: 2026 });
+		render(AccountsEditor, {
+			accounts: [makeAccount({ available_at_age: 59 })],
+			config,
+		});
+		expect(screen.getByText('Avail. Year')).toBeInTheDocument();
+		// age 59 for primary 65 in 2026 = year 2020
+		expect(screen.getByLabelText('Avail. Year')).toBeInTheDocument();
+		expect(screen.getByText('(age 59)')).toBeInTheDocument();
+	});
+
+	it('shows (now) hint when available_at_age is 0 with config', () => {
+		const config = makeConfig({ current_age_primary: 65, start_year: 2026 });
+		render(AccountsEditor, {
+			accounts: [makeAccount({ available_at_age: 0 })],
+			config,
+		});
+		expect(screen.getByText('(now)')).toBeInTheDocument();
+	});
+
+	it('falls back to Avail. Age without config', () => {
+		render(AccountsEditor, { accounts: [makeAccount()] });
+		expect(screen.getByText('Avail. Age')).toBeInTheDocument();
+		expect(screen.getByLabelText('Avail. Age')).toBeInTheDocument();
 	});
 });

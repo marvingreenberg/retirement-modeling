@@ -11,6 +11,30 @@
 	} = $props();
 
 	let hasSpouse = $derived(config.current_age_spouse > 0);
+	let simEndAge = $derived(config.current_age_primary + config.simulation_years);
+
+	function ageToYear(age: number, ownerAge: number): number {
+		return config.start_year + (age - ownerAge);
+	}
+
+	function yearToAge(year: number, ownerAge: number): number {
+		return ownerAge + (year - config.start_year);
+	}
+
+	function ownerAge(owner: string): number {
+		return owner === 'spouse' ? config.current_age_spouse : config.current_age_primary;
+	}
+
+	function ageHint(age: number | null): string {
+		return age != null ? `age ${age}` : '';
+	}
+
+	function streamWarning(stream: IncomeStream): string {
+		const oa = ownerAge(stream.owner);
+		if (stream.start_age > simEndAge) return 'past sim end';
+		if (stream.end_age != null && stream.end_age < stream.start_age) return 'end < start';
+		return '';
+	}
 
 	function ensureSSAuto() {
 		if (!config.ss_auto) {
@@ -62,8 +86,15 @@
 					<input type="number" class="input w-36" bind:value={config.ss_auto.primary_fra_amount} onfocus={(e) => e.currentTarget.select()} min="0" step="1000" />
 				</label>
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-					Primary Start Age
-					<input type="number" class="input w-24" bind:value={config.ss_auto.primary_start_age} onfocus={(e) => e.currentTarget.select()} min="62" max="70" />
+					Primary Start Year
+					<div class="flex items-center gap-2">
+						<input type="number" class="input w-24"
+							value={ageToYear(config.ss_auto.primary_start_age, config.current_age_primary)}
+							onfocus={(e) => e.currentTarget.select()}
+							onchange={(e) => { config.ss_auto!.primary_start_age = yearToAge(Number(e.currentTarget.value), config.current_age_primary); }}
+							min={ageToYear(62, config.current_age_primary)} max={ageToYear(70, config.current_age_primary)} />
+						<span class="text-xs text-surface-400">({ageHint(config.ss_auto.primary_start_age)})</span>
+					</div>
 				</label>
 			</div>
 			{#if hasSpouse}
@@ -73,8 +104,15 @@
 						<input type="number" class="input w-36" bind:value={config.ss_auto.spouse_fra_amount} onfocus={(e) => e.currentTarget.select()} min="0" step="1000" />
 					</label>
 					<label class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400">
-						Spouse Start Age
-						<input type="number" class="input w-24" bind:value={config.ss_auto.spouse_start_age} onfocus={(e) => e.currentTarget.select()} min="62" max="70" />
+						Spouse Start Year
+						<div class="flex items-center gap-2">
+							<input type="number" class="input w-24"
+								value={ageToYear(config.ss_auto.spouse_start_age ?? 67, config.current_age_spouse)}
+								onfocus={(e) => e.currentTarget.select()}
+								onchange={(e) => { config.ss_auto!.spouse_start_age = yearToAge(Number(e.currentTarget.value), config.current_age_spouse); }}
+								min={ageToYear(62, config.current_age_spouse)} max={ageToYear(70, config.current_age_spouse)} />
+							<span class="text-xs text-surface-400">({ageHint(config.ss_auto.spouse_start_age)})</span>
+						</div>
 					</label>
 				</div>
 			{/if}
@@ -87,19 +125,48 @@
 			<div class="flex gap-3 items-end px-3 mb-1 text-xs font-medium text-surface-500 dark:text-surface-400">
 				<span class="w-32">Name</span>
 				<span class="w-28">Amount ($/yr)</span>
-				<span class="w-20">Start Age</span>
-				<span class="w-20">End Age</span>
+				<span class="w-28">Start Year</span>
+				<span class="w-28">End Year</span>
 				<span class="w-20">COLA %</span>
 				<span class="w-20">Taxable</span>
 				{#if hasSpouse}<span class="w-24">Owner</span>{/if}
 			</div>
 		{/if}
 		{#each incomeStreams as stream, idx}
+			{@const oa = ownerAge(stream.owner)}
+			{@const warning = streamWarning(stream)}
 			<div class="flex gap-3 items-center p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap mb-2">
 				<input type="text" class="input w-32 text-sm" bind:value={stream.name} onfocus={(e) => e.currentTarget.select()} placeholder="e.g. Pension" aria-label="Name" />
 				<input type="number" class="input w-28 text-sm" bind:value={stream.amount} onfocus={(e) => e.currentTarget.select()} min="0" step="1000" aria-label="Amount" />
-				<input type="number" class="input w-20 text-sm" bind:value={stream.start_age} onfocus={(e) => e.currentTarget.select()} min="0" aria-label="Start Age" />
-				<input type="number" class="input w-20 text-sm" bind:value={stream.end_age} onfocus={(e) => e.currentTarget.select()} min="0" aria-label="End Age" />
+				<div class="w-28">
+					<input type="number" class="input w-full text-sm"
+						value={ageToYear(stream.start_age, oa)}
+						onfocus={(e) => e.currentTarget.select()}
+						onchange={(e) => { stream.start_age = yearToAge(Number(e.currentTarget.value), oa); }}
+						aria-label="Start Year" />
+					<span class="text-xs text-surface-400">({ageHint(stream.start_age)})</span>
+				</div>
+				<div class="w-28">
+					{#if stream.end_age != null}
+						<input type="number" class="input w-full text-sm"
+							value={ageToYear(stream.end_age, oa)}
+							onfocus={(e) => e.currentTarget.select()}
+							onchange={(e) => { stream.end_age = yearToAge(Number(e.currentTarget.value), oa); }}
+							aria-label="End Year" />
+						<span class="text-xs text-surface-400">({ageHint(stream.end_age)})</span>
+					{:else}
+						<input type="number" class="input w-full text-sm"
+							value=""
+							onfocus={(e) => e.currentTarget.select()}
+							onchange={(e) => {
+								const v = e.currentTarget.value;
+								stream.end_age = v ? yearToAge(Number(v), oa) : null;
+							}}
+							placeholder="∞"
+							aria-label="End Year" />
+						<span class="text-xs text-surface-400">lifetime</span>
+					{/if}
+				</div>
 				<input type="number" class="input w-20 text-sm" bind:value={stream.cola_rate} onfocus={(e) => e.currentTarget.select()} min="0" max="0.2" step="0.005" aria-label="COLA %" />
 				<input type="number" class="input w-20 text-sm" bind:value={stream.taxable_pct} onfocus={(e) => e.currentTarget.select()} min="0" max="1" step="0.05" aria-label="Taxable" />
 				{#if hasSpouse}
@@ -111,6 +178,9 @@
 				<button class="btn btn-sm preset-tonal p-1" onclick={() => removeStream(idx)} aria-label="Remove income stream">
 					<Trash2 size={14} />
 				</button>
+				{#if warning}
+					<span class="text-xs text-warning-500 w-full">{warning}</span>
+				{/if}
 			</div>
 		{/each}
 		<button class="btn btn-sm preset-tonal mt-1" onclick={addStream}>Add Income</button>

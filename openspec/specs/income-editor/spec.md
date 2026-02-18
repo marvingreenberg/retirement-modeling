@@ -5,15 +5,17 @@ The income editor SHALL provide inputs for SS auto-generation: primary FRA benef
 
 #### Scenario: Primary SS fields visible
 - **WHEN** the income editor is displayed
-- **THEN** inputs for Primary FRA Benefit and Primary Start Age are visible
+- **THEN** inputs for Primary FRA Benefit and Primary Start Year are visible
+- **AND** the start year shows an "(age N)" hint derived from the owner's current age and start_year
 
 #### Scenario: Spouse SS fields visible when spouse exists
 - **WHEN** the portfolio has a spouse (current_age_spouse > 0)
-- **THEN** inputs for Spouse FRA Benefit and Spouse Start Age are visible
+- **THEN** inputs for Spouse FRA Benefit and Spouse Start Year are visible
+- **AND** the start year uses the spouse's current age for the age hint
 
 #### Scenario: Spouse SS fields hidden when no spouse
 - **WHEN** the portfolio has no spouse (current_age_spouse === 0)
-- **THEN** Spouse FRA Benefit and Spouse Start Age inputs are hidden
+- **THEN** Spouse FRA Benefit and Spouse Start Year inputs are hidden
 
 ### Requirement: Income streams list
 The income editor SHALL display a list of generic income streams with add/remove controls. Each stream has: name, amount, start age, optional end age, optional COLA rate, and taxable percentage.
@@ -28,7 +30,20 @@ The income editor SHALL display a list of generic income streams with add/remove
 
 #### Scenario: Income stream fields
 - **WHEN** an income stream row is displayed
-- **THEN** it shows editable fields for name, amount, start age, end age, COLA rate, and taxable %
+- **THEN** it shows editable fields for name, amount, start year, end year, COLA rate, and taxable %
+- **AND** start/end year inputs show "(age N)" hints derived from the stream owner's age and config start_year
+- **AND** null end_age shows "lifetime" hint
+
+### Requirement: Age validation warnings
+The income editor SHALL show non-blocking warnings for unreasonable age values.
+
+#### Scenario: Start age past simulation end
+- **WHEN** a stream start_age exceeds current_age + simulation_years
+- **THEN** a warning hint SHALL appear (e.g., "past sim end")
+
+#### Scenario: End age before start age
+- **WHEN** a stream end_age is set and is less than start_age
+- **THEN** a warning hint SHALL appear (e.g., "end < start")
 
 ### Requirement: Income data model
 The frontend types SHALL include `IncomeStream` and `SSAutoConfig` interfaces matching the backend models, with corresponding Zod validation schemas.

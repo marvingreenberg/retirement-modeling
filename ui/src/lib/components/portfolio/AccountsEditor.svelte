@@ -1,11 +1,29 @@
 <script lang="ts">
-	import type { Account, AccountType } from '$lib/types';
+	import type { Account, AccountType, SimulationConfig } from '$lib/types';
 	import { ACCOUNT_TYPE_DEFAULTS, ACCOUNT_TYPE_LABELS, EDITOR_ACCOUNT_TYPES, TAX_CATEGORY_MAP } from '$lib/types';
 	import { validationErrors, formTouched } from '$lib/stores';
 	import InfoPopover from '$lib/components/InfoPopover.svelte';
 	import { ShieldCheck, Sprout, TrendingUp, Banknote } from 'lucide-svelte';
 
-	let { accounts = $bindable() }: { accounts: Account[] } = $props();
+	let {
+		accounts = $bindable(),
+		config,
+	}: {
+		accounts: Account[];
+		config?: SimulationConfig;
+	} = $props();
+
+	function ageToYear(age: number, owner: string): number {
+		if (!config) return age;
+		const ownerAge = owner === 'spouse' ? config.current_age_spouse : config.current_age_primary;
+		return config.start_year + (age - ownerAge);
+	}
+
+	function yearToAge(year: number, owner: string): number {
+		if (!config) return year;
+		const ownerAge = owner === 'spouse' ? config.current_age_spouse : config.current_age_primary;
+		return ownerAge + (year - config.start_year);
+	}
 
 	let nextId = $state(accounts.length + 1);
 
@@ -62,7 +80,7 @@
 			<span class="w-30">Balance</span>
 			<span class="w-30">Owner</span>
 			<span class="w-24"><span class="flex items-center gap-1">Cost Basis % <InfoPopover text="The portion of the account that represents original contributions (not gains). Affects capital gains tax on brokerage withdrawals." /></span></span>
-			<span class="w-20">Avail. Age</span>
+			<span class="w-24">{config ? 'Avail. Year' : 'Avail. Age'}</span>
 		</div>
 	{/if}
 	{#each accounts as account, i}
@@ -117,7 +135,26 @@
 				aria-label="Cost Basis %"
 				disabled={!isCostBasisEditable(account.type)}
 			/>
-			<input type="number" class="input w-20 no-spinner" bind:value={account.available_at_age} onfocus={(e) => e.currentTarget.select()} min="0" aria-label="Avail. Age" />
+			{#if config}
+				<div class="w-24">
+					<input type="number" class="input w-full no-spinner"
+						value={account.available_at_age ? ageToYear(account.available_at_age, account.owner) : ''}
+						onfocus={(e) => e.currentTarget.select()}
+						onchange={(e) => {
+							const v = e.currentTarget.value;
+							account.available_at_age = v ? yearToAge(Number(v), account.owner) : 0;
+						}}
+						placeholder={String(config.start_year)}
+						aria-label="Avail. Year" />
+					{#if (account.available_at_age ?? 0) > 0}
+						<span class="text-xs text-surface-400">(age {account.available_at_age})</span>
+					{:else}
+						<span class="text-xs text-surface-400">(now)</span>
+					{/if}
+				</div>
+			{:else}
+				<input type="number" class="input w-20 no-spinner" bind:value={account.available_at_age} onfocus={(e) => e.currentTarget.select()} min="0" aria-label="Avail. Age" />
+			{/if}
 			<button
 				class="btn preset-outlined btn-sm"
 				onclick={() => removeAccount(i)}

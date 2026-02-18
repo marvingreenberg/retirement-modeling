@@ -117,7 +117,7 @@
 				Add an account to allow simulation
 			</div>
 		{/if}
-		<AccountsEditor bind:accounts={$portfolio.accounts} />
+		<AccountsEditor bind:accounts={$portfolio.accounts} config={$portfolio.config} />
 		<ImportPortfolio bind:accounts={$portfolio.accounts} />
 	</CollapsibleSection>
 

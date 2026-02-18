@@ -13,7 +13,7 @@ The portfolio editor SHALL organize fields into collapsible sections: Accounts, 
 - **THEN** that section expands to show its fields
 
 ### Requirement: Accounts editor
-The editor SHALL allow adding, editing, and removing accounts. Each account has fields for name, type (expanded to specific types: brokerage, cash_cd, roth_ira, roth_401k, 401k, 403b, 457b, ira, sep_ira, simple_ira), balance, owner (primary/spouse/joint), cost basis ratio, and available-at-age. At least one account is required. When the user selects an account type, cost_basis_ratio SHALL auto-fill to the type's default. For types with fixed cost basis (all except brokerage), the Cost Basis % input SHALL be disabled.
+The editor SHALL allow adding, editing, and removing accounts. Each account has fields for name, type (expanded to specific types: brokerage, cash_cd, roth_ira, roth_401k, 401k, 403b, 457b, ira, sep_ira, simple_ira), balance, owner (primary/spouse/joint), cost basis ratio, and available-at-year (displayed as calendar year with age hint when config is provided). At least one account is required. When the user selects an account type, cost_basis_ratio SHALL auto-fill to the type's default. For types with fixed cost basis (all except brokerage), the Cost Basis % input SHALL be disabled.
 
 #### Scenario: Add an account
 - **WHEN** the user clicks "Add Account"
@@ -185,7 +185,7 @@ The Accounts, Other Income, and Planned Expenses editors SHALL display a single 
 
 #### Scenario: Accounts header row
 - **WHEN** the user has 2 or more accounts
-- **THEN** a single header row shows column names (Name, Type, Balance, Owner, Cost Basis %, Avail. Age) above both account rows
+- **THEN** a single header row shows column names (Name, Type, Balance, Owner, Cost Basis %, Avail. Year) above both account rows
 
 #### Scenario: No accounts hides header
 - **WHEN** the user has no accounts
@@ -193,7 +193,7 @@ The Accounts, Other Income, and Planned Expenses editors SHALL display a single 
 
 #### Scenario: Income streams header row
 - **WHEN** the user has 1 or more income streams
-- **THEN** a single header row shows column names (Name, Amount, Start Age, End Age, COLA %, Taxable) above all stream rows
+- **THEN** a single header row shows column names (Name, Amount, Start Year, End Year, COLA %, Taxable) above all stream rows
 
 #### Scenario: No income streams hides header
 - **WHEN** the user has no income streams
