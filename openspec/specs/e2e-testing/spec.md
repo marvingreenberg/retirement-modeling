@@ -2,6 +2,18 @@
 
 End-to-end testing infrastructure using Playwright to verify user-facing flows through a real browser against the built application.
 ## Requirements
+### Requirement: Backend readiness check
+The E2E test helper SHALL poll `GET /api/v1/status` to determine backend readiness before running tests.
+
+#### Scenario: Backend ready
+- **WHEN** the E2E helper polls the backend
+- **THEN** it SHALL request `GET /api/v1/status`
+- **AND** consider the backend ready when a 200 response is received
+
+#### Scenario: Backend not yet ready
+- **WHEN** the E2E helper polls and receives a connection error
+- **THEN** it SHALL retry with backoff until the backend responds or timeout is reached
+
 ### Requirement: Playwright test infrastructure
 The UI project SHALL include Playwright as a devDependency with a configuration file. The webServer directive MUST build the SvelteKit app and run `pnpm preview` on port 4173. Tests run against the preview server.
 

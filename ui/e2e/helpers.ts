@@ -1,6 +1,6 @@
 import { test, type Page } from '@playwright/test';
 
-const API_URL = 'http://localhost:8000/api/v1/strategies';
+const API_URL = 'http://localhost:8000/api/v1/status';
 let apiAvailable: boolean | null = null;
 
 async function checkApi(): Promise<boolean> {

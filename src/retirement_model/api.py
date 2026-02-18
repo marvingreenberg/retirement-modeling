@@ -5,6 +5,7 @@ Designed to be consumed by web applications. Serves built SvelteKit static
 assets when available.
 """
 
+import importlib.metadata
 import logging
 from pathlib import Path
 from typing import Annotated
@@ -24,10 +25,12 @@ from retirement_model.simulation import run_simulation
 
 logger = logging.getLogger(__name__)
 
+APP_VERSION = importlib.metadata.version("retirement-model")
+
 app = FastAPI(
     title="Retirement Simulation API",
     description="API for running retirement portfolio simulations with tax-optimized strategies",
-    version="0.11.0",
+    version=APP_VERSION,
 )
 
 router = APIRouter(prefix="/api/v1")
@@ -111,13 +114,20 @@ class MonteCarloResponse(BaseModel):
 # --- Versioned API routes (on the router) ---
 
 
+@router.get("/status")
+async def status() -> dict:
+    """Health check endpoint."""
+    return {"status": "ok", "version": APP_VERSION}
+
+
 @router.get("/")
 async def api_root() -> dict:
     """API discovery endpoint."""
     return {
         "name": "Retirement Simulation API",
-        "version": "0.11.0",
+        "version": APP_VERSION,
         "endpoints": {
+            "status": "/api/v1/status",
             "simulate": "/api/v1/simulate",
             "monte-carlo": "/api/v1/monte-carlo",
             "compare": "/api/v1/compare",
@@ -334,7 +344,7 @@ def mount_static_or_root() -> None:
             """Health/info endpoint when no static assets are mounted."""
             return {
                 "name": "Retirement Simulation API",
-                "version": "0.11.0",
+                "version": APP_VERSION,
                 "status": "ok",
                 "api": "/api/v1/",
             }

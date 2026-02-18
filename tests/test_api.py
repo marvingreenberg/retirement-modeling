@@ -3,7 +3,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from retirement_model.api import app
+from retirement_model.api import APP_VERSION, app
 from retirement_model.models import ConversionStrategy, SpendingStrategy
 
 
@@ -55,6 +55,15 @@ def sample_portfolio() -> dict:
     }
 
 
+class TestStatusEndpoint:
+    def test_status_returns_ok_and_version(self, client: TestClient):
+        response = client.get("/api/v1/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["version"] == APP_VERSION
+
+
 class TestRootEndpoint:
     def test_root_returns_health_info_without_static(self, client: TestClient):
         """Root returns health JSON when no static dir (default test environment)."""
@@ -63,7 +72,7 @@ class TestRootEndpoint:
         data = response.json()
         assert data["status"] == "ok"
         assert data["api"] == "/api/v1/"
-        assert data["version"] == "0.11.0"
+        assert data["version"] == APP_VERSION
 
 
 class TestApiDiscovery:
@@ -71,7 +80,7 @@ class TestApiDiscovery:
         response = client.get("/api/v1/")
         assert response.status_code == 200
         data = response.json()
-        assert data["version"] == "0.11.0"
+        assert data["version"] == APP_VERSION
         assert "endpoints" in data
         assert data["endpoints"]["simulate"] == "/api/v1/simulate"
 
@@ -324,7 +333,7 @@ class TestStaticServing:
         """API endpoints function normally when static/ directory is absent."""
         response = client.get("/api/v1/")
         assert response.status_code == 200
-        assert response.json()["version"] == "0.11.0"
+        assert response.json()["version"] == APP_VERSION
 
     def test_root_returns_json_without_static_dir(self, client: TestClient):
         """Root returns health/info JSON when no static assets are mounted."""
@@ -365,7 +374,7 @@ class TestStaticServing:
             # API routes still work
             response = test_client.get("/api/v1/")
             assert response.status_code == 200
-            assert response.json()["version"] == "0.11.0"
+            assert response.json()["version"] == APP_VERSION
 
         # Restore original routes
         app.routes[:] = saved_routes
