@@ -1,6 +1,6 @@
 """Social Security benefit calculations and income stream generation."""
 
-from retirement_model.models import IncomeStream, SSAutoConfig
+from retirement_model.models import IncomeStream, Owner, SSAutoConfig
 
 SS_TAXABLE_PCT = 0.85
 DELAYED_CREDIT_PER_MONTH = 2 / 3 / 100  # 2/3 of 1% per month (8% per year)
@@ -47,6 +47,7 @@ def generate_ss_streams(ss_auto: SSAutoConfig) -> list[IncomeStream]:
             amount=round(primary_amount, 2),
             start_age=ss_auto.primary_start_age,
             taxable_pct=SS_TAXABLE_PCT,
+            owner=Owner.PRIMARY,
         )
     )
 
@@ -60,6 +61,7 @@ def generate_ss_streams(ss_auto: SSAutoConfig) -> list[IncomeStream]:
                 amount=round(spouse_amount, 2),
                 start_age=ss_auto.spouse_start_age,
                 taxable_pct=SS_TAXABLE_PCT,
+                owner=Owner.SPOUSE,
             )
         )
 

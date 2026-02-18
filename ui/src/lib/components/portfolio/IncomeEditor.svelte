@@ -32,6 +32,7 @@
 			end_age: null,
 			taxable_pct: 1.0,
 			cola_rate: null,
+			owner: 'primary' as const,
 		}];
 	}
 
@@ -90,6 +91,7 @@
 				<span class="w-20">End Age</span>
 				<span class="w-20">COLA %</span>
 				<span class="w-20">Taxable</span>
+				{#if hasSpouse}<span class="w-24">Owner</span>{/if}
 			</div>
 		{/if}
 		{#each incomeStreams as stream, idx}
@@ -100,6 +102,12 @@
 				<input type="number" class="input w-20 text-sm" bind:value={stream.end_age} onfocus={(e) => e.currentTarget.select()} min="0" aria-label="End Age" />
 				<input type="number" class="input w-20 text-sm" bind:value={stream.cola_rate} onfocus={(e) => e.currentTarget.select()} min="0" max="0.2" step="0.005" aria-label="COLA %" />
 				<input type="number" class="input w-20 text-sm" bind:value={stream.taxable_pct} onfocus={(e) => e.currentTarget.select()} min="0" max="1" step="0.05" aria-label="Taxable" />
+				{#if hasSpouse}
+					<select class="select w-24 text-sm" bind:value={stream.owner} aria-label="Owner">
+						<option value="primary">Primary</option>
+						<option value="spouse">Spouse</option>
+					</select>
+				{/if}
 				<button class="btn btn-sm preset-tonal p-1" onclick={() => removeStream(idx)} aria-label="Remove income stream">
 					<Trash2 size={14} />
 				</button>

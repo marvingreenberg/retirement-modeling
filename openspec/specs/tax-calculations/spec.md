@@ -26,24 +26,30 @@ The system SHALL calculate federal income tax using progressive brackets.
 ---
 
 ### Requirement: Capital Gains Tax
-The system SHALL apply tiered long-term capital gains rates.
+The system SHALL apply tiered long-term capital gains rates progressively, stacking gains on top of ordinary income.
 
 #### Scenario: 0% capital gains rate
-- WHEN total income is below $89,250 (MFJ)
+- WHEN total income (ordinary + gains) is below $89,250 (MFJ)
 - THEN capital gains are taxed at 0%
 
 #### Scenario: 15% capital gains rate
 - WHEN total income is between $89,250 and $553,850 (MFJ)
-- THEN capital gains are taxed at 15%
+- THEN capital gains in that range are taxed at 15%
 
 #### Scenario: 20% capital gains rate
 - WHEN total income exceeds $553,850 (MFJ)
-- THEN capital gains are taxed at 20%
+- THEN capital gains in that range are taxed at 20%
 
-#### Scenario: Flat rate override
-- WHEN a flat `tax_rate_capital_gains` is configured
-- THEN that rate is used instead of tiered calculation
-- NOTE: Default flat rate is 15%
+#### Scenario: Progressive stacking across brackets
+- WHEN ordinary income is $80,000 and capital gains are $50,000
+- THEN gains from $80,000 to $89,250 ($9,250) are taxed at 0%
+- AND gains from $89,250 to $130,000 ($40,750) are taxed at 15%
+- AND total cap gains tax = $0 + $6,112.50 = $6,112.50
+
+#### Scenario: No flat rate override
+- WHEN calculating capital gains tax
+- THEN the system SHALL always use tiered progressive brackets
+- AND there is no flat rate override option
 
 ---
 
@@ -96,25 +102,42 @@ The system SHALL calculate RMDs using the IRS Uniform Lifetime Table.
 ---
 
 ### Requirement: Social Security Taxability
-The system SHALL apply 85% taxability to Social Security income.
+The system SHALL calculate the taxable portion of Social Security benefits using IRS provisional income rules.
 
-#### Scenario: SS income in AGI
+#### Scenario: SS taxability based on combined income
 - WHEN Social Security benefits are received
-- THEN 85% of benefits are included in AGI
-- NOTE: This is a simplification; actual rules have 0%/50%/85% tiers
+- THEN the taxable portion SHALL be computed using `calculate_ss_taxable_portion()`
+- AND the calculation uses combined income (half SS + other income) against MFJ thresholds
 
-#### Scenario: Full taxability calculation (future enhancement)
-- WHEN combined income ≤ $32,000 (MFJ)
-- THEN 0% of SS is taxable
-- WHEN combined income $32,001 - $44,000
-- THEN up to 50% is taxable
-- WHEN combined income > $44,000
-- THEN up to 85% is taxable
+#### Scenario: Low income — 0% taxable
+- WHEN combined income is $32,000 or less (MFJ)
+- THEN 0% of SS benefits are included in AGI
+
+#### Scenario: Mid income — up to 50% taxable
+- WHEN combined income is between $32,001 and $44,000 (MFJ)
+- THEN up to 50% of SS benefits are included in AGI
+
+#### Scenario: High income — up to 85% taxable
+- WHEN combined income exceeds $44,000 (MFJ)
+- THEN up to 85% of SS benefits are included in AGI
 
 #### Scenario: Income streams in AGI
 - WHEN income streams are active
 - THEN `amount * taxable_pct` for each stream is added to AGI
 - AND this is added alongside SS taxable income before RMD and other components
+
+### Requirement: Bracket label accuracy
+The system SHALL return the correct tax bracket label for all income levels, including the 10% bracket.
+
+#### Scenario: Income in 10% bracket
+- WHEN taxable income is between $0 and $23,200
+- THEN the bracket label SHALL be "10%"
+
+#### Scenario: Income in 12% bracket
+- WHEN taxable income is between $23,201 and $94,300
+- THEN the bracket label SHALL be "12%"
+
+---
 
 ### Requirement: State Tax
 The system SHALL apply a flat state tax rate.
@@ -191,7 +214,7 @@ All tax calculations SHALL use a `tax_category()` function to determine how an a
 ## Tax Calculation Sequence
 
 For each simulation year:
-1. Start with Social Security income × 0.85
+1. Start with Social Security taxable portion (IRS tiered: 0%/50%/85%)
 2. Add RMD amounts
 3. Add voluntary pre-tax withdrawals
 4. Add capital gains from brokerage withdrawals

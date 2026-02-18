@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Chart, registerables } from 'chart.js';
-	import type { YearlyPercentiles } from '$lib/types';
+	import type { YearlyResultPercentiles } from '$lib/types';
 
-	let { percentiles }: { percentiles: YearlyPercentiles[] } = $props();
+	let { percentiles }: { percentiles: YearlyResultPercentiles[] } = $props();
 	let canvas: HTMLCanvasElement;
 	let chart: Chart | undefined;
 
@@ -19,7 +19,7 @@
 				datasets: [
 					{
 						label: '95th percentile',
-						data: percentiles.map((p) => p.percentile_95),
+						data: percentiles.map((p) => p.balance_p95),
 						borderColor: 'rgba(30,64,175,0.2)',
 						backgroundColor: 'rgba(30,64,175,0.08)',
 						fill: '+4',
@@ -28,7 +28,7 @@
 					},
 					{
 						label: '75th percentile',
-						data: percentiles.map((p) => p.percentile_75),
+						data: percentiles.map((p) => p.balance_p75),
 						borderColor: 'rgba(30,64,175,0.3)',
 						backgroundColor: 'rgba(30,64,175,0.12)',
 						fill: '+2',
@@ -37,7 +37,7 @@
 					},
 					{
 						label: 'Median',
-						data: percentiles.map((p) => p.median),
+						data: percentiles.map((p) => p.balance_median),
 						borderColor: '#1e40af',
 						borderWidth: 2.5,
 						fill: false,
@@ -45,7 +45,7 @@
 					},
 					{
 						label: '25th percentile',
-						data: percentiles.map((p) => p.percentile_25),
+						data: percentiles.map((p) => p.balance_p25),
 						borderColor: 'rgba(30,64,175,0.3)',
 						borderWidth: 1,
 						fill: false,
@@ -53,7 +53,7 @@
 					},
 					{
 						label: '5th percentile',
-						data: percentiles.map((p) => p.percentile_5),
+						data: percentiles.map((p) => p.balance_p5),
 						borderColor: 'rgba(30,64,175,0.2)',
 						borderWidth: 1,
 						fill: false,

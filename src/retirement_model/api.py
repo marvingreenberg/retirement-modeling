@@ -19,7 +19,7 @@ from retirement_model.models import (
     SimulationResult,
     SpendingStrategy,
 )
-from retirement_model.monte_carlo import MonteCarloResult, run_monte_carlo
+from retirement_model.monte_carlo import FullMonteCarloResult, run_full_monte_carlo
 from retirement_model.simulation import run_simulation
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Retirement Simulation API",
     description="API for running retirement portfolio simulations with tax-optimized strategies",
-    version="0.9.0",
+    version="0.11.0",
 )
 
 router = APIRouter(prefix="/api/v1")
@@ -59,54 +59,52 @@ class SimulationResponse(BaseModel):
     summary: dict
 
 
-class YearlyPercentilesResponse(BaseModel):
-    """Percentile data for a single year."""
+class YearlyResultPercentilesResponse(BaseModel):
+    """Percentile data for a single year from full Monte Carlo."""
 
     age: int
-    percentile_5: float
-    percentile_25: float
-    median: float
-    percentile_75: float
-    percentile_95: float
+    balance_p5: float
+    balance_p25: float
+    balance_median: float
+    balance_p75: float
+    balance_p95: float
+    agi_median: float
+    total_tax_median: float
+    roth_conversion_median: float
 
 
 class MonteCarloResponse(BaseModel):
-    """Response from running Monte Carlo simulation."""
+    """Response from running full Monte Carlo simulation."""
 
     num_simulations: int
     success_rate: float
-    failure_rate: float
-    median_final_balance: float
-    percentile_5: float
-    percentile_25: float
-    percentile_75: float
-    percentile_95: float
-    depletion_ages: list[int]
-    yearly_percentiles: list[YearlyPercentilesResponse]
+    median_simulation: SimulationResult
+    yearly_percentiles: list[YearlyResultPercentilesResponse]
+    final_balance_p5: float
+    final_balance_p95: float
 
     @classmethod
-    def from_result(cls, result: MonteCarloResult) -> "MonteCarloResponse":
+    def from_result(cls, result: FullMonteCarloResult) -> "MonteCarloResponse":
         return cls(
             num_simulations=result.num_simulations,
             success_rate=result.success_rate,
-            failure_rate=result.failure_rate,
-            median_final_balance=result.median_final_balance,
-            percentile_5=result.percentile_5,
-            percentile_25=result.percentile_25,
-            percentile_75=result.percentile_75,
-            percentile_95=result.percentile_95,
-            depletion_ages=result.depletion_ages,
+            median_simulation=result.median_simulation,
             yearly_percentiles=[
-                YearlyPercentilesResponse(
+                YearlyResultPercentilesResponse(
                     age=yp.age,
-                    percentile_5=yp.percentile_5,
-                    percentile_25=yp.percentile_25,
-                    median=yp.median,
-                    percentile_75=yp.percentile_75,
-                    percentile_95=yp.percentile_95,
+                    balance_p5=yp.balance_p5,
+                    balance_p25=yp.balance_p25,
+                    balance_median=yp.balance_median,
+                    balance_p75=yp.balance_p75,
+                    balance_p95=yp.balance_p95,
+                    agi_median=yp.agi_median,
+                    total_tax_median=yp.total_tax_median,
+                    roth_conversion_median=yp.roth_conversion_median,
                 )
                 for yp in result.yearly_percentiles
             ],
+            final_balance_p5=result.final_balance_p5,
+            final_balance_p95=result.final_balance_p95,
         )
 
 
@@ -118,7 +116,7 @@ async def api_root() -> dict:
     """API discovery endpoint."""
     return {
         "name": "Retirement Simulation API",
-        "version": "0.9.0",
+        "version": "0.11.0",
         "endpoints": {
             "simulate": "/api/v1/simulate",
             "monte-carlo": "/api/v1/monte-carlo",
@@ -230,7 +228,7 @@ async def simulate(request: SimulationRequest) -> SimulationResponse:
 
 @router.post("/monte-carlo", response_model=MonteCarloResponse)
 async def monte_carlo(request: MonteCarloRequest) -> MonteCarloResponse:
-    """Run Monte Carlo simulation."""
+    """Run full Monte Carlo simulation with taxes, RMDs, and conversions."""
     portfolio = request.portfolio.model_copy(deep=True)
 
     if request.spending_strategy:
@@ -242,7 +240,7 @@ async def monte_carlo(request: MonteCarloRequest) -> MonteCarloResponse:
         raise HTTPException(status_code=400, detail="num_simulations must be between 1 and 10000")
 
     try:
-        result = run_monte_carlo(
+        result = run_full_monte_carlo(
             portfolio, num_simulations=request.num_simulations, seed=request.seed
         )
     except Exception as e:
@@ -336,7 +334,7 @@ def mount_static_or_root() -> None:
             """Health/info endpoint when no static assets are mounted."""
             return {
                 "name": "Retirement Simulation API",
-                "version": "0.9.0",
+                "version": "0.11.0",
                 "status": "ok",
                 "api": "/api/v1/",
             }

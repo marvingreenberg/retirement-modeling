@@ -28,7 +28,6 @@ def sample_portfolio_file() -> Path:
             "investment_growth_rate": 0.06,
             "strategy_target": "irmaa_tier_1",
             "tax_rate_state": 0.05,
-            "tax_rate_capital_gains": 0.15,
             "irmaa_limit_tier_1": 206000,
             "social_security": {
                 "primary_benefit": 40000,
@@ -91,12 +90,6 @@ class TestRunCommand:
         )
         assert result.exit_code == 0
         assert "Final Balance" in result.output
-
-    def test_run_with_capital_gains_override(self, runner: CliRunner, sample_portfolio_file: Path):
-        result = runner.invoke(
-            main, ["run", str(sample_portfolio_file), "--capital-gains-rate", "0.20"]
-        )
-        assert result.exit_code == 0
 
     def test_run_with_output_file(self, runner: CliRunner, sample_portfolio_file: Path):
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:

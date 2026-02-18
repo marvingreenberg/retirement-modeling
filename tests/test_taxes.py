@@ -98,32 +98,41 @@ class TestCalculateIrmaaCost:
 
 
 class TestCalculateCapitalGainsTax:
-    def test_flat_rate(self):
-        assert calculate_capital_gains_tax(10000, 100000, flat_rate=0.15) == 1500
-
     def test_zero_gains(self):
         assert calculate_capital_gains_tax(0, 100000) == 0
 
-    def test_tiered_low_income(self):
-        # Under $89,250 should be 0%
+    def test_negative_gains(self):
+        assert calculate_capital_gains_tax(-5000, 100000) == 0
+
+    def test_gains_fully_in_zero_bracket(self):
+        # Ordinary income $50k, gains $10k → stacks to $60k, all under $89,250 → 0%
         assert calculate_capital_gains_tax(10000, 50000) == 0
 
-    def test_tiered_mid_income(self):
-        # Between $89,250 and $553,850 should be 15%
+    def test_gains_fully_in_15_bracket(self):
+        # Ordinary income $200k, gains $10k → all gains above $89,250 → 15%
         assert calculate_capital_gains_tax(10000, 200000) == 1500
 
-    def test_tiered_high_income(self):
-        # Over $553,850 should be 20%
+    def test_gains_fully_in_20_bracket(self):
+        # Ordinary income $600k, gains $10k → all above $553,850 → 20%
         assert calculate_capital_gains_tax(10000, 600000) == 2000
+
+    def test_gains_span_zero_to_15_bracket(self):
+        # Ordinary income $80k, gains $20k → first $9,250 at 0%, remaining $10,750 at 15%
+        tax = calculate_capital_gains_tax(20000, 80000)
+        expected = 9250 * 0.0 + 10750 * 0.15
+        assert tax == pytest.approx(expected, rel=0.01)
+
+    def test_gains_span_15_to_20_bracket(self):
+        # Ordinary income $540k, gains $30k → first $13,850 at 15%, remaining $16,150 at 20%
+        tax = calculate_capital_gains_tax(30000, 540000)
+        expected = 13850 * 0.15 + 16150 * 0.20
+        assert tax == pytest.approx(expected, rel=0.01)
 
     def test_custom_brackets(self):
         brackets = [{"limit": 100000, "rate": 0.0}, {"limit": float("inf"), "rate": 0.20}]
-        assert calculate_capital_gains_tax(10000, 50000, brackets=brackets) == 0
-        assert calculate_capital_gains_tax(10000, 150000, brackets=brackets) == 2000
-
-    def test_flat_rate_takes_priority_over_brackets(self):
-        brackets = [{"limit": float("inf"), "rate": 0.0}]
-        assert calculate_capital_gains_tax(10000, 50000, flat_rate=0.15, brackets=brackets) == 1500
+        assert calculate_capital_gains_tax(10000, 50000, brackets) == 0
+        # Ordinary $50k + gains $60k → first $50k at 0%, last $10k at 20%
+        assert calculate_capital_gains_tax(60000, 50000, brackets) == pytest.approx(10000 * 0.20)
 
 
 class TestCalculateRmdAmount:

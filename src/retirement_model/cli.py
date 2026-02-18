@@ -52,12 +52,6 @@ def main() -> None:
     help="Output format for results.",
 )
 @click.option(
-    "--capital-gains-rate",
-    type=float,
-    default=None,
-    help="Override capital gains tax rate (e.g., 0.15 for 15%).",
-)
-@click.option(
     "--output-file",
     "-o",
     type=click.Path(path_type=Path),
@@ -89,7 +83,6 @@ def run(
     spending_strategy: str | None,
     withdrawal_rate: float | None,
     output_format: str,
-    capital_gains_rate: float | None,
     output_file: Path | None,
     with_montecarlo: bool,
     montecarlo_iterations: int,
@@ -110,9 +103,6 @@ def run(
 
     if withdrawal_rate is not None:
         portfolio.config.withdrawal_rate = withdrawal_rate
-
-    if capital_gains_rate is not None:
-        portfolio.config.tax_rate_capital_gains = capital_gains_rate
 
     if with_montecarlo:
         click.echo(f"Running {montecarlo_iterations} Monte Carlo simulations...")

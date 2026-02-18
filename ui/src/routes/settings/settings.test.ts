@@ -145,8 +145,7 @@ describe('Settings Page', () => {
 		it('clicking Advanced Settings shows advanced fields', async () => {
 			render(SettingsPage);
 			await fireEvent.click(screen.getByText('Advanced Settings'));
-			expect(screen.getByText('State Tax %')).toBeInTheDocument();
-			expect(screen.getByText('Capital Gains %')).toBeInTheDocument();
+			expect(screen.getByText('State/Local Tax %')).toBeInTheDocument();
 			expect(screen.getByText(/RMD Age/)).toBeInTheDocument();
 			expect(screen.getByText(/IRMAA Limit/)).toBeInTheDocument();
 			expect(screen.getByText(/MC Iterations/)).toBeInTheDocument();
@@ -178,7 +177,7 @@ describe('Settings Page', () => {
 		it('selects Advanced Settings from query param', () => {
 			mockPage.url = new URL('http://localhost/settings?section=advanced');
 			render(SettingsPage);
-			expect(screen.getByText('State Tax %')).toBeInTheDocument();
+			expect(screen.getByText('State/Local Tax %')).toBeInTheDocument();
 		});
 
 		it('selects Load/Save from query param', () => {

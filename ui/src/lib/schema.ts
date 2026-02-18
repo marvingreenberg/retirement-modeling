@@ -48,6 +48,7 @@ export const incomeStreamSchema = z.object({
 	end_age: z.number().int().min(0).nullable().default(null),
 	taxable_pct: z.number().min(0).max(1).default(1.0),
 	cola_rate: z.number().nullable().default(null),
+	owner: ownerSchema.default('primary'),
 });
 
 export const ssAutoConfigSchema = z.object({
@@ -87,14 +88,13 @@ export const simulationConfigSchema = z.object({
 	}),
 	tax_brackets_federal: z.array(taxBracketSchema),
 	tax_rate_state: z.number().min(0).max(0.2),
-	tax_rate_capital_gains: z.number().min(0).max(0.3),
 	irmaa_limit_tier_1: z.number().positive(),
 	social_security: socialSecuritySchema,
 	rmd_start_age: z.number().int().min(70).max(80),
 	planned_expenses: z.array(plannedExpenseSchema).default([]),
 	income_streams: z.array(incomeStreamSchema).default([]),
 	ss_auto: ssAutoConfigSchema.nullable().default(null),
-});
+}).strip();
 
 export const portfolioSchema = z.object({
 	config: simulationConfigSchema,

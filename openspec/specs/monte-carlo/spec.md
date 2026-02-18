@@ -144,12 +144,17 @@ The system SHALL support reproducible results via random seed.
 ---
 
 ### Requirement: Monte Carlo UI Integration
-The Monte Carlo simulation SHALL always run alongside the single simulation when the user clicks Simulate. Results appear on the Monte Carlo tab.
+The Monte Carlo simulation SHALL always run the full simulation (with taxes, RMDs, conversions) when triggered from the API.
 
 #### Scenario: Always-run behavior
 - **WHEN** user clicks Simulate
 - **THEN** Monte Carlo runs concurrently with the single simulation
 - **AND** results appear on the Monte Carlo tab when ready
+
+#### Scenario: API uses full Monte Carlo
+- **WHEN** the `/api/v1/monte-carlo` endpoint is called
+- **THEN** it SHALL use `run_full_monte_carlo` (complete simulation with taxes, RMDs, conversions)
+- **AND** it SHALL NOT use the simplified `run_monte_carlo` / `run_single_simulation`
 
 #### Scenario: MC iteration count location
 - **WHEN** the user wants to configure Monte Carlo iterations

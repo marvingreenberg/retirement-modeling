@@ -25,13 +25,13 @@ const mockSingleResult: SimulationResponse = {
 };
 
 const mockMCResult: MonteCarloResponse = {
-	num_simulations: 1000, success_rate: 0.92, failure_rate: 0.08,
-	median_final_balance: 520000, percentile_5: 100000, percentile_25: 300000,
-	percentile_75: 750000, percentile_95: 1200000,
-	depletion_ages: [],
+	num_simulations: 1000, success_rate: 0.92,
+	median_simulation: { strategy: 'irmaa_tier_1', spending_strategy: 'fixed_dollar', years: [] },
 	yearly_percentiles: [
-		{ age: 65, percentile_5: 90000, percentile_25: 280000, median: 500000, percentile_75: 720000, percentile_95: 1100000 },
+		{ age: 65, balance_p5: 90000, balance_p25: 280000, balance_median: 500000, balance_p75: 720000, balance_p95: 1100000, agi_median: 50000, total_tax_median: 10000, roth_conversion_median: 0 },
 	],
+	final_balance_p5: 100000,
+	final_balance_p95: 950000,
 };
 
 describe('Details page', () => {

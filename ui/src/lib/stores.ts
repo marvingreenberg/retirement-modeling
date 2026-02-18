@@ -22,7 +22,6 @@ export const samplePortfolio: Portfolio = {
 		},
 		tax_brackets_federal: [],
 		tax_rate_state: 0.05,
-		tax_rate_capital_gains: 0.15,
 		irmaa_limit_tier_1: 206000,
 		social_security: {
 			primary_benefit: 42000,
@@ -56,6 +55,7 @@ export const samplePortfolio: Portfolio = {
 				end_age: null,
 				taxable_pct: 1.0,
 				cola_rate: 0.02,
+				owner: 'primary',
 			},
 		],
 		ss_auto: {
@@ -126,7 +126,6 @@ export const defaultPortfolio: Portfolio = {
 		},
 		tax_brackets_federal: [],
 		tax_rate_state: 0.05,
-		tax_rate_capital_gains: 0.15,
 		irmaa_limit_tier_1: 206000,
 		social_security: {
 			primary_benefit: 0,

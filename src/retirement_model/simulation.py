@@ -25,8 +25,10 @@ from retirement_model.constants import (
 )
 from retirement_model.taxes import (
     calculate_capital_gains_tax,
+    calculate_income_tax,
     calculate_irmaa_cost,
     calculate_rmd_amount,
+    calculate_ss_taxable_portion,
     get_bracket_label,
     get_marginal_tax_rate,
     inflate_brackets,
@@ -41,6 +43,31 @@ from retirement_model.withdrawals import (
     withdraw_from_accounts,
     withdraw_from_eligible_pretax,
 )
+
+
+EXCESS_INCOME_ACCOUNT_ID = "excess_income"
+
+
+def _deposit_excess_income(amount: float, accounts: list[Account]) -> None:
+    """Deposit surplus cash to the excess_income brokerage account with 100% cost basis."""
+    if amount <= 0:
+        return
+    for acc in accounts:
+        if acc.id == EXCESS_INCOME_ACCOUNT_ID:
+            old_basis = acc.balance * acc.cost_basis_ratio
+            acc.balance += amount
+            acc.cost_basis_ratio = (old_basis + amount) / acc.balance
+            return
+    accounts.append(
+        Account(
+            id=EXCESS_INCOME_ACCOUNT_ID,
+            name="Excess Income",
+            balance=amount,
+            type=AccountType.BROKERAGE,
+            owner=Owner.JOINT,
+            cost_basis_ratio=1.0,
+        )
+    )
 
 
 def get_conversion_ceiling(
@@ -224,17 +251,21 @@ def run_simulation(
         stream_income = 0.0
         stream_taxable = 0.0
         for stream in working_streams:
-            in_range = age_primary >= stream.start_age
+            owner_age = age_spouse if stream.owner == Owner.SPOUSE else age_primary
+            in_range = owner_age >= stream.start_age
             if stream.end_age is not None:
-                in_range = in_range and age_primary <= stream.end_age
+                in_range = in_range and owner_age <= stream.end_age
             if in_range:
-                years_active = age_primary - stream.start_age
+                years_active = owner_age - stream.start_age
                 cola_factor = (1 + stream.cola_rate) ** years_active if stream.cola_rate else 1.0
                 adjusted = stream.amount * cola_factor
                 stream_income += adjusted
                 stream_taxable += adjusted * stream.taxable_pct
 
-        current_agi = ss_income * 0.85 + stream_taxable
+        # SS taxable portion uses IRS tiered formula
+        other_income_for_ss = stream_taxable
+        ss_taxable = calculate_ss_taxable_portion(ss_income, other_income_for_ss)
+        current_agi = ss_taxable + stream_taxable
 
         # Mandatory RMDs (from ALL pretax-category accounts)
         pretax_bal_primary = get_total_balance_by_owner(
@@ -248,16 +279,26 @@ def run_simulation(
         rmd_spouse = calculate_rmd_amount(age_spouse, pretax_bal_spouse, cfg.rmd_start_age)
 
         total_rmd = rmd_primary + rmd_spouse
-        rmd_result = withdraw_from_accounts(total_rmd, accounts, TaxCategory.PRETAX, age_map)
-        current_agi += rmd_result.amount_withdrawn
+        rmd_withdrawn = 0.0
+        if rmd_primary > 0:
+            rmd_res_p = withdraw_from_accounts(
+                rmd_primary, accounts, TaxCategory.PRETAX, age_map, owner_filter=Owner.PRIMARY
+            )
+            rmd_withdrawn += rmd_res_p.amount_withdrawn
+        if rmd_spouse > 0:
+            rmd_res_s = withdraw_from_accounts(
+                rmd_spouse, accounts, TaxCategory.PRETAX, age_map, owner_filter=Owner.SPOUSE
+            )
+            rmd_withdrawn += rmd_res_s.amount_withdrawn
+        current_agi += rmd_withdrawn
 
         # Estimate tax rate for withholding (using inflation-adjusted brackets)
         est_tax_rate = get_marginal_tax_rate(current_agi, adj_fed_brackets) + cfg.tax_rate_state
 
-        # Cash from SS, income streams, and RMD (net of estimated tax)
-        cash_from_ss = ss_income * (1 - est_tax_rate)
-        cash_from_streams = stream_income * (1 - est_tax_rate)
-        cash_from_rmd = rmd_result.amount_withdrawn * (1 - est_tax_rate)
+        # Cash from SS, income streams, and RMD (net of estimated tax on taxable portion)
+        cash_from_ss = ss_income - (ss_taxable * est_tax_rate)
+        cash_from_streams = stream_income - (stream_taxable * est_tax_rate)
+        cash_from_rmd = rmd_withdrawn * (1 - est_tax_rate)
         cash_in_hand = cash_from_ss + cash_from_streams + cash_from_rmd
 
         remaining_spend = max(0, total_spend_needed - cash_in_hand)
@@ -296,10 +337,10 @@ def run_simulation(
                     brokerage_withdrawn += result.amount_withdrawn
 
                     gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
-                    current_agi += gains
                     brokerage_gains_tax += calculate_capital_gains_tax(
-                        gains, current_agi, cfg.tax_rate_capital_gains, adj_capgains_brackets
+                        gains, current_agi, adj_capgains_brackets
                     )
+                    current_agi += gains
 
                 remaining_spend -= brokerage_withdrawn
 
@@ -330,7 +371,14 @@ def run_simulation(
                 conversion_target = min(agi_headroom, available_ira)
 
                 if conversion_target > 0:
-                    tax_bill = conversion_target * est_tax_rate
+                    tax_before = calculate_income_tax(
+                        max(0, current_agi - adj_deduction), adj_fed_brackets, cfg.tax_rate_state
+                    )
+                    tax_after = calculate_income_tax(
+                        max(0, current_agi + conversion_target - adj_deduction),
+                        adj_fed_brackets, cfg.tax_rate_state,
+                    )
+                    tax_bill = tax_after - tax_before
                     conversion_tax_paid = tax_bill
 
                     # Pay tax from brokerage/cash
@@ -346,10 +394,10 @@ def run_simulation(
 
                     # AGI impact from brokerage gains (cash has no gains)
                     tax_gains = tax_result.amount_withdrawn * (1 - tax_result.average_basis_ratio)
-                    current_agi += tax_gains
                     brokerage_gains_tax += calculate_capital_gains_tax(
-                        tax_gains, current_agi, cfg.tax_rate_capital_gains, adj_capgains_brackets
+                        tax_gains, current_agi, adj_capgains_brackets
                     )
+                    current_agi += tax_gains
 
                     # Execute conversion from IRA-eligible accounts only
                     conv_result = withdraw_from_eligible_pretax(
@@ -370,13 +418,13 @@ def run_simulation(
                     converted_amount += conv_result.amount_withdrawn
                     current_agi += conv_result.amount_withdrawn
 
-        # Reinvest surplus
+        # Reinvest surplus to dedicated excess_income brokerage account
         if surplus_cash > 0:
-            deposit_to_account(surplus_cash, accounts, AccountType.BROKERAGE, Owner.JOINT)
+            _deposit_excess_income(surplus_cash, accounts)
 
-        # Total tax calculation (using inflation-adjusted deduction and IRMAA tiers)
+        # Total tax calculation using progressive brackets
         taxable_income = max(0, current_agi - adj_deduction)
-        income_tax = taxable_income * est_tax_rate
+        income_tax = calculate_income_tax(taxable_income, adj_fed_brackets, cfg.tax_rate_state)
         irmaa_cost = calculate_irmaa_cost(current_agi, adj_irmaa_tiers)
         total_tax = income_tax + brokerage_gains_tax + irmaa_cost
 

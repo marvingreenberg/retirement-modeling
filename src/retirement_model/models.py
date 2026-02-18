@@ -171,6 +171,7 @@ class IncomeStream(BaseModel):
     end_age: int | None = Field(default=None, ge=0)
     taxable_pct: float = Field(default=1.0, ge=0.0, le=1.0)
     cola_rate: float | None = Field(default=None)
+    owner: Owner = Owner.PRIMARY
 
 
 class SSAutoConfig(BaseModel):
@@ -205,7 +206,6 @@ class SimulationConfig(BaseModel):
 
     tax_brackets_federal: list[TaxBracket] = Field(default_factory=list)
     tax_rate_state: float = Field(default=DEFAULT_STATE_TAX_RATE, ge=0, le=0.2)
-    tax_rate_capital_gains: float = Field(default=0.15, ge=0, le=0.3)
 
     irmaa_limit_tier_1: float = Field(default=206000, gt=0)
 

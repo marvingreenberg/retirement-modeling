@@ -13,6 +13,6 @@ export default defineConfig({
 		command: 'pnpm build && pnpm preview --port 4173',
 		port: 4173,
 		reuseExistingServer: !process.env.CI,
-		timeout: 60000,
+		timeout: 120000,
 	},
 });

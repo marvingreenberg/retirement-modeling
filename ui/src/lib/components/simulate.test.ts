@@ -11,7 +11,6 @@ describe('Portfolio defaults', () => {
 		expect(config.spending_strategy).toBeDefined();
 		expect(config.strategy_target).toBeDefined();
 		expect(config.tax_rate_state).toBeDefined();
-		expect(config.tax_rate_capital_gains).toBeDefined();
 	});
 
 	it('default portfolio has planned_expenses as array', () => {
@@ -69,7 +68,6 @@ describe('Comparison store', () => {
 			spendingStrategy: 'Fixed Dollar',
 			conversionStrategy: 'IRMAA Tier 1',
 			taxRateState: 0.0575,
-			taxRateCapitalGains: 0.15,
 			finalBalance: 2000000,
 			totalTaxes: 500000,
 			totalIrmaa: 10000,
@@ -95,7 +93,6 @@ describe('Comparison store', () => {
 			spendingStrategy: 'RMD-Based',
 			conversionStrategy: '22% Bracket',
 			taxRateState: 0.05,
-			taxRateCapitalGains: 0.15,
 			finalBalance: 3000000,
 			totalTaxes: 0,
 			totalIrmaa: 0,
@@ -124,7 +121,6 @@ describe('Comparison store', () => {
 			spendingStrategy: 'Fixed Dollar',
 			conversionStrategy: 'Standard',
 			taxRateState: 0.05,
-			taxRateCapitalGains: 0.15,
 			finalBalance: 2500000,
 			totalTaxes: 0,
 			totalIrmaa: 0,

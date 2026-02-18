@@ -157,6 +157,73 @@ class TestApplyGrowth:
         assert total == pytest.approx(initial_total * 0.90, rel=0.01)
 
 
+class TestApplyGrowthCostBasis:
+    def test_brokerage_basis_ratio_dilutes_after_growth(self):
+        """Growth adds gains, reducing cost_basis_ratio for brokerage accounts."""
+        accounts = [
+            Account(
+                id="b1", name="B1", balance=100000,
+                type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.40,
+            ),
+        ]
+        apply_growth(accounts, 0.10)
+        # Balance grew from 100k to 110k, basis is still 40k
+        assert accounts[0].balance == pytest.approx(110000, rel=0.01)
+        assert accounts[0].cost_basis_ratio == pytest.approx(40000 / 110000, rel=0.001)
+
+    def test_pretax_ratio_unchanged_after_growth(self):
+        """Pre-tax accounts always have ratio 0 regardless of growth."""
+        accounts = [
+            Account(
+                id="ira", name="IRA", balance=200000,
+                type=AccountType.IRA, owner=Owner.PRIMARY, cost_basis_ratio=0.0,
+            ),
+        ]
+        apply_growth(accounts, 0.07)
+        assert accounts[0].cost_basis_ratio == 0.0
+
+    def test_roth_ratio_unchanged_after_growth(self):
+        """Roth accounts keep ratio 1.0 — growth is tax-free."""
+        accounts = [
+            Account(
+                id="roth", name="Roth", balance=50000,
+                type=AccountType.ROTH_IRA, owner=Owner.PRIMARY, cost_basis_ratio=1.0,
+            ),
+        ]
+        apply_growth(accounts, 0.07)
+        # Roth is not brokerage category, so ratio stays at 1.0
+        assert accounts[0].cost_basis_ratio == 1.0
+
+    def test_cash_cd_no_growth_or_ratio_change(self):
+        """Cash/CD accounts get no growth and no basis change."""
+        accounts = [
+            Account(
+                id="cash", name="Cash", balance=50000,
+                type=AccountType.CASH_CD, owner=Owner.JOINT, cost_basis_ratio=1.0,
+            ),
+        ]
+        apply_growth(accounts, 0.07)
+        assert accounts[0].balance == 50000
+        assert accounts[0].cost_basis_ratio == 1.0
+
+    def test_multi_year_basis_dilution(self):
+        """Multiple years of growth progressively dilute basis ratio."""
+        accounts = [
+            Account(
+                id="b1", name="B1", balance=100000,
+                type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.50,
+            ),
+        ]
+        # Basis is 50k absolute
+        for _ in range(5):
+            apply_growth(accounts, 0.07)
+        # After 5 years at 7%: balance = 100k * 1.07^5 ≈ 140255
+        # Basis stays at 50k → ratio ≈ 50000/140255 ≈ 0.3565
+        expected_balance = 100000 * (1.07 ** 5)
+        assert accounts[0].balance == pytest.approx(expected_balance, rel=0.01)
+        assert accounts[0].cost_basis_ratio == pytest.approx(50000 / expected_balance, rel=0.01)
+
+
 class TestGetTotalBalanceByType:
     def test_brokerage_total(self, test_accounts: list[Account]):
         total = get_total_balance_by_type(test_accounts, AccountType.BROKERAGE)

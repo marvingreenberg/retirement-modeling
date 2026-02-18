@@ -63,7 +63,7 @@ class TestRootEndpoint:
         data = response.json()
         assert data["status"] == "ok"
         assert data["api"] == "/api/v1/"
-        assert data["version"] == "0.9.0"
+        assert data["version"] == "0.11.0"
 
 
 class TestApiDiscovery:
@@ -71,7 +71,7 @@ class TestApiDiscovery:
         response = client.get("/api/v1/")
         assert response.status_code == 200
         data = response.json()
-        assert data["version"] == "0.9.0"
+        assert data["version"] == "0.11.0"
         assert "endpoints" in data
         assert data["endpoints"]["simulate"] == "/api/v1/simulate"
 
@@ -173,8 +173,9 @@ class TestMonteCarloEndpoint:
         data = response.json()
         assert data["num_simulations"] == 50
         assert 0 <= data["success_rate"] <= 1
-        assert data["percentile_5"] <= data["median_final_balance"]
-        assert data["median_final_balance"] <= data["percentile_95"]
+        assert data["final_balance_p5"] <= data["final_balance_p95"]
+        assert "median_simulation" in data
+        assert "yearly_percentiles" in data
 
     def test_monte_carlo_invalid_simulations(self, client: TestClient, sample_portfolio: dict):
         response = client.post(
@@ -323,7 +324,7 @@ class TestStaticServing:
         """API endpoints function normally when static/ directory is absent."""
         response = client.get("/api/v1/")
         assert response.status_code == 200
-        assert response.json()["version"] == "0.9.0"
+        assert response.json()["version"] == "0.11.0"
 
     def test_root_returns_json_without_static_dir(self, client: TestClient):
         """Root returns health/info JSON when no static assets are mounted."""
@@ -364,7 +365,7 @@ class TestStaticServing:
             # API routes still work
             response = test_client.get("/api/v1/")
             assert response.status_code == 200
-            assert response.json()["version"] == "0.9.0"
+            assert response.json()["version"] == "0.11.0"
 
         # Restore original routes
         app.routes[:] = saved_routes

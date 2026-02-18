@@ -29,10 +29,11 @@ const mockSingleResult: SimulationResponse = {
 };
 
 const mockMCResult: MonteCarloResponse = {
-	num_simulations: 1000, success_rate: 0.92, failure_rate: 0.08,
-	median_final_balance: 520000, percentile_5: 100000, percentile_25: 300000,
-	percentile_75: 750000, percentile_95: 1200000,
-	depletion_ages: [], yearly_percentiles: [],
+	num_simulations: 1000, success_rate: 0.92,
+	median_simulation: { strategy: 'irmaa_tier_1', spending_strategy: 'fixed_dollar', years: [] },
+	yearly_percentiles: [],
+	final_balance_p5: 100000,
+	final_balance_p95: 950000,
 };
 
 describe('SimulateView (tabbed results)', () => {
@@ -111,20 +112,20 @@ describe('SimulateView (tabbed results)', () => {
 		expect(screen.getByText('95th')).toBeInTheDocument();
 	});
 
-	it('shows depletion info when depletion ages exist', async () => {
-		const mcWithDepletion = { ...mockMCResult, depletion_ages: [78, 82, 85] };
+	it('shows depletion count when success rate < 1', async () => {
+		const mcWithFailures = { ...mockMCResult, success_rate: 0.90 };
 		render(SimulateView, {
-			singleResult: null, mcResult: mcWithDepletion, mcLoading: false, error: '',
+			singleResult: null, mcResult: mcWithFailures, mcLoading: false, error: '',
 		});
 		const mcTab = screen.getByText('Monte Carlo');
 		await fireEvent.click(mcTab);
-		expect(screen.getByText('Age 78')).toBeInTheDocument();
-		expect(screen.getByText('Age 85')).toBeInTheDocument();
+		expect(screen.getByText('100 of 1000')).toBeInTheDocument();
 	});
 
-	it('shows no depletion message when depletion ages are empty', async () => {
+	it('shows no depletion message when success rate is 100%', async () => {
+		const mcNoDep = { ...mockMCResult, success_rate: 1.0 };
 		render(SimulateView, {
-			singleResult: null, mcResult: mockMCResult, mcLoading: false, error: '',
+			singleResult: null, mcResult: mcNoDep, mcLoading: false, error: '',
 		});
 		const mcTab = screen.getByText('Monte Carlo');
 		await fireEvent.click(mcTab);

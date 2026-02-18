@@ -56,7 +56,6 @@
 			spendingStrategy: spendingLabels[c.spending_strategy ?? 'fixed_dollar'],
 			conversionStrategy: conversionLabels[c.strategy_target],
 			taxRateState: c.tax_rate_state,
-			taxRateCapitalGains: c.tax_rate_capital_gains,
 		};
 
 		if (mode === 'single' && singleResult) {
@@ -73,7 +72,7 @@
 				...base,
 				runType: 'monte_carlo' as const,
 				numSimulations: mcResult!.num_simulations,
-				finalBalance: mcResult!.median_final_balance,
+				finalBalance: mcResult!.median_simulation.years.at(-1)?.total_balance ?? 0,
 				totalTaxes: 0,
 				totalIrmaa: 0,
 				totalRothConversions: 0,
@@ -198,14 +197,12 @@
 			</div>
 
 			<div class="card bg-surface-100 dark:bg-surface-800 p-4">
-				<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"><TrendingUp size={18} class="text-tertiary-500" /> Final Balance Percentiles</h3>
+				<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"><TrendingUp size={18} class="text-tertiary-500" /> Final Balance Range</h3>
 				<div class="flex gap-6 flex-wrap">
 					{#each [
-						['5th', mcResult.percentile_5],
-						['25th', mcResult.percentile_25],
-						['Median', mcResult.median_final_balance],
-						['75th', mcResult.percentile_75],
-						['95th', mcResult.percentile_95],
+						['5th', mcResult.final_balance_p5],
+						['Median', mcResult.median_simulation.years.at(-1)?.total_balance ?? 0],
+						['95th', mcResult.final_balance_p95],
 					] as [label, value]}
 						<div class="flex flex-col gap-0.5">
 							<span class="text-xs text-surface-500">{label}</span>
@@ -221,25 +218,13 @@
 
 			<div class="card bg-surface-100 dark:bg-surface-800 p-4">
 				<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"><ShieldCheck size={18} class="text-warning-500" /> Portfolio Depletion</h3>
-				{#if mcResult.depletion_ages.length === 0}
+				{#if Math.round((1 - mcResult.success_rate) * mcResult.num_simulations) === 0}
 					<p class="text-success-600 dark:text-success-400 text-sm">No simulations resulted in portfolio depletion.</p>
 				{:else}
 					<div class="flex gap-6 flex-wrap">
 						<div class="flex flex-col gap-0.5">
-							<span class="text-xs text-surface-500">Earliest</span>
-							<span class="text-base font-bold">Age {Math.min(...mcResult.depletion_ages)}</span>
-						</div>
-						<div class="flex flex-col gap-0.5">
-							<span class="text-xs text-surface-500">Median</span>
-							<span class="text-base font-bold">Age {medianDepletion(mcResult.depletion_ages)}</span>
-						</div>
-						<div class="flex flex-col gap-0.5">
-							<span class="text-xs text-surface-500">Latest</span>
-							<span class="text-base font-bold">Age {Math.max(...mcResult.depletion_ages)}</span>
-						</div>
-						<div class="flex flex-col gap-0.5">
 							<span class="text-xs text-surface-500">Depleted</span>
-							<span class="text-base font-bold">{mcResult.depletion_ages.length} of {mcResult.num_simulations}</span>
+							<span class="text-base font-bold">{Math.round((1 - mcResult.success_rate) * mcResult.num_simulations)} of {mcResult.num_simulations}</span>
 						</div>
 					</div>
 				{/if}

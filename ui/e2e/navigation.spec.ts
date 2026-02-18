@@ -56,7 +56,7 @@ test.describe('Navigation', () => {
 		await page.getByLabel('Open profile').click();
 		await page.getByRole('link', { name: /advanced settings/i }).click();
 		await expect(page).toHaveURL(/\/settings\?section=advanced/);
-		await expect(page.getByText('State Tax %')).toBeVisible();
+		await expect(page.getByText('State/Local Tax %')).toBeVisible();
 	});
 
 	test('dropdown dark mode toggle switches theme', async ({ page }) => {

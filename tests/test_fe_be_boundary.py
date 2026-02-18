@@ -33,7 +33,6 @@ def base_portfolio() -> dict:
             "spending_strategy": "fixed_dollar",
             "withdrawal_rate": 0.04,
             "tax_rate_state": 0.05,
-            "tax_rate_capital_gains": 0.15,
             "irmaa_limit_tier_1": 206000,
             "rmd_start_age": 73,
             "social_security": {
@@ -319,13 +318,13 @@ class TestMonteCarloInputSensitivity:
         r1 = _monte_carlo(client, base_portfolio, seed=42)
         r2 = _monte_carlo(client, base_portfolio, seed=42)
         assert r1["success_rate"] == r2["success_rate"]
-        assert r1["median_final_balance"] == r2["median_final_balance"]
+        assert r1["final_balance_p5"] == r2["final_balance_p5"]
 
     def test_different_seed_different_results(self, client, base_portfolio):
         r1 = _monte_carlo(client, base_portfolio, seed=42)
         r2 = _monte_carlo(client, base_portfolio, seed=999)
         # Results may occasionally be the same but with different seeds it's very unlikely
-        assert r1["median_final_balance"] != r2["median_final_balance"]
+        assert r1["final_balance_p95"] != r2["final_balance_p95"]
 
     def test_higher_spend_lower_success_rate(self, client, base_portfolio):
         low_spend = _set_config(base_portfolio, "annual_spend_net", 60000)
@@ -350,7 +349,7 @@ class TestMonteCarloInputSensitivity:
         r_fixed = _monte_carlo(client, fixed, seed=42)
         r_pct = _monte_carlo(client, pct, seed=42)
         # Different strategies produce different MC distributions
-        assert r_fixed["median_final_balance"] != r_pct["median_final_balance"]
+        assert r_fixed["final_balance_p5"] != r_pct["final_balance_p5"]
 
     def test_vary_tax_regimes_changes_mc(self, client, base_portfolio):
         without = copy.deepcopy(base_portfolio)
@@ -359,8 +358,7 @@ class TestMonteCarloInputSensitivity:
         with_vary["config"]["vary_tax_regimes"] = True
         r_without = _monte_carlo(client, without, seed=42)
         r_with = _monte_carlo(client, with_vary, seed=42)
-        # vary_tax_regimes is only used by full MC (not simplified), so results are the same
-        # in the simplified MC endpoint. This confirms the flag is accepted without error.
+        # Both should complete without error; vary_tax_regimes adds regime variation.
         assert r_without["success_rate"] >= 0
         assert r_with["success_rate"] >= 0
 
@@ -399,9 +397,9 @@ class TestYearByYearResponseStructure:
         assert len(result["yearly_percentiles"]) > 0
         yp = result["yearly_percentiles"][0]
         assert "age" in yp
-        assert "percentile_5" in yp
-        assert "median" in yp
-        assert "percentile_95" in yp
+        assert "balance_p5" in yp
+        assert "balance_median" in yp
+        assert "balance_p95" in yp
 
 
 class TestRequestOverrides:

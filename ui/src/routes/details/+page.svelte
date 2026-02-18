@@ -89,11 +89,11 @@
 								{#each percentiles as p}
 									<tr>
 										<td>{p.age}</td>
-										<td>{currency(p.percentile_5)}</td>
-										<td>{currency(p.percentile_25)}</td>
-										<td>{currency(p.median)}</td>
-										<td>{currency(p.percentile_75)}</td>
-										<td>{currency(p.percentile_95)}</td>
+										<td>{currency(p.balance_p5)}</td>
+										<td>{currency(p.balance_p25)}</td>
+										<td>{currency(p.balance_median)}</td>
+										<td>{currency(p.balance_p75)}</td>
+										<td>{currency(p.balance_p95)}</td>
 									</tr>
 								{/each}
 							</tbody>

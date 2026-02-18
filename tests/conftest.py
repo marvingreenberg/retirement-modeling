@@ -72,7 +72,6 @@ def sample_config() -> SimulationConfig:
             TaxBracket(limit=487450, rate=0.32),
         ],
         tax_rate_state=0.05,
-        tax_rate_capital_gains=0.15,
         irmaa_limit_tier_1=206000,
         social_security=SocialSecurityConfig(
             primary_benefit=40000,

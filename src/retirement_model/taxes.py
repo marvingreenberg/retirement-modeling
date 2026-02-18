@@ -60,24 +60,35 @@ def calculate_irmaa_cost(agi: float, tiers: list[dict[str, float]] | None = None
 
 def calculate_capital_gains_tax(
     gains: float,
-    total_income: float,
-    flat_rate: float | None = None,
+    ordinary_income: float,
     brackets: list[dict] | None = None,
 ) -> float:
-    """
-    Calculate capital gains tax on realized gains.
+    """Calculate capital gains tax using progressive stacking.
 
-    If flat_rate is provided, uses that rate (legacy behavior).
-    Otherwise, uses tiered rates based on total income (inflation-adjustable via brackets).
+    Gains are stacked on top of ordinary_income and taxed progressively
+    through 0%/15%/20% brackets. Each slice of gains within a bracket
+    is taxed at that bracket's rate.
     """
-    if flat_rate is not None:
-        return gains * flat_rate
+    if gains <= 0:
+        return 0.0
 
     bracket_list = brackets or CAPITAL_GAINS_BRACKETS_MFJ
+    tax = 0.0
+    gains_remaining = gains
+    income_floor = ordinary_income
+
     for bracket in bracket_list:
-        if total_income < bracket["limit"]:
-            return gains * bracket["rate"]
-    return gains * bracket_list[-1]["rate"]
+        if gains_remaining <= 0:
+            break
+        bracket_limit = bracket["limit"]
+        if income_floor >= bracket_limit:
+            continue
+        taxable_in_bracket = min(gains_remaining, bracket_limit - income_floor)
+        tax += taxable_in_bracket * bracket["rate"]
+        gains_remaining -= taxable_in_bracket
+        income_floor += taxable_in_bracket
+
+    return tax
 
 
 def calculate_rmd_amount(age: int, balance: float, rmd_start_age: int = RMD_START_AGE) -> float:

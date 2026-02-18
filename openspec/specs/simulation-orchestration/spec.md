@@ -14,14 +14,14 @@ The system SHALL process each simulation year in a specific sequence.
   3. Calculate spending target (via spending strategy)
   4. Add planned expenses for this year
   5. Calculate Social Security income (if age threshold met)
-  6. Calculate income from additional income streams (if age threshold met), applying per-stream COLA
-  7. Calculate and execute RMDs (if age threshold met)
+  6. Calculate income from additional income streams (if owner's age threshold met), applying per-stream COLA
+  7. Calculate and execute RMDs separately per owner (if age threshold met)
   8. Determine cash available vs. spending needed
   9. Execute withdrawals to meet spending shortfall
   10. Execute Roth conversions (if pre-RMD age and strategy permits)
-  11. Reinvest surplus cash (if any)
-  12. Calculate all taxes
-  13. Apply investment growth to all accounts
+  11. Reinvest surplus cash to excess_income account (if any)
+  12. Calculate all taxes using progressive brackets
+  13. Apply investment growth to all accounts (skip cash/CD)
   14. Record year results
 
 #### Scenario: Tax thresholds adjusted each year
@@ -83,25 +83,36 @@ The system SHALL incorporate planned one-time and recurring expenses.
 ---
 
 ### Requirement: Cash Flow Reconciliation
-The system SHALL reconcile income against spending needs.
+The system SHALL reconcile income against spending needs, using the taxable portion for withholding estimates.
 
 #### Scenario: Income exceeds spending
 - WHEN (SS_income + income_streams + RMD) net of taxes > spending_target
 - THEN surplus_cash = income - spending
-- AND surplus is deposited to brokerage
+- AND surplus is deposited to the excess_income brokerage account
 
 #### Scenario: Spending exceeds income
 - WHEN spending_target > available income
 - THEN remaining_spend = spending_target - income
 - AND withdrawals are executed per withdrawal ordering spec
 
+#### Scenario: Stream withholding on taxable portion only
+- WHEN calculating cash from income streams
+- THEN estimated tax SHALL be applied only to the taxable portion (`stream_taxable`)
+- AND `cash_from_streams = stream_income - (stream_taxable * est_tax_rate)`
+- AND a stream with `taxable_pct=0.5` and `amount=$10,000` at 22% marginal rate yields $10,000 - ($5,000 * 0.22) = $8,900
+
 ### Requirement: Tax Estimation for Withholding
-The system SHALL estimate taxes for withdrawal gross-up calculations.
+The system SHALL use progressive tax calculation for conversion tax estimates.
 
 #### Scenario: Estimate tax rate
 - WHEN determining how much to withdraw from pre-tax
 - THEN estimate marginal rate = federal_rate + state_rate
 - AND gross_withdrawal = net_need / (1 - estimated_rate)
+
+#### Scenario: Conversion tax uses incremental progressive calculation
+- WHEN calculating the tax cost of a Roth conversion
+- THEN conversion tax SHALL be computed as `calculate_income_tax(agi + conversion) - calculate_income_tax(agi)`
+- AND this correctly handles conversions that span bracket boundaries
 
 ---
 
@@ -153,7 +164,6 @@ The system SHALL process simulation configuration assembled from both Portfolio 
   - spending_strategy (and conditional params: withdrawal_rate, guardrails_config)
   - strategy_target (conversion strategy)
   - tax_rate_state
-  - tax_rate_capital_gains
   - rmd_start_age
   - irmaa_limit_tier_1
 
@@ -186,7 +196,6 @@ The system SHALL process simulation configuration assembled from both Portfolio 
 | withdrawal_rate | 4% | For percent_of_portfolio strategy |
 | rmd_start_age | 73 | Per SECURE 2.0 Act |
 | tax_rate_state | 5.75% | State income tax rate |
-| tax_rate_capital_gains | 15% | Flat cap gains rate |
 
 ---
 
@@ -203,6 +212,30 @@ The system SHALL materialize auto-generated SS income streams before the simulat
 #### Scenario: ss_auto absent
 - **WHEN** `SimulationConfig.ss_auto` is None
 - **THEN** the simulation SHALL use the existing `social_security` config for SS income (no change)
+
+### Requirement: Income stream owner-based age gating
+Income streams SHALL be gated by their owner's age, not always the primary's age.
+
+#### Scenario: Primary-owned stream uses primary age
+- WHEN an income stream has `owner: primary`
+- AND `start_age: 65, end_age: 80`
+- THEN the stream is active when `age_primary` is between 65 and 80
+
+#### Scenario: Spouse-owned stream uses spouse age
+- WHEN an income stream has `owner: spouse`
+- AND `start_age: 67, end_age: 85`
+- THEN the stream is active when `age_spouse` is between 67 and 85
+
+#### Scenario: SS auto-generation tags owner
+- WHEN `ss_auto` generates income streams
+- THEN primary SS stream SHALL have `owner: primary`
+- AND spouse SS stream SHALL have `owner: spouse`
+
+#### Scenario: Default owner is primary
+- WHEN an income stream has no explicit owner
+- THEN it SHALL default to `owner: primary`
+
+---
 
 ### Requirement: COLA Application in Income Stream Loop
 
@@ -279,10 +312,10 @@ The API SHALL be versioned under the `/api/v1/` prefix.
 - **THEN** if static assets are mounted, the SPA SHALL be served
 - **AND** if no static assets, a JSON health/info response SHALL be returned
 
-#### Scenario: Version is 0.9.0
+#### Scenario: Version is 0.11.0
 - **WHEN** the `/api/v1/` root endpoint is called
-- **THEN** the version field SHALL be `0.9.0`
-- **AND** `pyproject.toml` version SHALL be `0.9.0`
+- **THEN** the version field SHALL be `0.11.0`
+- **AND** `pyproject.toml` version SHALL be `0.11.0`
 
 #### Scenario: Backward-compatible redirects
 - **WHEN** a request hits an old unversioned route (e.g., `/simulate`)

@@ -28,9 +28,9 @@ Withdraws based on IRS Required Minimum Distribution divisor tables, applied to 
 
 The simulation computes SS benefits using the actual actuarial adjustment formula:
 
-- **Early claiming (before FRA):** Benefit is reduced by 5/9 of 1% per month for the first 36 months early, and 5/12 of 1% per month beyond 36 months. Claiming at 62 (with FRA 67) reduces the benefit to about 70% of the FRA amount.
+- **Early claiming (before FRA - Full Retirement Age):** Benefit is reduced by 5/9 of 1% per month for the first 36 months early, and 5/12 of 1% per month beyond 36 months. Claiming at 62 (with FRA 67) reduces the benefit to about 70% of the FRA amount.
 - **Delayed claiming (after FRA):** Benefit increases by 2/3 of 1% per month (8% per year) for each month delayed past FRA, up to age 70. Claiming at 70 increases the benefit to about 124% of the FRA amount.
-- **Taxability:** The simulation applies 85% taxability to SS income, which is the rate for most retirees with significant other income. The actual IRS rules have 0%/50%/85% tiers based on combined income.
+- **Taxability:** The simulation applies the IRS tiered taxability formula: 0% below $32k combined income, 50% between $32k-$44k, and 85% above $44k (for married filing jointly). Combined income is defined as adjusted gross income + nontaxable interest + half of Social Security benefits.
 
 ## Income Stream COLA
 
@@ -38,14 +38,14 @@ Income streams (pensions, annuities, etc.) can have a per-stream cost-of-living 
 
 ## Roth Conversions
 
-Roth conversions move money from pre-tax retirement accounts into Roth accounts, paying income tax now to avoid it later. This is valuable when current tax rates are lower than expected future rates — common in early retirement before Social Security and RMDs begin.
+Roth conversions move money from pre-tax retirement accounts into Roth accounts, paying income tax now to avoid it later. This is valuable when current tax rates are lower than expected future rates — common in early retirement before Social Security and RMDs begin.  It is also a factor for higher net-worth families, when later RMDs force higher income, taxed at much higher tax brackets.
 
-**Conversion-eligible accounts:** Only IRA-type accounts (Traditional IRA, SEP IRA, SIMPLE IRA) can be directly converted to Roth. Employer plans (401(k), 403(b), 457(b)) must first be rolled over to an IRA before conversion. The simulation models direct conversion from IRA-eligible accounts only.
+**Conversion-eligible accounts:** Only IRA-type accounts (Traditional IRA, SEP IRA, SIMPLE IRA) can be directly converted to Roth. Employer plans (401(k), 403(b), 457(b)) must generally first be rolled over to an IRA before conversion. The simulation models conversion from these sources equivalently, since the extra step can be always be taken.
 
 **Conversion tracking:** Roth conversions are deposited into a separate "Roth Conversions" account to track their growth independently from original Roth contributions. This distinction matters because conversion amounts have a 5-year seasoning period before tax-free withdrawal (though the simulation does not model this constraint). The balance chart shows four layers: Pre-tax, Roth Conversions, Roth, and Brokerage.
 
 **Conversion strategies:** The simulator offers several strategies that limit annual conversion amounts to stay within tax-efficient thresholds:
-- **Standard:** No conversions beyond RMDs
+- **None:** No conversions
 - **IRMAA Tier 1:** Convert up to the IRMAA income threshold to avoid Medicare surcharges
 - **22% Bracket / 24% Bracket:** Convert up to the top of the specified federal tax bracket
 
@@ -70,6 +70,6 @@ Cost basis ratio represents what fraction of an account's value is original cont
 
 Brokerage account withdrawals are taxed differently from pre-tax account withdrawals:
 - **Pre-tax withdrawals:** Taxed as ordinary income (federal brackets + state tax)
-- **Brokerage withdrawals:** Only the gains portion is taxed, and at the capital gains rate (typically 15%), not ordinary income rates
+- **Brokerage withdrawals:** Only the gains portion is taxed, using progressive capital gains brackets (0%/15%/20%) that stack on top of ordinary income. Long-term capital gains fill brackets starting from the taxpayer's ordinary income level.
 
-This distinction means brokerage accounts are more tax-efficient for withdrawals when the capital gains rate is lower than the marginal income tax rate.
+This distinction means brokerage accounts are more tax-efficient for withdrawals when the effective capital gains rate is lower than the marginal income tax rate.

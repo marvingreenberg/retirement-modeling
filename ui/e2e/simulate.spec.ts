@@ -20,12 +20,12 @@ test.describe('Simulation Flow', () => {
 
 	test('run Monte Carlo simulation shows success rate', async ({ page }) => {
 		await requiresApi();
-		test.setTimeout(90000);
+		test.setTimeout(180000);
 		await page.getByRole('button', { name: 'Simulate' }).click();
 		// Both simulations run; switch to Monte Carlo tab
 		await page.getByRole('button', { name: 'Monte Carlo' }).click();
 
-		await expect(page.getByText('Success Rate')).toBeVisible({ timeout: 60000 });
+		await expect(page.getByText('Success Rate')).toBeVisible({ timeout: 120000 });
 		await expect(page.getByText('Median', { exact: true })).toBeVisible();
 		await expect(page.getByText('5th', { exact: true })).toBeVisible();
 		await expect(page.getByText('95th', { exact: true })).toBeVisible();

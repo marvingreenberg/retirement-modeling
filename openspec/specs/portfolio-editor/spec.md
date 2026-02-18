@@ -223,7 +223,17 @@ The single-run balance chart SHALL use a stacked area chart with up to four seri
 - **THEN** the tooltip shows the value for each visible account type and the total
 
 ### Requirement: Invalid data handling
-When loading portfolio data from localStorage or imported files, if the data contains invalid account types (e.g., old `pretax`/`roth` values), the behavior SHALL be: localStorage data is silently ignored (app starts fresh); imported files fail with error message indicating invalid pre-version data.
+When loading portfolio data from localStorage or imported files, the system SHALL gracefully handle saved data that references removed fields. Unknown fields are silently stripped. Invalid account types cause failures.
+
+#### Scenario: localStorage with unknown fields
+- **WHEN** auto-save restores data containing removed fields (e.g., `tax_rate_capital_gains`)
+- **THEN** the Zod schema SHALL strip unknown fields silently
+- **AND** the portfolio SHALL load without the removed field
+
+#### Scenario: Imported file with unknown fields
+- **WHEN** a JSON file containing removed fields is imported
+- **THEN** the Zod schema SHALL strip unknown fields
+- **AND** the portfolio SHALL load successfully without the removed field
 
 #### Scenario: Invalid localStorage ignored
 - **WHEN** the app loads and localStorage contains accounts with type "pretax"

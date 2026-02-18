@@ -18,11 +18,13 @@ def withdraw_from_accounts(
     accounts: list[Account],
     category: TaxCategory,
     owner_age_map: dict[str, int],
+    owner_filter: Owner | None = None,
 ) -> WithdrawalResult:
     """Withdraw from accounts matching a tax category.
 
     Returns the amount actually withdrawn and the weighted average cost basis ratio.
     Modifies account balances in place.
+    When owner_filter is set, only withdraws from accounts owned by that owner.
     """
     if amount_needed <= 0:
         return WithdrawalResult(0.0, 0.0)
@@ -35,6 +37,8 @@ def withdraw_from_accounts(
         if remaining_need <= 1.0:
             break
         if tax_category(acc.type) != category:
+            continue
+        if owner_filter is not None and acc.owner != owner_filter:
             continue
 
         current_age = owner_age_map.get(acc.owner.value, 0)
@@ -124,11 +128,22 @@ def deposit_to_account(
 
 
 def apply_growth(accounts: list[Account], rate: float) -> float:
-    """Apply investment growth to all accounts and return total balance."""
+    """Apply investment growth to all accounts and return total balance.
+
+    Cash/CD accounts skip growth (they don't earn equity-like returns).
+    Brokerage cost_basis_ratio is recalculated after growth — growth adds gains,
+    diluting the basis proportion.
+    """
     total = 0.0
     for acc in accounts:
-        acc.balance *= 1 + rate
-        acc.balance = round(acc.balance, 2)
+        if acc.type != AccountType.CASH_CD:
+            is_brokerage = tax_category(acc.type) == TaxCategory.BROKERAGE
+            if is_brokerage:
+                old_basis = acc.balance * acc.cost_basis_ratio
+            acc.balance *= 1 + rate
+            acc.balance = round(acc.balance, 2)
+            if is_brokerage and acc.balance > 0:
+                acc.cost_basis_ratio = old_basis / acc.balance
         total += acc.balance
     return total
 

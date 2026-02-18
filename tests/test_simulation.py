@@ -13,9 +13,11 @@ from retirement_model.models import (
     WithdrawalStrategy,
 )
 from retirement_model.simulation import (
+    _deposit_excess_income,
     calculate_planned_expenses,
     get_conversion_ceiling,
     run_simulation,
+    EXCESS_INCOME_ACCOUNT_ID,
 )
 
 
@@ -123,6 +125,47 @@ class TestCalculatePlannedExpenses:
         assert total == 100000
 
 
+class TestDepositExcessIncome:
+    def test_creates_new_account(self):
+        accounts: list[Account] = []
+        _deposit_excess_income(10000, accounts)
+        assert len(accounts) == 1
+        assert accounts[0].id == EXCESS_INCOME_ACCOUNT_ID
+        assert accounts[0].balance == 10000
+        assert accounts[0].cost_basis_ratio == 1.0
+
+    def test_deposits_to_existing_account(self):
+        accounts = [
+            Account(
+                id=EXCESS_INCOME_ACCOUNT_ID, name="Excess Income", balance=20000,
+                type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=1.0,
+            ),
+        ]
+        _deposit_excess_income(10000, accounts)
+        assert accounts[0].balance == 30000
+        assert accounts[0].cost_basis_ratio == 1.0  # both are 100% basis
+
+    def test_blends_basis_on_deposit_to_grown_account(self):
+        """After growth, existing account has diluted ratio. Deposit blends it back up."""
+        accounts = [
+            Account(
+                id=EXCESS_INCOME_ACCOUNT_ID, name="Excess Income", balance=110000,
+                type=AccountType.BROKERAGE, owner=Owner.JOINT,
+                cost_basis_ratio=100000 / 110000,  # ~0.909 (was 100k, grew to 110k)
+            ),
+        ]
+        _deposit_excess_income(10000, accounts)
+        # old_basis = 110000 * (100000/110000) = 100000, new_basis = 100000 + 10000 = 110000
+        # new_ratio = 110000 / 120000 ≈ 0.9167
+        assert accounts[0].balance == 120000
+        assert accounts[0].cost_basis_ratio == pytest.approx(110000 / 120000, rel=0.001)
+
+    def test_zero_amount_no_op(self):
+        accounts: list[Account] = []
+        _deposit_excess_income(0, accounts)
+        assert len(accounts) == 0
+
+
 class TestRunSimulation:
     def test_simulation_runs(self, sample_portfolio: Portfolio):
         result = run_simulation(sample_portfolio)
@@ -191,9 +234,9 @@ class TestRunSimulation:
         )
 
         result = run_simulation(portfolio)
-        # At age 68, 69: no SS
-        # AGI should be lower in years 0, 1
-        assert result.years[0].agi < result.years[2].agi
+        # At age 68, 69: no SS → all spending from brokerage
+        # At age 70: SS starts → less brokerage withdrawal needed
+        assert result.years[0].brokerage_withdrawal > result.years[2].brokerage_withdrawal
 
     def test_different_strategies_produce_different_results(self, sample_portfolio: Portfolio):
         sample_portfolio.config.strategy_target = WithdrawalStrategy.STANDARD

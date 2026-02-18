@@ -106,6 +106,7 @@ export interface IncomeStream {
 	end_age: number | null;
 	taxable_pct: number;
 	cola_rate: number | null;
+	owner: Owner;
 }
 
 export interface SSAutoConfig {
@@ -140,7 +141,6 @@ export interface SimulationConfig {
 	guardrails_config?: GuardrailsConfig;
 	tax_brackets_federal: TaxBracket[];
 	tax_rate_state: number;
-	tax_rate_capital_gains: number;
 	irmaa_limit_tier_1: number;
 	social_security: SocialSecurityConfig;
 	rmd_start_age: number;
@@ -198,26 +198,25 @@ export interface SimulationResponse {
 	};
 }
 
-export interface YearlyPercentiles {
+export interface YearlyResultPercentiles {
 	age: number;
-	percentile_5: number;
-	percentile_25: number;
-	median: number;
-	percentile_75: number;
-	percentile_95: number;
+	balance_p5: number;
+	balance_p25: number;
+	balance_median: number;
+	balance_p75: number;
+	balance_p95: number;
+	agi_median: number;
+	total_tax_median: number;
+	roth_conversion_median: number;
 }
 
 export interface MonteCarloResponse {
 	num_simulations: number;
 	success_rate: number;
-	failure_rate: number;
-	median_final_balance: number;
-	percentile_5: number;
-	percentile_25: number;
-	percentile_75: number;
-	percentile_95: number;
-	depletion_ages: number[];
-	yearly_percentiles: YearlyPercentiles[];
+	median_simulation: SimulationResult;
+	yearly_percentiles: YearlyResultPercentiles[];
+	final_balance_p5: number;
+	final_balance_p95: number;
 }
 
 export interface ComparisonResult {
@@ -256,7 +255,6 @@ export interface ComparisonSnapshot {
 	spendingStrategy: string;
 	conversionStrategy: string;
 	taxRateState: number;
-	taxRateCapitalGains: number;
 	finalBalance: number;
 	totalTaxes: number;
 	totalIrmaa: number;

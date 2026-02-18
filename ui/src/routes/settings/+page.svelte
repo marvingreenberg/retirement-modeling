@@ -306,13 +306,8 @@
 
 			<div class="space-y-4 max-w-md">
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
-					State Tax %
+					State/Local Tax %
 					<input type="number" class="input text-sm" value={toPct($portfolio.config.tax_rate_state)} oninput={(e) => setPct(e, (v) => $portfolio.config.tax_rate_state = v)} min="0" max="20" step="0.25" />
-				</label>
-
-				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
-					Capital Gains %
-					<input type="number" class="input text-sm" value={toPct($portfolio.config.tax_rate_capital_gains)} oninput={(e) => setPct(e, (v) => $portfolio.config.tax_rate_capital_gains = v)} min="0" max="30" step="0.5" />
 				</label>
 
 				<label class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300">
