@@ -1,11 +1,11 @@
-.PHONY: help setup build test e2e clean lint format dev deploy \
+.PHONY: help check-tools setup build test e2e clean lint format dev deploy \
        setup-api setup-ui build-api build-ui test-api test-ui \
        run-api run-cli run-ui dev docker-run
 
 VERSION := $(shell git describe --tags --always 2>/dev/null | sed 's/^v//' || echo "0.0.0")
 
 PKG_NAME := retirement-model
-ACTIVATE := . .venv/bin/activate
+ACTIVATE := if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi
 GITCLN := git clean -fdx
 FILE ?= input.json
 
@@ -32,8 +32,21 @@ help:
 	@echo "Component targets: setup-api, setup-ui, build-api, build-ui,"
 	@echo "  test-api, test-ui, run-api, run-ui, run-cli"
 
-setup:
+REQUIRED_TOOLS := gh gcloud docker keyring
+check-tools:
+	@missing=""; \
+	  for cmd in $(REQUIRED_TOOLS); do \
+	    command -v $$cmd >/dev/null 2>&1 || missing="$$missing $$cmd"; \
+	  done; \
+	  if [ -n "$$missing" ]; then \
+	    echo "Missing required tools:$$missing"; \
+	    echo "Install with: brew install$$missing"; \
+	    exit 1; \
+	  fi
+
+setup: check-tools
 	keyring get $(REPO) $(REPO_OWNER) | docker login $(REPO) --username $(REPO_OWNER) --password-stdin
+	./scripts/set-gcloud-creds-for-deploy
 
 build: build-api build-ui
 
@@ -57,7 +70,7 @@ dev:
 	  wait
 
 docker-run:
-	docker build -t retirement-app . && \
+	docker build --build-arg VERSION=$(VERSION) -t retirement-app . && \
 	  docker run --rm -p 8000:8000 retirement-app
 
 GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
@@ -66,9 +79,9 @@ GCP_REGION := $(if $(GCP_REGION),$(GCP_REGION),us-central1)
 GH_IMAGE := ghcr.io/marvingreenberg/$(SERVICE_NAME)
 GCP_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/retirement-sim/$(SERVICE_NAME)
 
-build-image: build
+build-image: build-ui
 	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
-	docker build --progress plain -t $(GH_IMAGE):$(VERSION) .
+	docker build --progress plain --build-arg VERSION=$(VERSION) -t $(GH_IMAGE):$(VERSION) .
 	docker tag $(GH_IMAGE):$(VERSION) $(GH_IMAGE):latest
 	docker tag $(GH_IMAGE):$(VERSION) $(GCP_IMAGE):$(VERSION)
 	docker tag $(GH_IMAGE):$(VERSION) $(GCP_IMAGE):latest

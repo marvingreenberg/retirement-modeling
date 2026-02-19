@@ -17,21 +17,22 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -e ".[dev]"
-      - run: pytest tests/ -v
+      - run: make test-api
 
   test-ui:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ui/package.json
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: ui/pnpm-lock.yaml
       - run: cd ui && pnpm install --frozen-lockfile
-      - run: cd ui && pnpm test
-      - run: cd ui && npx svelte-check --tsconfig ./tsconfig.json
+      - run: make test-ui
 
   lint:
     runs-on: ubuntu-latest
@@ -42,5 +43,4 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -e ".[dev]"
-      - run: black --check src/ tests/
-      - run: isort --check-only src/ tests/
+      - run: make lint

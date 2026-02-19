@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="retirement-withdrawal-modeling"
+SA_NAME="github-deploy"
+SA_EMAIL="${SA_NAME}@${PROJECT}.iam.gserviceaccount.com"
+KEY_FILE=$(mktemp)
+ROLES=(
+    "roles/run.admin"
+    "roles/artifactregistry.writer"
+    "roles/iam.serviceAccountUser"
+)
+
+usage() {
+    echo "Usage: $(basename "$0") [--new | --clear]"
+    echo ""
+    echo "  (no args)  Create SA and set GitHub secrets (idempotent)"
+    echo "  --new      Delete existing SA and secrets, then recreate"
+    echo "  --clear    Delete existing SA and secrets only"
+    exit 1
+}
+
+cleanup() {
+    rm -f "$KEY_FILE"
+}
+trap cleanup EXIT
+
+# ── Helpers ──────────────────────────────────────────────────────
+
+sa_exists() {
+    gcloud iam service-accounts describe "$SA_EMAIL" --project="$PROJECT" &>/dev/null
+}
+
+secrets_exist() {
+    gh secret list 2>/dev/null | grep -q "GCP_SA_KEY"
+}
+
+create_sa() {
+    echo "Creating service account ${SA_NAME}..."
+    gcloud iam service-accounts create "$SA_NAME" \
+        --project="$PROJECT" \
+        --display-name="GitHub Actions Deploy"
+
+    for role in "${ROLES[@]}"; do
+        echo "  Granting ${role}..."
+        gcloud projects add-iam-policy-binding "$PROJECT" \
+            --member="serviceAccount:${SA_EMAIL}" \
+            --role="$role" \
+            --quiet &>/dev/null
+    done
+}
+
+delete_sa() {
+    if sa_exists; then
+        echo "Deleting service account ${SA_NAME}..."
+        gcloud iam service-accounts delete "$SA_EMAIL" \
+            --project="$PROJECT" --quiet
+    fi
+}
+
+set_secrets() {
+    echo "Generating key and setting GitHub secrets..."
+    gcloud iam service-accounts keys create "$KEY_FILE" \
+        --iam-account="$SA_EMAIL" --quiet
+
+    gh secret set GCP_SA_KEY < "$KEY_FILE"
+    gh secret set GCP_PROJECT --body "$PROJECT"
+    echo "GitHub secrets GCP_SA_KEY and GCP_PROJECT set."
+}
+
+clear_secrets() {
+    echo "Removing GitHub secrets..."
+    gh secret delete GCP_SA_KEY 2>/dev/null && echo "  Deleted GCP_SA_KEY" || echo "  GCP_SA_KEY not found"
+    gh secret delete GCP_PROJECT 2>/dev/null && echo "  Deleted GCP_PROJECT" || echo "  GCP_PROJECT not found"
+}
+
+# ── Main ─────────────────────────────────────────────────────────
+
+MODE="${1:-}"
+
+case "$MODE" in
+    --clear)
+        clear_secrets
+        delete_sa
+        echo "Done. Credentials cleared."
+        ;;
+    --new)
+        clear_secrets
+        delete_sa
+        create_sa
+        set_secrets
+        echo "Done. Fresh credentials created."
+        ;;
+    "")
+        if sa_exists && secrets_exist; then
+            echo "Service account and GitHub secrets already set for ${SA_NAME}."
+            echo "Use --new to recreate, or --clear to remove."
+            exit 0
+        fi
+        if ! sa_exists; then
+            create_sa
+        else
+            echo "Service account ${SA_NAME} already exists, reusing."
+        fi
+        set_secrets
+        echo "Done."
+        ;;
+    *)
+        usage
+        ;;
+esac
