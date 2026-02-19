@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { get } from 'svelte/store';
-import { portfolio, samplePortfolio, defaultPortfolio, profile, sampleProfile, defaultProfile, numSimulations } from '$lib/stores';
+import { portfolio, sampleScenarios, defaultPortfolio, profile, defaultProfile, numSimulations } from '$lib/stores';
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn(),
@@ -85,9 +85,9 @@ describe('Settings Page', () => {
 			expect(screen.queryByRole('button', { name: /get started/i })).not.toBeInTheDocument();
 		});
 
-		it('shows Load Sample Data button', () => {
+		it('shows Load Sample Data dropdown', () => {
 			render(SettingsPage);
-			expect(screen.getByRole('button', { name: /load sample data/i })).toBeInTheDocument();
+			expect(screen.getByRole('combobox', { name: /load sample data/i })).toBeInTheDocument();
 		});
 
 		it('shows spouse toggle', () => {
@@ -132,11 +132,12 @@ describe('Settings Page', () => {
 			expect(goto).toHaveBeenCalledWith('/');
 		});
 
-		it('Load Sample Data loads data and navigates home', async () => {
+		it('Load Sample Data dropdown loads scenario and navigates home', async () => {
 			render(SettingsPage);
-			await fireEvent.click(screen.getByRole('button', { name: /load sample data/i }));
-			expect(get(portfolio).config.current_age_primary).toBe(58);
-			expect(get(profile).primaryName).toBe('Mike');
+			const select = screen.getByRole('combobox', { name: /load sample data/i });
+			await fireEvent.change(select, { target: { value: 'Moderate Couple' } });
+			expect(get(portfolio).config.current_age_primary).toBe(65);
+			expect(get(profile).primaryName).toBe('Pat');
 			expect(goto).toHaveBeenCalledWith('/');
 		});
 	});

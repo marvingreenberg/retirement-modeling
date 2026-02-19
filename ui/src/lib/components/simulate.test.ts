@@ -41,7 +41,7 @@ describe('Snapshot name generation', () => {
 
 	it('generates name from default config', () => {
 		const name = generateSnapshotName(samplePortfolio.config);
-		expect(name).toBe('3.0% infl, 7.0% growth, Guardrails, IRMAA Tier 1');
+		expect(name).toBe('3.0% infl, 7.0% growth, Fixed Dollar, IRMAA Tier 1');
 	});
 
 	it('reflects changed parameters', () => {

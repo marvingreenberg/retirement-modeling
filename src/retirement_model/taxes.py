@@ -1,5 +1,7 @@
 """Tax calculation functions for retirement simulation."""
 
+import math
+
 from retirement_model.constants import (
     BRACKET_LABELS,
     CAPITAL_GAINS_BRACKETS_MFJ,
@@ -10,8 +12,6 @@ from retirement_model.constants import (
     STANDARD_DEDUCTION_MFJ,
 )
 from retirement_model.models import TaxBracket
-
-import math
 
 
 def inflate_brackets(brackets: list[dict], factor: float) -> list[dict]:

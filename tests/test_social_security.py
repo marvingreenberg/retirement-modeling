@@ -67,7 +67,8 @@ class TestGenerateSSStreams:
 
     def test_primary_only(self) -> None:
         config = SSAutoConfig(
-            primary_fra_amount=36000, primary_start_age=67,
+            primary_fra_amount=36000,
+            primary_start_age=67,
         )
         streams = generate_ss_streams(config)
         assert len(streams) == 1
@@ -79,8 +80,10 @@ class TestGenerateSSStreams:
 
     def test_primary_and_spouse(self) -> None:
         config = SSAutoConfig(
-            primary_fra_amount=36000, primary_start_age=67,
-            spouse_fra_amount=18000, spouse_start_age=65,
+            primary_fra_amount=36000,
+            primary_start_age=67,
+            spouse_fra_amount=18000,
+            spouse_start_age=65,
         )
         streams = generate_ss_streams(config)
         assert len(streams) == 2
@@ -90,21 +93,24 @@ class TestGenerateSSStreams:
 
     def test_early_claiming_reduces_amount(self) -> None:
         config = SSAutoConfig(
-            primary_fra_amount=36000, primary_start_age=62,
+            primary_fra_amount=36000,
+            primary_start_age=62,
         )
         streams = generate_ss_streams(config)
         assert streams[0].amount < 36000
 
     def test_delayed_claiming_increases_amount(self) -> None:
         config = SSAutoConfig(
-            primary_fra_amount=36000, primary_start_age=70,
+            primary_fra_amount=36000,
+            primary_start_age=70,
         )
         streams = generate_ss_streams(config)
         assert streams[0].amount > 36000
 
     def test_spouse_not_generated_when_absent(self) -> None:
         config = SSAutoConfig(
-            primary_fra_amount=36000, primary_start_age=67,
+            primary_fra_amount=36000,
+            primary_start_age=67,
         )
         streams = generate_ss_streams(config)
         assert len(streams) == 1
@@ -112,7 +118,9 @@ class TestGenerateSSStreams:
 
     def test_custom_fra_age(self) -> None:
         config = SSAutoConfig(
-            primary_fra_amount=36000, primary_start_age=66, fra_age=66,
+            primary_fra_amount=36000,
+            primary_start_age=66,
+            fra_age=66,
         )
         streams = generate_ss_streams(config)
         assert streams[0].amount == 36000  # at FRA, no adjustment

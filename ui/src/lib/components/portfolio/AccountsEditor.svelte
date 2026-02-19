@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Account, AccountType, SimulationConfig } from '$lib/types';
-	import { ACCOUNT_TYPE_DEFAULTS, ACCOUNT_TYPE_LABELS, EDITOR_ACCOUNT_TYPES, TAX_CATEGORY_MAP } from '$lib/types';
+	import { ACCOUNT_TYPE_DEFAULTS, ACCOUNT_TYPE_LABELS, EDITOR_ACCOUNT_TYPES, INDIVIDUAL_ONLY_TYPES, TAX_CATEGORY_MAP } from '$lib/types';
 	import { validationErrors, formTouched } from '$lib/stores';
 	import InfoPopover from '$lib/components/InfoPopover.svelte';
 	import { ShieldCheck, Sprout, TrendingUp, Banknote } from 'lucide-svelte';
@@ -29,14 +29,16 @@
 
 	function addAccount() {
 		const num = nextId++;
+		const type: AccountType = 'brokerage';
+		const defaults = ACCOUNT_TYPE_DEFAULTS[type];
 		accounts = [...accounts, {
 			id: `account_${num}`,
 			name: `Account ${num}`,
 			balance: 0,
-			type: 'brokerage' as AccountType,
+			type,
 			owner: 'primary',
-			cost_basis_ratio: 0.40,
-			available_at_age: 0,
+			cost_basis_ratio: defaults.cost_basis_ratio,
+			available_at_age: defaults.default_available_age,
 		}];
 	}
 
@@ -49,6 +51,10 @@
 		account.type = newType;
 		const defaults = ACCOUNT_TYPE_DEFAULTS[newType];
 		account.cost_basis_ratio = defaults.cost_basis_ratio;
+		account.available_at_age = defaults.default_available_age;
+		if (INDIVIDUAL_ONLY_TYPES.has(newType) && account.owner === 'joint') {
+			account.owner = 'primary';
+		}
 		accounts[i] = account;
 		accounts = [...accounts];
 	}
@@ -117,7 +123,9 @@
 			<select class="select w-30" bind:value={account.owner} aria-label="Owner">
 				<option value="primary">Primary</option>
 				<option value="spouse">Spouse</option>
-				<option value="joint">Joint</option>
+				{#if !INDIVIDUAL_ONLY_TYPES.has(account.type)}
+					<option value="joint">Joint</option>
+				{/if}
 			</select>
 			<input
 				type="number"

@@ -47,19 +47,24 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 	simple_ira: 'SIMPLE IRA',
 };
 
-export const ACCOUNT_TYPE_DEFAULTS: Record<AccountType, { cost_basis_ratio: number; editable: boolean }> = {
-	brokerage: { cost_basis_ratio: 0.40, editable: true },
-	cash_cd: { cost_basis_ratio: 1.00, editable: false },
-	roth_ira: { cost_basis_ratio: 1.00, editable: false },
-	roth_401k: { cost_basis_ratio: 1.00, editable: false },
-	roth_conversion: { cost_basis_ratio: 1.00, editable: false },
-	'401k': { cost_basis_ratio: 0.00, editable: false },
-	'403b': { cost_basis_ratio: 0.00, editable: false },
-	'457b': { cost_basis_ratio: 0.00, editable: false },
-	ira: { cost_basis_ratio: 0.00, editable: false },
-	sep_ira: { cost_basis_ratio: 0.00, editable: false },
-	simple_ira: { cost_basis_ratio: 0.00, editable: false },
+export const ACCOUNT_TYPE_DEFAULTS: Record<AccountType, { cost_basis_ratio: number; editable: boolean; default_available_age: number }> = {
+	brokerage: { cost_basis_ratio: 0.40, editable: true, default_available_age: 0 },
+	cash_cd: { cost_basis_ratio: 1.00, editable: false, default_available_age: 0 },
+	roth_ira: { cost_basis_ratio: 1.00, editable: false, default_available_age: 60 },
+	roth_401k: { cost_basis_ratio: 1.00, editable: false, default_available_age: 60 },
+	roth_conversion: { cost_basis_ratio: 1.00, editable: false, default_available_age: 60 },
+	'401k': { cost_basis_ratio: 0.00, editable: false, default_available_age: 60 },
+	'403b': { cost_basis_ratio: 0.00, editable: false, default_available_age: 60 },
+	'457b': { cost_basis_ratio: 0.00, editable: false, default_available_age: 60 },
+	ira: { cost_basis_ratio: 0.00, editable: false, default_available_age: 60 },
+	sep_ira: { cost_basis_ratio: 0.00, editable: false, default_available_age: 60 },
+	simple_ira: { cost_basis_ratio: 0.00, editable: false, default_available_age: 60 },
 };
+
+// Account types that are individual-only (no joint ownership)
+export const INDIVIDUAL_ONLY_TYPES: Set<AccountType> = new Set([
+	'roth_ira', 'roth_401k', '401k', '403b', '457b', 'ira', 'sep_ira', 'simple_ira',
+]);
 
 // Account types shown in the editor dropdown (excludes roth_conversion which is sim-only)
 export const EDITOR_ACCOUNT_TYPES: AccountType[] = [
@@ -171,6 +176,7 @@ export interface YearResult {
 	surplus: number;
 	roth_conversion: number;
 	conversion_tax: number;
+	conversion_tax_from_brokerage: number;
 	pretax_withdrawal: number;
 	roth_withdrawal: number;
 	brokerage_withdrawal: number;

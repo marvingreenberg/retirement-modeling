@@ -1,10 +1,13 @@
 <script lang="ts">
-	import { portfolio, samplePortfolio } from '$lib/stores';
+	import { portfolio, profile, sampleScenarios } from '$lib/stores';
 	import { portfolioSchema } from '$lib/schema';
 	import type { Portfolio } from '$lib/types';
 
-	function loadSample() {
-		portfolio.set(structuredClone(samplePortfolio));
+	function loadScenario(name: string) {
+		const scenario = sampleScenarios[name];
+		if (!scenario) return;
+		profile.set(structuredClone(scenario.profile));
+		portfolio.set(structuredClone(scenario.portfolio));
 	}
 
 	let fileInput: HTMLInputElement;
@@ -51,9 +54,22 @@
 	}
 </script>
 
-<div class="flex gap-3 mb-4">
+<div class="flex gap-3 items-center mb-4">
 	<input type="file" accept=".json" bind:this={fileInput} onchange={handleFile} hidden />
-	<button class="btn preset-tonal" onclick={loadSample}>Load Sample Data</button>
+	<label class="flex items-center gap-2 text-sm font-medium text-surface-700 dark:text-surface-300">
+		Sample Data
+		<select class="select text-sm w-48" aria-label="Load Sample Data"
+			onchange={(e) => {
+				const val = (e.target as HTMLSelectElement).value;
+				if (val) loadScenario(val);
+				(e.target as HTMLSelectElement).value = '';
+			}}>
+			<option value="">Select scenario...</option>
+			{#each Object.keys(sampleScenarios) as name}
+				<option value={name}>{name}</option>
+			{/each}
+		</select>
+	</label>
 	<button class="btn preset-tonal" onclick={loadFile}>Load Portfolio</button>
 	<button class="btn preset-tonal" onclick={saveFile}>Save Portfolio</button>
 </div>

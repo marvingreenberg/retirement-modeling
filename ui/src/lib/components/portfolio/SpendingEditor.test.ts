@@ -54,8 +54,7 @@ describe('SpendingEditor', () => {
 
 	it('renders existing planned expenses as cards', () => {
 		renderEditor();
-		expect(screen.getByDisplayValue('Kitchen remodel')).toBeInTheDocument();
-		expect(screen.getByDisplayValue('Travel')).toBeInTheDocument();
+		expect(screen.getByDisplayValue('New car')).toBeInTheDocument();
 	});
 
 	it('shows single year input for one-time expense', () => {

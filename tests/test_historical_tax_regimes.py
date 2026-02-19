@@ -18,21 +18,21 @@ class TestHistoricalRegimeData:
 
     def test_uniform_federal_brackets(self):
         for regime in HISTORICAL_TAX_REGIMES:
-            assert len(regime["federal_brackets"]) == 7, (
-                f"{regime['name']} has {len(regime['federal_brackets'])} federal brackets, expected 7"
-            )
+            assert (
+                len(regime["federal_brackets"]) == 7
+            ), f"{regime['name']} has {len(regime['federal_brackets'])} federal brackets, expected 7"
 
     def test_uniform_capital_gains_brackets(self):
         for regime in HISTORICAL_TAX_REGIMES:
-            assert len(regime["capital_gains_brackets"]) == 3, (
-                f"{regime['name']} has {len(regime['capital_gains_brackets'])} CG brackets, expected 3"
-            )
+            assert (
+                len(regime["capital_gains_brackets"]) == 3
+            ), f"{regime['name']} has {len(regime['capital_gains_brackets'])} CG brackets, expected 3"
 
     def test_uniform_irmaa_tiers(self):
         for regime in HISTORICAL_TAX_REGIMES:
-            assert len(regime["irmaa_tiers"]) == 6, (
-                f"{regime['name']} has {len(regime['irmaa_tiers'])} IRMAA tiers, expected 6"
-            )
+            assert (
+                len(regime["irmaa_tiers"]) == 6
+            ), f"{regime['name']} has {len(regime['irmaa_tiers'])} IRMAA tiers, expected 6"
 
     def test_each_regime_has_name(self):
         for regime in HISTORICAL_TAX_REGIMES:
@@ -48,16 +48,16 @@ class TestHistoricalRegimeData:
     def test_federal_bracket_rates_in_valid_range(self):
         for regime in HISTORICAL_TAX_REGIMES:
             for bracket in regime["federal_brackets"]:
-                assert 0 < bracket["rate"] <= 1.0, (
-                    f"{regime['name']} has invalid rate {bracket['rate']}"
-                )
+                assert (
+                    0 < bracket["rate"] <= 1.0
+                ), f"{regime['name']} has invalid rate {bracket['rate']}"
 
     def test_capital_gains_rates_in_valid_range(self):
         for regime in HISTORICAL_TAX_REGIMES:
             for bracket in regime["capital_gains_brackets"]:
-                assert 0 <= bracket["rate"] <= 1.0, (
-                    f"{regime['name']} has invalid CG rate {bracket['rate']}"
-                )
+                assert (
+                    0 <= bracket["rate"] <= 1.0
+                ), f"{regime['name']} has invalid CG rate {bracket['rate']}"
 
     def test_last_federal_bracket_is_inf(self):
         for regime in HISTORICAL_TAX_REGIMES:
@@ -78,9 +78,7 @@ class TestHistoricalRegimeData:
         for regime in HISTORICAL_TAX_REGIMES:
             limits = [b["limit"] for b in regime["federal_brackets"]]
             for i in range(len(limits) - 1):
-                assert limits[i] < limits[i + 1], (
-                    f"{regime['name']} federal brackets not ascending"
-                )
+                assert limits[i] < limits[i + 1], f"{regime['name']} federal brackets not ascending"
 
     def test_get_historical_regimes_returns_copy(self):
         regimes1 = get_historical_regimes()

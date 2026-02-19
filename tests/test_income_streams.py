@@ -10,8 +10,8 @@ from retirement_model.models import (
     Owner,
     Portfolio,
     SimulationConfig,
-    SSAutoConfig,
     SocialSecurityConfig,
+    SSAutoConfig,
 )
 from retirement_model.simulation import run_simulation
 
@@ -48,8 +48,10 @@ class TestIncomeStreamModel:
             start_year=2026,
             annual_spend_net=50000,
             social_security=SocialSecurityConfig(
-                primary_benefit=0, primary_start_age=70,
-                spouse_benefit=0, spouse_start_age=70,
+                primary_benefit=0,
+                primary_start_age=70,
+                spouse_benefit=0,
+                spouse_start_age=70,
             ),
         )
         assert cfg.income_streams == []
@@ -69,8 +71,10 @@ def _make_portfolio(
             annual_spend_net=50000,
             strategy_target="standard",
             social_security=SocialSecurityConfig(
-                primary_benefit=0, primary_start_age=70,
-                spouse_benefit=0, spouse_start_age=70,
+                primary_benefit=0,
+                primary_start_age=70,
+                spouse_benefit=0,
+                spouse_start_age=70,
             ),
             income_streams=streams or [],
         ),
@@ -175,7 +179,9 @@ class TestIncomeStreamCashFlow:
         result_single = run_simulation(_make_portfolio(age=65, years=1, streams=single))
         result_both = run_simulation(_make_portfolio(age=65, years=1, streams=both))
         # Adding a second stream should further reduce withdrawals
-        assert result_both.years[0].brokerage_withdrawal < result_single.years[0].brokerage_withdrawal
+        assert (
+            result_both.years[0].brokerage_withdrawal < result_single.years[0].brokerage_withdrawal
+        )
 
 
 class TestNoIncomeStreams:
@@ -241,16 +247,22 @@ class TestSSAutoGeneration:
                 annual_spend_net=50000,
                 strategy_target="standard",
                 social_security=SocialSecurityConfig(
-                    primary_benefit=0, primary_start_age=70,
-                    spouse_benefit=0, spouse_start_age=70,
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
                 ),
                 income_streams=streams or [],
                 ss_auto=ss_auto,
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=1_000_000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=1_000_000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
                 )
             ],
         )
@@ -274,15 +286,21 @@ class TestSSAutoGeneration:
                 annual_spend_net=50000,
                 strategy_target="standard",
                 social_security=SocialSecurityConfig(
-                    primary_benefit=100000, primary_start_age=67,
-                    spouse_benefit=0, spouse_start_age=70,
+                    primary_benefit=100000,
+                    primary_start_age=67,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
                 ),
                 ss_auto=SSAutoConfig(primary_fra_amount=12000, primary_start_age=67),
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=1_000_000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=1_000_000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
                 )
             ],
         )
@@ -304,14 +322,20 @@ class TestSSAutoGeneration:
                 annual_spend_net=50000,
                 strategy_target="standard",
                 social_security=SocialSecurityConfig(
-                    primary_benefit=36000, primary_start_age=67,
-                    spouse_benefit=0, spouse_start_age=70,
+                    primary_benefit=36000,
+                    primary_start_age=67,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
                 ),
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=1_000_000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=1_000_000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
                 )
             ],
         )
@@ -323,8 +347,10 @@ class TestSSAutoGeneration:
 
     def test_ss_auto_with_spouse(self) -> None:
         ss_auto = SSAutoConfig(
-            primary_fra_amount=36000, primary_start_age=67,
-            spouse_fra_amount=18000, spouse_start_age=65,
+            primary_fra_amount=36000,
+            primary_start_age=67,
+            spouse_fra_amount=18000,
+            spouse_start_age=65,
         )
         portfolio = self._make_ss_auto_portfolio(ss_auto, age=67, years=3)
         primary_only = SSAutoConfig(primary_fra_amount=36000, primary_start_age=67)

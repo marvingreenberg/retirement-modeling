@@ -251,9 +251,7 @@ class TestBackwardCompatRedirects:
         assert response.headers["location"] == "/api/v1/strategies"
 
     def test_old_monte_carlo_redirects(self, client: TestClient):
-        response = client.post(
-            "/monte-carlo", json={"portfolio": {}}, follow_redirects=False
-        )
+        response = client.post("/monte-carlo", json={"portfolio": {}}, follow_redirects=False)
         assert response.status_code == 307
         assert response.headers["location"] == "/api/v1/monte-carlo"
 
@@ -292,8 +290,10 @@ class TestNewIncomeFeatures:
                 "start_year": 2026,
                 "annual_spend_net": 80000,
                 "social_security": {
-                    "primary_benefit": 0, "primary_start_age": 70,
-                    "spouse_benefit": 0, "spouse_start_age": 70,
+                    "primary_benefit": 0,
+                    "primary_start_age": 70,
+                    "spouse_benefit": 0,
+                    "spouse_start_age": 70,
                 },
                 "ss_auto": {
                     "primary_fra_amount": 36000,
@@ -312,12 +312,19 @@ class TestNewIncomeFeatures:
             },
             "accounts": [
                 {
-                    "id": "ira", "name": "IRA", "balance": 500000,
-                    "type": "ira", "owner": "primary",
+                    "id": "ira",
+                    "name": "IRA",
+                    "balance": 500000,
+                    "type": "ira",
+                    "owner": "primary",
                 },
                 {
-                    "id": "brokerage", "name": "Brokerage", "balance": 300000,
-                    "type": "brokerage", "owner": "joint", "cost_basis_ratio": 0.5,
+                    "id": "brokerage",
+                    "name": "Brokerage",
+                    "balance": 300000,
+                    "type": "brokerage",
+                    "owner": "joint",
+                    "cost_basis_ratio": 0.5,
                 },
             ],
         }
@@ -357,8 +364,7 @@ class TestStaticServing:
         with patch.object(api_module, "STATIC_DIR", static_dir):
             # Remove existing static mount and root route (registered at module load)
             app.routes[:] = [
-                r for r in app.routes
-                if getattr(r, "name", "") not in ("static", "root")
+                r for r in app.routes if getattr(r, "name", "") not in ("static", "root")
             ]
             api_module.mount_static_or_root()
 

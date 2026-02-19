@@ -13,11 +13,11 @@ from retirement_model.models import (
     WithdrawalStrategy,
 )
 from retirement_model.simulation import (
+    EXCESS_INCOME_ACCOUNT_ID,
     _deposit_excess_income,
     calculate_planned_expenses,
     get_conversion_ceiling,
     run_simulation,
-    EXCESS_INCOME_ACCOUNT_ID,
 )
 
 
@@ -137,8 +137,12 @@ class TestDepositExcessIncome:
     def test_deposits_to_existing_account(self):
         accounts = [
             Account(
-                id=EXCESS_INCOME_ACCOUNT_ID, name="Excess Income", balance=20000,
-                type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=1.0,
+                id=EXCESS_INCOME_ACCOUNT_ID,
+                name="Excess Income",
+                balance=20000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=1.0,
             ),
         ]
         _deposit_excess_income(10000, accounts)
@@ -149,8 +153,11 @@ class TestDepositExcessIncome:
         """After growth, existing account has diluted ratio. Deposit blends it back up."""
         accounts = [
             Account(
-                id=EXCESS_INCOME_ACCOUNT_ID, name="Excess Income", balance=110000,
-                type=AccountType.BROKERAGE, owner=Owner.JOINT,
+                id=EXCESS_INCOME_ACCOUNT_ID,
+                name="Excess Income",
+                balance=110000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
                 cost_basis_ratio=100000 / 110000,  # ~0.909 (was 100k, grew to 110k)
             ),
         ]
@@ -273,14 +280,20 @@ class TestRunSimulation:
                 annual_spend_net=200000,
                 strategy_target=WithdrawalStrategy.STANDARD,
                 social_security=SocialSecurityConfig(
-                    primary_benefit=0, primary_start_age=70,
-                    spouse_benefit=0, spouse_start_age=70,
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
                 ),
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=100000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=100000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
                 )
             ],
         )
@@ -354,22 +367,34 @@ class TestInflationIndexedTaxBrackets:
                 investment_growth_rate=0.06,
                 strategy_target=WithdrawalStrategy.BRACKET_24,
                 social_security=SocialSecurityConfig(
-                    primary_benefit=30000, primary_start_age=67,
-                    spouse_benefit=20000, spouse_start_age=67,
+                    primary_benefit=30000,
+                    primary_start_age=67,
+                    spouse_benefit=20000,
+                    spouse_start_age=67,
                 ),
             ),
             accounts=[
                 Account(
-                    id="pretax", name="IRA", balance=1000000,
-                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                    id="pretax",
+                    name="IRA",
+                    balance=1000000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
                 ),
                 Account(
-                    id="roth", name="Roth", balance=200000,
-                    type=AccountType.ROTH_IRA, owner=Owner.PRIMARY,
+                    id="roth",
+                    name="Roth",
+                    balance=200000,
+                    type=AccountType.ROTH_IRA,
+                    owner=Owner.PRIMARY,
                 ),
                 Account(
-                    id="brokerage", name="Brokerage", balance=500000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.6,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=500000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.6,
                 ),
             ],
         )
@@ -438,18 +463,27 @@ class TestTaxRegimeSequence:
                 investment_growth_rate=0.06,
                 strategy_target=WithdrawalStrategy.BRACKET_24,
                 social_security=SocialSecurityConfig(
-                    primary_benefit=30000, primary_start_age=70,
-                    spouse_benefit=20000, spouse_start_age=70,
+                    primary_benefit=30000,
+                    primary_start_age=70,
+                    spouse_benefit=20000,
+                    spouse_start_age=70,
                 ),
             ),
             accounts=[
                 Account(
-                    id="pretax", name="IRA", balance=800000,
-                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                    id="pretax",
+                    name="IRA",
+                    balance=800000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
                 ),
                 Account(
-                    id="brokerage", name="Brokerage", balance=400000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.6,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=400000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.6,
                 ),
             ],
         )
@@ -471,6 +505,7 @@ class TestTaxRegimeSequence:
 
         # Use a high-tax regime for all years (70% top rate, Pre-ERTA style)
         from retirement_model.historical_tax_regimes import HISTORICAL_TAX_REGIMES
+
         high_tax = HISTORICAL_TAX_REGIMES[0]  # Pre-ERTA 1978 (High Tax)
         regime_seq = [high_tax] * 5
 
@@ -483,8 +518,8 @@ class TestTaxRegimeSequence:
 
     def test_regime_sequence_overrides_config_brackets(self):
         """Regime sequence should take priority over config-level tax_brackets_federal."""
-        from retirement_model.models import TaxBracket
         from retirement_model.historical_tax_regimes import HISTORICAL_TAX_REGIMES
+        from retirement_model.models import TaxBracket
 
         portfolio = self._make_portfolio()
         # Set config-level brackets (these should be overridden)
@@ -513,6 +548,7 @@ class TestTaxRegimeSequence:
 
         # Use TCJA (deduction=29200) vs Pre-ERTA (deduction=15000)
         from retirement_model.historical_tax_regimes import HISTORICAL_TAX_REGIMES
+
         tcja = next(r for r in HISTORICAL_TAX_REGIMES if "TCJA" in r["name"])
         pre_erta = next(r for r in HISTORICAL_TAX_REGIMES if "Pre-ERTA" in r["name"])
 
@@ -542,18 +578,26 @@ class TestWithdrawalDetails:
                 annual_spend_net=30000,
                 strategy_target=WithdrawalStrategy.STANDARD,
                 social_security=SocialSecurityConfig(
-                    primary_benefit=30000, primary_start_age=70,
-                    spouse_benefit=20000, spouse_start_age=70,
+                    primary_benefit=30000,
+                    primary_start_age=70,
+                    spouse_benefit=20000,
+                    spouse_start_age=70,
                 ),
             ),
             accounts=[
                 Account(
-                    id="ira_p", name="Primary IRA", balance=500000,
-                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                    id="ira_p",
+                    name="Primary IRA",
+                    balance=500000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
                 ),
                 Account(
-                    id="ira_s", name="Spouse IRA", balance=300000,
-                    type=AccountType.IRA, owner=Owner.SPOUSE,
+                    id="ira_s",
+                    name="Spouse IRA",
+                    balance=300000,
+                    type=AccountType.IRA,
+                    owner=Owner.SPOUSE,
                 ),
             ],
         )
@@ -576,14 +620,20 @@ class TestWithdrawalDetails:
                 annual_spend_net=80000,
                 strategy_target=WithdrawalStrategy.STANDARD,
                 social_security=SocialSecurityConfig(
-                    primary_benefit=0, primary_start_age=70,
-                    spouse_benefit=0, spouse_start_age=70,
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
                 ),
             ),
             accounts=[
                 Account(
-                    id="brok", name="Brokerage", balance=500000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                    id="brok",
+                    name="Brokerage",
+                    balance=500000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
                 ),
             ],
         )
@@ -606,18 +656,27 @@ class TestWithdrawalDetails:
                 annual_spend_net=30000,
                 strategy_target=WithdrawalStrategy.IRMAA_TIER_1,
                 social_security=SocialSecurityConfig(
-                    primary_benefit=0, primary_start_age=70,
-                    spouse_benefit=0, spouse_start_age=70,
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
                 ),
             ),
             accounts=[
                 Account(
-                    id="ira_main", name="Main IRA", balance=800000,
-                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                    id="ira_main",
+                    name="Main IRA",
+                    balance=800000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
                 ),
                 Account(
-                    id="brok", name="Brokerage", balance=200000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                    id="brok",
+                    name="Brokerage",
+                    balance=200000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
                 ),
             ],
         )

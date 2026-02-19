@@ -2,6 +2,12 @@
 
 import copy
 
+from retirement_model.constants import (
+    CAPITAL_GAINS_BRACKETS_MFJ,
+    FEDERAL_TAX_BRACKETS_MFJ,
+    IRMAA_TIERS_MFJ,
+    STANDARD_DEDUCTION_MFJ,
+)
 from retirement_model.models import (
     Account,
     AccountType,
@@ -18,12 +24,6 @@ from retirement_model.models import (
 )
 from retirement_model.social_security import generate_ss_streams
 from retirement_model.strategies import calculate_spending_target, create_initial_state
-from retirement_model.constants import (
-    CAPITAL_GAINS_BRACKETS_MFJ,
-    FEDERAL_TAX_BRACKETS_MFJ,
-    IRMAA_TIERS_MFJ,
-    STANDARD_DEDUCTION_MFJ,
-)
 from retirement_model.taxes import (
     calculate_capital_gains_tax,
     calculate_income_tax,
@@ -46,7 +46,6 @@ from retirement_model.withdrawals import (
     withdraw_from_eligible_pretax,
 )
 
-
 EXCESS_INCOME_ACCOUNT_ID = "excess_income"
 
 
@@ -60,8 +59,10 @@ def _collect_details(
         return []
     return [
         AccountWithdrawal(
-            account_id=aid, account_name=account_names.get(aid, aid),
-            amount=round(amt), purpose=purpose,
+            account_id=aid,
+            account_name=account_names.get(aid, aid),
+            amount=round(amt),
+            purpose=purpose,
         )
         for aid, amt in result.per_account.items()
         if amt > 0
@@ -291,14 +292,10 @@ def run_simulation(
         current_agi = ss_taxable + stream_taxable
 
         # Mandatory RMDs (from ALL pretax-category accounts)
-        pretax_bal_primary = get_total_balance_by_owner(
-            accounts, TaxCategory.PRETAX, Owner.PRIMARY
-        )
+        pretax_bal_primary = get_total_balance_by_owner(accounts, TaxCategory.PRETAX, Owner.PRIMARY)
         rmd_primary = calculate_rmd_amount(age_primary, pretax_bal_primary, cfg.rmd_start_age)
 
-        pretax_bal_spouse = get_total_balance_by_owner(
-            accounts, TaxCategory.PRETAX, Owner.SPOUSE
-        )
+        pretax_bal_spouse = get_total_balance_by_owner(accounts, TaxCategory.PRETAX, Owner.SPOUSE)
         rmd_spouse = calculate_rmd_amount(age_spouse, pretax_bal_spouse, cfg.rmd_start_age)
 
         total_rmd = rmd_primary + rmd_spouse
@@ -334,6 +331,7 @@ def run_simulation(
         voluntary_pretax = 0.0
         converted_amount = 0.0
         conversion_tax_paid = 0.0
+        conversion_tax_from_brokerage = 0.0
         brokerage_gains_tax = 0.0
 
         # Spending logic: brokerage/cash first, then roth, then pretax
@@ -353,9 +351,7 @@ def run_simulation(
                     amount_from_brokerage, accounts, TaxCategory.CASH, age_map
                 )
                 brokerage_withdrawn += cash_result.amount_withdrawn
-                withdrawal_details.extend(
-                    _collect_details(cash_result, "spending", account_names)
-                )
+                withdrawal_details.extend(_collect_details(cash_result, "spending", account_names))
                 remaining_from_brokerage = amount_from_brokerage - cash_result.amount_withdrawn
 
                 if remaining_from_brokerage > 1.0:
@@ -363,9 +359,7 @@ def run_simulation(
                         remaining_from_brokerage, accounts, TaxCategory.BROKERAGE, age_map
                     )
                     brokerage_withdrawn += result.amount_withdrawn
-                    withdrawal_details.extend(
-                        _collect_details(result, "spending", account_names)
-                    )
+                    withdrawal_details.extend(_collect_details(result, "spending", account_names))
 
                     gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
                     brokerage_gains_tax += calculate_capital_gains_tax(
@@ -381,21 +375,15 @@ def run_simulation(
                     remaining_spend, accounts, TaxCategory.ROTH, age_map
                 )
                 roth_withdrawn += result.amount_withdrawn
-                withdrawal_details.extend(
-                    _collect_details(result, "spending", account_names)
-                )
+                withdrawal_details.extend(_collect_details(result, "spending", account_names))
                 remaining_spend -= result.amount_withdrawn
 
             # Use pre-tax as last resort
             if remaining_spend > 1.0:
                 gross_need = remaining_spend / (1 - est_tax_rate)
-                result = withdraw_from_accounts(
-                    gross_need, accounts, TaxCategory.PRETAX, age_map
-                )
+                result = withdraw_from_accounts(gross_need, accounts, TaxCategory.PRETAX, age_map)
                 voluntary_pretax += result.amount_withdrawn
-                withdrawal_details.extend(
-                    _collect_details(result, "spending", account_names)
-                )
+                withdrawal_details.extend(_collect_details(result, "spending", account_names))
                 current_agi += result.amount_withdrawn
                 remaining_spend = 0
 
@@ -413,7 +401,8 @@ def run_simulation(
                     )
                     tax_after = calculate_income_tax(
                         max(0, current_agi + conversion_target - adj_deduction),
-                        adj_fed_brackets, cfg.tax_rate_state,
+                        adj_fed_brackets,
+                        cfg.tax_rate_state,
                     )
                     tax_bill = tax_after - tax_before
                     conversion_tax_paid = tax_bill
@@ -426,8 +415,11 @@ def run_simulation(
                     tax_result = withdraw_from_accounts(
                         remaining_tax, accounts, TaxCategory.BROKERAGE, age_map
                     )
-                    total_tax_withdrawn = tax_from_cash.amount_withdrawn + tax_result.amount_withdrawn
+                    total_tax_withdrawn = (
+                        tax_from_cash.amount_withdrawn + tax_result.amount_withdrawn
+                    )
                     brokerage_withdrawn += total_tax_withdrawn
+                    conversion_tax_from_brokerage += total_tax_withdrawn
 
                     # AGI impact from brokerage gains (cash has no gains)
                     tax_gains = tax_result.amount_withdrawn * (1 - tax_result.average_basis_ratio)
@@ -482,6 +474,7 @@ def run_simulation(
                 surplus=round(surplus_cash),
                 roth_conversion=round(converted_amount),
                 conversion_tax=round(conversion_tax_paid),
+                conversion_tax_from_brokerage=round(conversion_tax_from_brokerage),
                 pretax_withdrawal=round(voluntary_pretax),
                 roth_withdrawal=round(roth_withdrawn),
                 brokerage_withdrawal=round(brokerage_withdrawn),
@@ -492,9 +485,7 @@ def run_simulation(
                 planned_expense=round(planned_expense_amount),
                 total_income=round(ss_income + stream_income),
                 income_tax=round(income_tax),
-                pretax_balance=round(
-                    get_total_balance_by_category(accounts, TaxCategory.PRETAX)
-                ),
+                pretax_balance=round(get_total_balance_by_category(accounts, TaxCategory.PRETAX)),
                 roth_balance=round(
                     get_total_balance_by_category(accounts, TaxCategory.ROTH)
                     - get_total_balance_by_type(accounts, AccountType.ROTH_CONVERSION)

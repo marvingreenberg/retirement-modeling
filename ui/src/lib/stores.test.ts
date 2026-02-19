@@ -1,30 +1,60 @@
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
-import { samplePortfolio, defaultPortfolio, simulationResults, numSimulations, portfolio, profile, randomizeForDemo } from './stores';
+import { samplePortfolio, sampleScenarios, defaultPortfolio, simulationResults, numSimulations, portfolio, profile, randomizeForDemo } from './stores';
 import { portfolioSchema } from './schema';
 
-describe('samplePortfolio', () => {
+describe('sampleScenarios', () => {
+	it('has three named scenarios', () => {
+		const names = Object.keys(sampleScenarios);
+		expect(names).toContain('Moderate Couple');
+		expect(names).toContain('Comfortable Single');
+		expect(names).toContain('Wealthier Couple');
+		expect(names).toHaveLength(3);
+	});
+
+	it.each(Object.entries(sampleScenarios))('%s passes Zod validation', (_name, scenario) => {
+		const result = portfolioSchema.safeParse(scenario.portfolio);
+		expect(result.success).toBe(true);
+	});
+
+	it.each(Object.entries(sampleScenarios))('%s has profile with primaryName', (_name, scenario) => {
+		expect(scenario.profile.primaryName.length).toBeGreaterThan(0);
+	});
+
+	it('retirement accounts have available_at_age >= 60', () => {
+		for (const [, scenario] of Object.entries(sampleScenarios)) {
+			for (const acct of scenario.portfolio.accounts) {
+				if (['401k', '403b', '457b', 'ira', 'sep_ira', 'simple_ira', 'roth_ira', 'roth_401k'].includes(acct.type)) {
+					expect(acct.available_at_age).toBeGreaterThanOrEqual(60);
+				}
+			}
+		}
+	});
+
+	it('IRA-type accounts are not joint-owned', () => {
+		for (const [, scenario] of Object.entries(sampleScenarios)) {
+			for (const acct of scenario.portfolio.accounts) {
+				if (['401k', '403b', '457b', 'ira', 'sep_ira', 'simple_ira', 'roth_ira', 'roth_401k'].includes(acct.type)) {
+					expect(acct.owner).not.toBe('joint');
+				}
+			}
+		}
+	});
+});
+
+describe('samplePortfolio (backward compat)', () => {
 	it('passes Zod validation', () => {
 		const result = portfolioSchema.safeParse(samplePortfolio);
 		expect(result.success).toBe(true);
 	});
 
-	it('has multiple accounts with different types', () => {
+	it('has accounts with different types', () => {
 		const types = new Set(samplePortfolio.accounts.map((a) => a.type));
-		expect(types.size).toBeGreaterThanOrEqual(3);
-		expect(types).toContain('401k');
-		expect(types).toContain('roth_ira');
-		expect(types).toContain('brokerage');
-	});
-
-	it('has two-person household (both ages set)', () => {
-		expect(samplePortfolio.config.current_age_primary).toBeGreaterThan(0);
-		expect(samplePortfolio.config.current_age_spouse).toBeGreaterThan(0);
+		expect(types.size).toBeGreaterThanOrEqual(2);
 	});
 
 	it('has social security configured', () => {
 		expect(samplePortfolio.config.social_security.primary_benefit).toBeGreaterThan(0);
-		expect(samplePortfolio.config.social_security.spouse_benefit).toBeGreaterThan(0);
 	});
 
 	it('has planned expenses', () => {
@@ -38,6 +68,56 @@ describe('samplePortfolio', () => {
 
 	it('has income streams', () => {
 		expect(samplePortfolio.config.income_streams.length).toBeGreaterThanOrEqual(1);
+	});
+});
+
+describe('Moderate Couple scenario', () => {
+	const scenario = sampleScenarios['Moderate Couple'];
+
+	it('has two-person household', () => {
+		expect(scenario.portfolio.config.current_age_primary).toBe(65);
+		expect(scenario.portfolio.config.current_age_spouse).toBe(61);
+	});
+
+	it('has spouse benefit configured', () => {
+		expect(scenario.portfolio.config.social_security.spouse_benefit).toBeGreaterThan(0);
+	});
+});
+
+describe('Comfortable Single scenario', () => {
+	const scenario = sampleScenarios['Comfortable Single'];
+
+	it('is a single-person household', () => {
+		expect(scenario.portfolio.config.current_age_primary).toBe(63);
+		expect(scenario.portfolio.config.current_age_spouse).toBe(0);
+		expect(scenario.profile.spouseName).toBe('');
+	});
+
+	it('has rental and alimony income', () => {
+		const names = scenario.portfolio.config.income_streams.map((s) => s.name);
+		expect(names).toContain('Alimony');
+		expect(names).toContain('Rental income');
+	});
+});
+
+describe('Wealthier Couple scenario', () => {
+	const scenario = sampleScenarios['Wealthier Couple'];
+
+	it('has named primary and spouse', () => {
+		expect(scenario.profile.primaryName).toBe('Sue');
+		expect(scenario.profile.spouseName).toBe('Steve');
+	});
+
+	it('has accounts for both spouses', () => {
+		const owners = new Set(scenario.portfolio.accounts.map((a) => a.owner));
+		expect(owners).toContain('primary');
+		expect(owners).toContain('spouse');
+	});
+
+	it('has Roth IRA for primary', () => {
+		const rothAcct = scenario.portfolio.accounts.find((a) => a.type === 'roth_ira');
+		expect(rothAcct).toBeDefined();
+		expect(rothAcct!.owner).toBe('primary');
 	});
 });
 
@@ -97,10 +177,8 @@ describe('randomizeForDemo', () => {
 		for (let i = 0; i < updated.accounts.length; i++) {
 			const orig = original.accounts[i].balance;
 			const rand = updated.accounts[i].balance;
-			// Should be within 0.3-0.7x range (with rounding tolerance)
 			expect(rand).toBeGreaterThanOrEqual(Math.round(orig * 0.3 / 1000) * 1000 - 1000);
 			expect(rand).toBeLessThanOrEqual(Math.round(orig * 0.7 / 1000) * 1000 + 1000);
-			// Should be rounded to nearest $1000
 			expect(rand % 1000).toBe(0);
 		}
 	});

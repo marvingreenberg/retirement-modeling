@@ -48,23 +48,57 @@ TAX_CATEGORY_MAP: dict[AccountType, TaxCategory] = {
     AccountType.SIMPLE_IRA: TaxCategory.PRETAX,
 }
 
-_IRA_TYPES = frozenset({
-    AccountType.IRA, AccountType.SEP_IRA, AccountType.SIMPLE_IRA,
-    AccountType.TRADITIONAL_401K, AccountType.TRADITIONAL_403B, AccountType.TRADITIONAL_457B,
-})
+_IRA_TYPES = frozenset(
+    {
+        AccountType.IRA,
+        AccountType.SEP_IRA,
+        AccountType.SIMPLE_IRA,
+        AccountType.TRADITIONAL_401K,
+        AccountType.TRADITIONAL_403B,
+        AccountType.TRADITIONAL_457B,
+    }
+)
 
 ACCOUNT_TYPE_DEFAULTS: dict[AccountType, dict] = {
-    AccountType.BROKERAGE: {"cost_basis_ratio": 0.40, "editable": True},
-    AccountType.CASH_CD: {"cost_basis_ratio": 1.00, "editable": False},
-    AccountType.ROTH_IRA: {"cost_basis_ratio": 1.00, "editable": False},
-    AccountType.ROTH_401K: {"cost_basis_ratio": 1.00, "editable": False},
-    AccountType.ROTH_CONVERSION: {"cost_basis_ratio": 1.00, "editable": False},
-    AccountType.TRADITIONAL_401K: {"cost_basis_ratio": 0.00, "editable": False},
-    AccountType.TRADITIONAL_403B: {"cost_basis_ratio": 0.00, "editable": False},
-    AccountType.TRADITIONAL_457B: {"cost_basis_ratio": 0.00, "editable": False},
-    AccountType.IRA: {"cost_basis_ratio": 0.00, "editable": False},
-    AccountType.SEP_IRA: {"cost_basis_ratio": 0.00, "editable": False},
-    AccountType.SIMPLE_IRA: {"cost_basis_ratio": 0.00, "editable": False},
+    AccountType.BROKERAGE: {"cost_basis_ratio": 0.40, "editable": True, "default_available_age": 0},
+    AccountType.CASH_CD: {"cost_basis_ratio": 1.00, "editable": False, "default_available_age": 0},
+    AccountType.ROTH_IRA: {
+        "cost_basis_ratio": 1.00,
+        "editable": False,
+        "default_available_age": 60,
+    },
+    AccountType.ROTH_401K: {
+        "cost_basis_ratio": 1.00,
+        "editable": False,
+        "default_available_age": 60,
+    },
+    AccountType.ROTH_CONVERSION: {
+        "cost_basis_ratio": 1.00,
+        "editable": False,
+        "default_available_age": 60,
+    },
+    AccountType.TRADITIONAL_401K: {
+        "cost_basis_ratio": 0.00,
+        "editable": False,
+        "default_available_age": 60,
+    },
+    AccountType.TRADITIONAL_403B: {
+        "cost_basis_ratio": 0.00,
+        "editable": False,
+        "default_available_age": 60,
+    },
+    AccountType.TRADITIONAL_457B: {
+        "cost_basis_ratio": 0.00,
+        "editable": False,
+        "default_available_age": 60,
+    },
+    AccountType.IRA: {"cost_basis_ratio": 0.00, "editable": False, "default_available_age": 60},
+    AccountType.SEP_IRA: {"cost_basis_ratio": 0.00, "editable": False, "default_available_age": 60},
+    AccountType.SIMPLE_IRA: {
+        "cost_basis_ratio": 0.00,
+        "editable": False,
+        "default_available_age": 60,
+    },
 }
 
 
@@ -264,6 +298,7 @@ class YearResult(BaseModel):
     surplus: float
     roth_conversion: float
     conversion_tax: float
+    conversion_tax_from_brokerage: float = 0.0
     pretax_withdrawal: float
     roth_withdrawal: float
     brokerage_withdrawal: float

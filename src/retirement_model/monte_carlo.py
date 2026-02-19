@@ -365,8 +365,8 @@ def run_full_monte_carlo(
         seed: Random seed for reproducibility
     """
     # Import here to avoid circular dependency
-    from retirement_model.simulation import run_simulation
     from retirement_model.historical_tax_regimes import sample_regime_sequence
+    from retirement_model.simulation import run_simulation
 
     if seed is not None:
         random.seed(seed)
@@ -389,9 +389,7 @@ def run_full_monte_carlo(
 
         regime_seq = None
         if vary_taxes:
-            regime_seq = sample_regime_sequence(
-                portfolio.config.simulation_years, seed=sim_seed
-            )
+            regime_seq = sample_regime_sequence(portfolio.config.simulation_years, seed=sim_seed)
 
         result = run_simulation(portfolio, returns_seq, inflation_seq, regime_seq)
         all_results.append(result)
@@ -425,7 +423,10 @@ def run_full_monte_carlo(
             [r.years[year_idx].total_tax if year_idx < len(r.years) else 0 for r in all_results]
         )
         conversions = sorted(
-            [r.years[year_idx].roth_conversion if year_idx < len(r.years) else 0 for r in all_results]
+            [
+                r.years[year_idx].roth_conversion if year_idx < len(r.years) else 0
+                for r in all_results
+            ]
         )
         n = len(balances)
 

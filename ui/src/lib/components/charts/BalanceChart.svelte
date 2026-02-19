@@ -68,10 +68,12 @@
 		const cashFlowDatasets = [
 			{
 				label: 'Available to Spend',
-				data: years.map((y) =>
-					y.total_income + y.rmd + y.pretax_withdrawal + y.roth_withdrawal
-					+ y.brokerage_withdrawal - (y.conversion_tax ?? 0)
-				),
+				data: years.map((y) => {
+					const gross = y.total_income + y.rmd + y.pretax_withdrawal + y.roth_withdrawal
+						+ y.brokerage_withdrawal - (y.conversion_tax_from_brokerage ?? 0);
+					const spendingTax = y.total_tax - y.conversion_tax;
+					return gross - Math.max(0, spendingTax);
+				}),
 				borderColor: '#0891b2',
 				borderDash: [] as number[],
 				...lineStyle,
@@ -81,6 +83,13 @@
 				data: years.map((y) => y.spending_target),
 				borderColor: '#6366f1',
 				borderDash: [6, 3],
+				...lineStyle,
+			},
+			{
+				label: 'Est. Taxes (excl. conversions)',
+				data: years.map((y) => Math.max(0, y.total_tax - y.conversion_tax)),
+				borderColor: '#eab308',
+				borderDash: [4, 4],
 				...lineStyle,
 			},
 		];

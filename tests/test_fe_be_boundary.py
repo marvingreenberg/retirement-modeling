@@ -105,7 +105,9 @@ class TestSpendingChangesAffectSimulation:
         r_pct = _simulate(client, pct)
         assert r_fixed["summary"]["spending_strategy"] == "fixed_dollar"
         assert r_pct["summary"]["spending_strategy"] == "percent_of_portfolio"
-        assert r_fixed["summary"]["initial_annual_spend"] != r_pct["summary"]["initial_annual_spend"]
+        assert (
+            r_fixed["summary"]["initial_annual_spend"] != r_pct["summary"]["initial_annual_spend"]
+        )
 
     def test_spending_strategy_guardrails(self, client, base_portfolio):
         base = _simulate(client, base_portfolio)
@@ -169,7 +171,9 @@ class TestConversionStrategyAffectsTaxes:
         b22 = _set_config(base_portfolio, "strategy_target", "22_percent_bracket")
         r_std = _simulate(client, std)
         r_b22 = _simulate(client, b22)
-        assert r_std["summary"]["total_roth_conversions"] < r_b22["summary"]["total_roth_conversions"]
+        assert (
+            r_std["summary"]["total_roth_conversions"] < r_b22["summary"]["total_roth_conversions"]
+        )
 
     def test_bracket_22_vs_bracket_24(self, client, base_portfolio):
         b22 = _set_config(base_portfolio, "strategy_target", "22_percent_bracket")
@@ -179,7 +183,9 @@ class TestConversionStrategyAffectsTaxes:
         # Both strategies convert, but different amounts due to different ceilings
         assert r_22["summary"]["total_roth_conversions"] > 0
         assert r_24["summary"]["total_roth_conversions"] > 0
-        assert r_22["summary"]["total_roth_conversions"] != r_24["summary"]["total_roth_conversions"]
+        assert (
+            r_22["summary"]["total_roth_conversions"] != r_24["summary"]["total_roth_conversions"]
+        )
 
     def test_standard_no_conversions(self, client, base_portfolio):
         std = _simulate(client, _set_config(base_portfolio, "strategy_target", "standard"))
@@ -376,10 +382,24 @@ class TestYearByYearResponseStructure:
         result = _simulate(client, base_portfolio)
         year = result["result"]["years"][0]
         required_fields = [
-            "year", "age_primary", "age_spouse", "agi", "bracket", "rmd",
-            "surplus", "roth_conversion", "conversion_tax", "pretax_withdrawal",
-            "roth_withdrawal", "brokerage_withdrawal", "total_tax", "irmaa_cost",
-            "total_balance", "spending_target", "pretax_balance", "roth_balance",
+            "year",
+            "age_primary",
+            "age_spouse",
+            "agi",
+            "bracket",
+            "rmd",
+            "surplus",
+            "roth_conversion",
+            "conversion_tax",
+            "pretax_withdrawal",
+            "roth_withdrawal",
+            "brokerage_withdrawal",
+            "total_tax",
+            "irmaa_cost",
+            "total_balance",
+            "spending_target",
+            "pretax_balance",
+            "roth_balance",
             "brokerage_balance",
         ]
         for field in required_fields:

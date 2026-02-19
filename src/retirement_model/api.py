@@ -339,6 +339,7 @@ def mount_static_or_root() -> None:
         app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
         logger.info("Static asset serving: ACTIVE (serving from %s)", STATIC_DIR)
     else:
+
         @app.get("/")
         async def root() -> dict:
             """Health/info endpoint when no static assets are mounted."""

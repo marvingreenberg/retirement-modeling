@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { portfolio, profile, numSimulations, samplePortfolio, sampleProfile, markFormTouched, randomizeForDemo } from '$lib/stores';
+	import { portfolio, profile, numSimulations, sampleScenarios, markFormTouched, randomizeForDemo } from '$lib/stores';
 	import { saveFileSchema } from '$lib/schema';
 	import type { Portfolio } from '$lib/types';
 	import { initDarkMode } from '$lib/darkMode.svelte';
@@ -89,9 +89,11 @@
 		goto('/');
 	}
 
-	function loadSample() {
-		profile.set(structuredClone(sampleProfile));
-		portfolio.set(structuredClone(samplePortfolio));
+	function loadScenario(name: string) {
+		const scenario = sampleScenarios[name];
+		if (!scenario) return;
+		profile.set(structuredClone(scenario.profile));
+		portfolio.set(structuredClone(scenario.portfolio));
 		goto('/');
 	}
 
@@ -270,11 +272,24 @@
 					<p class="text-sm text-error-500">{setupError}</p>
 				{/if}
 
-				<div class="flex gap-3 pt-2">
+				<div class="flex gap-3 items-center pt-2">
 					{#if initialNeedsSetup}
 						<button class="btn preset-filled" onclick={handleGetStarted}>Get Started</button>
 					{/if}
-					<button class="btn preset-tonal" onclick={loadSample}>Load Sample Data</button>
+					<label class="flex items-center gap-2 text-sm font-medium text-surface-700 dark:text-surface-300">
+						Load Sample Data
+						<select class="select text-sm w-48" aria-label="Load Sample Data"
+							onchange={(e) => {
+								const val = (e.target as HTMLSelectElement).value;
+								if (val) loadScenario(val);
+								(e.target as HTMLSelectElement).value = '';
+							}}>
+							<option value="">Select scenario...</option>
+							{#each Object.keys(sampleScenarios) as name}
+								<option value={name}>{name}</option>
+							{/each}
+						</select>
+					</label>
 				</div>
 			</div>
 

@@ -1,10 +1,10 @@
 """Tests for historical_returns module."""
 
 from retirement_model.historical_returns import (
-    SP500_ANNUAL_RETURNS,
     HISTORICAL_INFLATION,
-    get_historical_returns,
+    SP500_ANNUAL_RETURNS,
     get_historical_inflation,
+    get_historical_returns,
     get_return_statistics,
 )
 

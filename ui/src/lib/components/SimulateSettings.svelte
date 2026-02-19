@@ -72,14 +72,13 @@
 	</div>
 {:else}
 	<div class="flex gap-3 bg-surface-100 dark:bg-surface-800 rounded p-2">
-		<!-- Simulate button: left-justified, full height of both rows -->
-		<button class="flex flex-col items-center justify-center gap-0.5 w-16 flex-shrink-0 self-stretch rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white shadow-md cursor-pointer" onclick={onrun} disabled={loading} aria-label="Run simulation">
-			{#if loading}<span class="inline-block animate-spin text-xl">⏳</span>{:else}<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span class="text-xs font-bold leading-none">Go</span>{/if}
-		</button>
-
 		<!-- Settings: to the right of button -->
 		<div class="flex-1 space-y-1.5">
 			<!-- Primary row: inflation, growth, conversion -->
+			 		<!-- Simulate button: left-justified, full height of both rows -->
+			<button class="flex flex-col items-center justify-center gap-0.5 w-16 flex-shrink-0 self-stretch rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-white shadow-md cursor-pointer" onclick={onrun} disabled={loading} aria-label="Run simulation">
+				{#if loading}<span class="inline-block animate-spin text-xl">⏳</span>{:else}<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span class="text-xs font-bold leading-none">Go</span>{/if}
+			</button>
 			<div class="flex gap-4 flex-wrap items-end">
 				<label class="flex flex-col gap-0.5 text-xs font-medium {inflError ? 'text-error-600 dark:text-error-400' : 'text-surface-600 dark:text-surface-400'}">
 					<span class="flex items-center gap-1">Inflation % <InfoPopover text="Assumed annual rate at which prices increase, reducing the purchasing power of fixed withdrawals over time." /></span>

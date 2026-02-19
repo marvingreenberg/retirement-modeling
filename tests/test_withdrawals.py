@@ -126,12 +126,20 @@ class TestWithdrawFromAccounts:
     def test_per_account_multiple_accounts(self):
         accounts = [
             Account(
-                id="b1", name="B1", balance=30000,
-                type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.20,
+                id="b1",
+                name="B1",
+                balance=30000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=0.20,
             ),
             Account(
-                id="b2", name="B2", balance=50000,
-                type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.40,
+                id="b2",
+                name="B2",
+                balance=50000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=0.40,
             ),
         ]
         age_map = {"joint": 65}
@@ -158,12 +166,18 @@ class TestWithdrawFromEligiblePretaxPerAccount:
     def test_per_account_tracking(self):
         accounts = [
             Account(
-                id="ira1", name="IRA 1", balance=50000,
-                type=AccountType.IRA, owner=Owner.PRIMARY,
+                id="ira1",
+                name="IRA 1",
+                balance=50000,
+                type=AccountType.IRA,
+                owner=Owner.PRIMARY,
             ),
             Account(
-                id="sep_ira", name="SEP IRA", balance=30000,
-                type=AccountType.SEP_IRA, owner=Owner.PRIMARY,
+                id="sep_ira",
+                name="SEP IRA",
+                balance=30000,
+                type=AccountType.SEP_IRA,
+                owner=Owner.PRIMARY,
             ),
         ]
         age_map = {"primary": 65}
@@ -174,12 +188,18 @@ class TestWithdrawFromEligiblePretaxPerAccount:
     def test_skips_non_eligible(self):
         accounts = [
             Account(
-                id="brk1", name="Brokerage", balance=100000,
-                type=AccountType.BROKERAGE, owner=Owner.PRIMARY,
+                id="brk1",
+                name="Brokerage",
+                balance=100000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.PRIMARY,
             ),
             Account(
-                id="ira1", name="IRA", balance=50000,
-                type=AccountType.IRA, owner=Owner.PRIMARY,
+                id="ira1",
+                name="IRA",
+                balance=50000,
+                type=AccountType.IRA,
+                owner=Owner.PRIMARY,
             ),
         ]
         age_map = {"primary": 65}
@@ -235,8 +255,12 @@ class TestApplyGrowthCostBasis:
         """Growth adds gains, reducing cost_basis_ratio for brokerage accounts."""
         accounts = [
             Account(
-                id="b1", name="B1", balance=100000,
-                type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.40,
+                id="b1",
+                name="B1",
+                balance=100000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=0.40,
             ),
         ]
         apply_growth(accounts, 0.10)
@@ -248,8 +272,12 @@ class TestApplyGrowthCostBasis:
         """Pre-tax accounts always have ratio 0 regardless of growth."""
         accounts = [
             Account(
-                id="ira", name="IRA", balance=200000,
-                type=AccountType.IRA, owner=Owner.PRIMARY, cost_basis_ratio=0.0,
+                id="ira",
+                name="IRA",
+                balance=200000,
+                type=AccountType.IRA,
+                owner=Owner.PRIMARY,
+                cost_basis_ratio=0.0,
             ),
         ]
         apply_growth(accounts, 0.07)
@@ -259,8 +287,12 @@ class TestApplyGrowthCostBasis:
         """Roth accounts keep ratio 1.0 — growth is tax-free."""
         accounts = [
             Account(
-                id="roth", name="Roth", balance=50000,
-                type=AccountType.ROTH_IRA, owner=Owner.PRIMARY, cost_basis_ratio=1.0,
+                id="roth",
+                name="Roth",
+                balance=50000,
+                type=AccountType.ROTH_IRA,
+                owner=Owner.PRIMARY,
+                cost_basis_ratio=1.0,
             ),
         ]
         apply_growth(accounts, 0.07)
@@ -271,8 +303,12 @@ class TestApplyGrowthCostBasis:
         """Cash/CD accounts get no growth and no basis change."""
         accounts = [
             Account(
-                id="cash", name="Cash", balance=50000,
-                type=AccountType.CASH_CD, owner=Owner.JOINT, cost_basis_ratio=1.0,
+                id="cash",
+                name="Cash",
+                balance=50000,
+                type=AccountType.CASH_CD,
+                owner=Owner.JOINT,
+                cost_basis_ratio=1.0,
             ),
         ]
         apply_growth(accounts, 0.07)
@@ -283,8 +319,12 @@ class TestApplyGrowthCostBasis:
         """Multiple years of growth progressively dilute basis ratio."""
         accounts = [
             Account(
-                id="b1", name="B1", balance=100000,
-                type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.50,
+                id="b1",
+                name="B1",
+                balance=100000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=0.50,
             ),
         ]
         # Basis is 50k absolute
@@ -292,7 +332,7 @@ class TestApplyGrowthCostBasis:
             apply_growth(accounts, 0.07)
         # After 5 years at 7%: balance = 100k * 1.07^5 ≈ 140255
         # Basis stays at 50k → ratio ≈ 50000/140255 ≈ 0.3565
-        expected_balance = 100000 * (1.07 ** 5)
+        expected_balance = 100000 * (1.07**5)
         assert accounts[0].balance == pytest.approx(expected_balance, rel=0.01)
         assert accounts[0].cost_basis_ratio == pytest.approx(50000 / expected_balance, rel=0.01)
 

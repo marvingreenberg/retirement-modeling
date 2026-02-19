@@ -281,8 +281,5 @@ class TestFullMonteCarlo:
         # Valid results with a numeric success rate
         assert isinstance(result.success_rate, float)
         # Final balances should show variation
-        balances = [
-            r.total_balance
-            for r in [result.median_simulation.years[-1]]
-        ]
+        balances = [r.total_balance for r in [result.median_simulation.years[-1]]]
         assert len(result.yearly_percentiles) > 0
