@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
-import { samplePortfolio, sampleScenarios, defaultPortfolio, simulationResults, numSimulations, portfolio, profile, randomizeForDemo } from './stores';
+import { samplePortfolio, sampleScenarios, defaultPortfolio, simulationResults, numSimulations, portfolio, profile, randomizeForDemo, snapshot } from './stores';
 import { portfolioSchema } from './schema';
 
 describe('sampleScenarios', () => {
@@ -170,7 +170,7 @@ describe('numSimulations store', () => {
 describe('randomizeForDemo', () => {
 	it('scales account balances between 0.3x and 0.7x and rounds to $1000', () => {
 		portfolio.set(structuredClone(samplePortfolio));
-		const original = structuredClone(get(portfolio));
+		const original = snapshot(get(portfolio));
 		randomizeForDemo();
 		const updated = get(portfolio);
 

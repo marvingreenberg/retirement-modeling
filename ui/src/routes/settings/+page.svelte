@@ -136,8 +136,8 @@
 	}
 
 	async function saveFile() {
-		const p = structuredClone($portfolio);
-		const profileData = structuredClone($profile);
+		const p = $state.snapshot($portfolio);
+		const profileData = $state.snapshot($profile);
 		const saveData = { ...p, profile: profileData };
 		const filename = generateFilename($profile.primaryName, $profile.spouseName);
 		await saveJsonFile(saveData, filename);

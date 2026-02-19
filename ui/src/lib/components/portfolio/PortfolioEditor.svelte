@@ -3,7 +3,6 @@
 
 	function handleFocusOut() {
 		markFormTouched();
-		portfolio.update((p) => ({ ...p, config: { ...p.config } }));
 	}
 	import { validatePortfolio } from '$lib/validation';
 	import CollapsibleSection from '$lib/components/CollapsibleSection.svelte';

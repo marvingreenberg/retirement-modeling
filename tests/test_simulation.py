@@ -719,16 +719,24 @@ class TestPostRmdConversions:
                 irmaa_limit_tier_1=206000,
                 rmd_start_age=73,
                 social_security=SocialSecurityConfig(
-                    primary_benefit=24000, primary_start_age=70,
-                    spouse_benefit=0, spouse_start_age=70,
+                    primary_benefit=24000,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
                 ),
             ),
             accounts=[
-                Account(id="ira1", name="IRA", balance=400000,
-                        type=AccountType.IRA, owner=Owner.PRIMARY),
-                Account(id="brok1", name="Brokerage", balance=200000,
-                        type=AccountType.BROKERAGE, owner=Owner.JOINT,
-                        cost_basis_ratio=0.5),
+                Account(
+                    id="ira1", name="IRA", balance=400000, type=AccountType.IRA, owner=Owner.PRIMARY
+                ),
+                Account(
+                    id="brok1",
+                    name="Brokerage",
+                    balance=200000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
+                ),
             ],
         )
         result = run_simulation(portfolio)
@@ -750,16 +758,28 @@ class TestPostRmdConversions:
                 irmaa_limit_tier_1=206000,
                 rmd_start_age=73,
                 social_security=SocialSecurityConfig(
-                    primary_benefit=50000, primary_start_age=70,
-                    spouse_benefit=0, spouse_start_age=70,
+                    primary_benefit=50000,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
                 ),
             ),
             accounts=[
-                Account(id="ira1", name="IRA", balance=5_000_000,
-                        type=AccountType.IRA, owner=Owner.PRIMARY),
-                Account(id="brok1", name="Brokerage", balance=100000,
-                        type=AccountType.BROKERAGE, owner=Owner.JOINT,
-                        cost_basis_ratio=0.5),
+                Account(
+                    id="ira1",
+                    name="IRA",
+                    balance=5_000_000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="brok1",
+                    name="Brokerage",
+                    balance=100000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
+                ),
             ],
         )
         result = run_simulation(portfolio)
