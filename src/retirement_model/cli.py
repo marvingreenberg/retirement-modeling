@@ -208,8 +208,8 @@ def strategies() -> None:
 
     click.echo("Spending Strategies (control annual withdrawal amount):")
     click.echo()
-    for strat in SpendingStrategy:
-        match strat:
+    for spend_strat in SpendingStrategy:
+        match spend_strat:
             case SpendingStrategy.FIXED_DOLLAR:
                 desc = "Fixed dollar amount adjusted for inflation (traditional approach)"
             case SpendingStrategy.PERCENT_OF_PORTFOLIO:
@@ -218,7 +218,7 @@ def strategies() -> None:
                 desc = "Guyton-Klinger: adjust spending when withdrawal rate crosses thresholds"
             case SpendingStrategy.RMD_BASED:
                 desc = "Withdraw based on RMD percentages from IRS tables"
-        click.echo(f"  {strat.value}")
+        click.echo(f"  {spend_strat.value}")
         click.echo(f"    {desc}")
         click.echo()
 

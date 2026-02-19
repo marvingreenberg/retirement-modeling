@@ -8,7 +8,7 @@ assets when available.
 import importlib.metadata
 import logging
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, FastAPI, HTTPException, Query
 from fastapi.responses import RedirectResponse
@@ -59,7 +59,7 @@ class SimulationResponse(BaseModel):
     """Response from running a simulation."""
 
     result: SimulationResult
-    summary: dict
+    summary: dict[str, Any]
 
 
 class YearlyResultPercentilesResponse(BaseModel):
@@ -115,13 +115,13 @@ class MonteCarloResponse(BaseModel):
 
 
 @router.get("/status")
-async def status() -> dict:
+async def status() -> dict[str, Any]:
     """Health check endpoint."""
     return {"status": "ok", "version": APP_VERSION}
 
 
 @router.get("/")
-async def api_root() -> dict:
+async def api_root() -> dict[str, Any]:
     """API discovery endpoint."""
     return {
         "name": "Retirement Simulation API",
@@ -137,7 +137,7 @@ async def api_root() -> dict:
 
 
 @router.get("/strategies")
-async def list_strategies() -> dict:
+async def list_strategies() -> dict[str, Any]:
     """List available strategies."""
     return {
         "conversion_strategies": [
@@ -167,7 +167,7 @@ def _get_conversion_description(strategy: ConversionStrategy) -> str:
             return "Fill up to top of 24% federal tax bracket"
 
 
-SPENDING_FIELD_USAGE: dict[SpendingStrategy, dict] = {
+SPENDING_FIELD_USAGE: dict[SpendingStrategy, dict[str, list[str]]] = {
     SpendingStrategy.FIXED_DOLLAR: {
         "uses_fields": ["annual_spend_net"],
         "ignores_fields": ["withdrawal_rate", "guardrails_config"],
@@ -187,7 +187,7 @@ SPENDING_FIELD_USAGE: dict[SpendingStrategy, dict] = {
 }
 
 
-def _get_spending_field_usage(strategy: SpendingStrategy) -> dict:
+def _get_spending_field_usage(strategy: SpendingStrategy) -> dict[str, list[str]]:
     return SPENDING_FIELD_USAGE[strategy]
 
 
@@ -268,7 +268,7 @@ async def compare_strategies(
     spending_strategies: Annotated[
         list[SpendingStrategy], Query(description="Spending strategies to compare")
     ] = [SpendingStrategy.FIXED_DOLLAR],
-) -> dict:
+) -> dict[str, Any]:
     """Compare multiple strategy combinations."""
     results = []
 
@@ -312,7 +312,7 @@ _OLD_ROUTES = [
 
 for _old_path, _new_path in _OLD_ROUTES:
 
-    def _make_redirect(target: str):  # noqa: E301
+    def _make_redirect(target: str):  # type: ignore[no-untyped-def]  # noqa: E301
         async def redirect() -> RedirectResponse:
             return RedirectResponse(url=target, status_code=307)
 
@@ -341,7 +341,7 @@ def mount_static_or_root() -> None:
     else:
 
         @app.get("/")
-        async def root() -> dict:
+        async def root() -> dict[str, Any]:
             """Health/info endpoint when no static assets are mounted."""
             return {
                 "name": "Retirement Simulation API",

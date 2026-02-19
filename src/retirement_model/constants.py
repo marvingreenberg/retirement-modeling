@@ -1,8 +1,10 @@
 """Tax constants, IRMAA tiers, and RMD tables for retirement simulation."""
 
+BracketDict = dict[str, float]
+
 # 2024 Federal Tax Brackets (Married Filing Jointly)
 # These are the income limits where each bracket ends
-FEDERAL_TAX_BRACKETS_MFJ = [
+FEDERAL_TAX_BRACKETS_MFJ: list[BracketDict] = [
     {"limit": 23200, "rate": 0.10},
     {"limit": 94300, "rate": 0.12},
     {"limit": 201050, "rate": 0.22},
@@ -24,7 +26,7 @@ BRACKET_LABELS = [
 
 # 2024 IRMAA Tiers (Married Filing Jointly)
 # Based on MAGI from 2 years prior
-IRMAA_TIERS_MFJ = [
+IRMAA_TIERS_MFJ: list[BracketDict] = [
     {"limit": 206000, "cost": 0},
     {"limit": 258000, "cost": 1600},
     {"limit": 322000, "cost": 4000},
@@ -34,7 +36,7 @@ IRMAA_TIERS_MFJ = [
 ]
 
 # Long-term capital gains tax brackets (Married Filing Jointly)
-CAPITAL_GAINS_BRACKETS_MFJ = [
+CAPITAL_GAINS_BRACKETS_MFJ: list[BracketDict] = [
     {"limit": 89250, "rate": 0.0},
     {"limit": 553850, "rate": 0.15},
     {"limit": float("inf"), "rate": 0.20},

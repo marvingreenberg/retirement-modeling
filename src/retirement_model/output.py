@@ -2,9 +2,9 @@
 
 from enum import Enum
 from io import StringIO
-from typing import TextIO
+from typing import IO
 
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 
 from retirement_model.models import ConversionStrategy, SimulationResult, SpendingStrategy
 
@@ -75,13 +75,13 @@ def format_table(result: SimulationResult) -> str:
     df = results_to_dataframe(result)
     pd.set_option("display.max_columns", None)
     pd.set_option("display.width", 1000)
-    return df.to_string(index=False)
+    return str(df.to_string(index=False))
 
 
 def format_csv(result: SimulationResult) -> str:
     """Format results as CSV."""
     df = results_to_dataframe(result)
-    return df.to_csv(index=False)
+    return str(df.to_csv(index=False))
 
 
 def format_json(result: SimulationResult) -> str:
@@ -114,10 +114,10 @@ def format_summary(result: SimulationResult) -> str:
 def print_results(
     result: SimulationResult,
     output_format: OutputFormat = OutputFormat.TABLE,
-    file: TextIO | None = None,
+    file: IO[str] | None = None,
 ) -> None:
     """Print simulation results in the specified format."""
-    output = file or StringIO()
+    output: IO[str] = file or StringIO()
 
     header = f"Strategy: {get_strategy_description(result.strategy)}"
     separator = "-" * 60
@@ -134,7 +134,7 @@ def print_results(
         case OutputFormat.SUMMARY:
             print(format_summary(result), file=output)
 
-    if file is None:
+    if file is None and isinstance(output, StringIO):
         print(output.getvalue())
 
 

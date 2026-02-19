@@ -59,7 +59,7 @@ _IRA_TYPES = frozenset(
     }
 )
 
-ACCOUNT_TYPE_DEFAULTS: dict[AccountType, dict] = {
+ACCOUNT_TYPE_DEFAULTS: dict[AccountType, dict[str, float | bool]] = {
     AccountType.BROKERAGE: {"cost_basis_ratio": 0.40, "editable": True, "default_available_age": 0},
     AccountType.CASH_CD: {"cost_basis_ratio": 1.00, "editable": False, "default_available_age": 0},
     AccountType.ROTH_IRA: {

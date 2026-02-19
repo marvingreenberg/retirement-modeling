@@ -10,11 +10,12 @@ from retirement_model.constants import (
     RMD_DIVISOR_TABLE,
     RMD_START_AGE,
     STANDARD_DEDUCTION_MFJ,
+    BracketDict,
 )
 from retirement_model.models import TaxBracket
 
 
-def inflate_brackets(brackets: list[dict], factor: float) -> list[dict]:
+def inflate_brackets(brackets: list[BracketDict], factor: float) -> list[BracketDict]:
     """Scale limit/threshold fields in bracket/tier dicts by an inflation factor."""
     result = []
     for entry in brackets:
@@ -25,7 +26,7 @@ def inflate_brackets(brackets: list[dict], factor: float) -> list[dict]:
     return result
 
 
-def get_marginal_tax_rate(income: float, brackets: list | None = None) -> float:
+def get_marginal_tax_rate(income: float, brackets: list[BracketDict] | None = None) -> float:
     """Get the marginal federal tax rate for a given income level."""
     if brackets:
         if isinstance(brackets[0], dict):
@@ -61,7 +62,7 @@ def calculate_irmaa_cost(agi: float, tiers: list[dict[str, float]] | None = None
 def calculate_capital_gains_tax(
     gains: float,
     ordinary_income: float,
-    brackets: list[dict] | None = None,
+    brackets: list[BracketDict] | None = None,
 ) -> float:
     """Calculate capital gains tax using progressive stacking.
 
@@ -106,7 +107,7 @@ def calculate_rmd_amount(age: int, balance: float, rmd_start_age: int = RMD_STAR
 
 def calculate_income_tax(
     taxable_income: float,
-    brackets: list | None = None,
+    brackets: list[BracketDict] | None = None,
     state_rate: float = 0.0,
 ) -> float:
     """
@@ -168,7 +169,7 @@ def calculate_ss_taxable_portion(
 
 def estimate_effective_tax_rate(
     agi: float,
-    brackets: list | None = None,
+    brackets: list[BracketDict] | None = None,
     state_rate: float = 0.0,
     deduction: float = STANDARD_DEDUCTION_MFJ,
 ) -> float:

@@ -198,14 +198,17 @@ HISTORICAL_TAX_REGIMES = [
 ]
 
 
-def get_historical_regimes() -> list[dict]:
+TaxRegime = dict[str, object]
+
+
+def get_historical_regimes() -> list[TaxRegime]:
     """Return a copy of the historical tax regime list."""
     return copy.deepcopy(HISTORICAL_TAX_REGIMES)
 
 
 def sample_regime_sequence(
-    num_years: int, regimes: list[dict] | None = None, seed: int | None = None
-) -> list[dict]:
+    num_years: int, regimes: list[TaxRegime] | None = None, seed: int | None = None
+) -> list[TaxRegime]:
     """Sample a tax regime sequence for Monte Carlo simulation.
 
     Selects a regime uniformly at random and holds it for 2-4 consecutive years
@@ -215,7 +218,7 @@ def sample_regime_sequence(
         random.seed(seed)
 
     regime_list = regimes or HISTORICAL_TAX_REGIMES
-    sequence: list[dict] = []
+    sequence: list[TaxRegime] = []
     i = 0
     while i < num_years:
         regime = random.choice(regime_list)

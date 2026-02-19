@@ -7,6 +7,7 @@ from retirement_model.constants import (
     FEDERAL_TAX_BRACKETS_MFJ,
     IRMAA_TIERS_MFJ,
     STANDARD_DEDUCTION_MFJ,
+    BracketDict,
 )
 from retirement_model.models import (
     Account,
@@ -139,7 +140,7 @@ def run_simulation(
     portfolio: Portfolio,
     returns_sequence: list[float] | None = None,
     inflation_sequence: list[float] | None = None,
-    tax_regime_sequence: list[dict] | None = None,
+    tax_regime_sequence: list[dict[str, object]] | None = None,
 ) -> SimulationResult:
     """Run the retirement simulation and return year-by-year results."""
     cfg = portfolio.config
@@ -234,10 +235,10 @@ def run_simulation(
         # Determine base tax parameters (regime sequence overrides defaults)
         if tax_regime_sequence and year_idx < len(tax_regime_sequence):
             regime = tax_regime_sequence[year_idx]
-            base_fed = regime["federal_brackets"]
-            base_irmaa = regime["irmaa_tiers"]
-            base_capgains = regime["capital_gains_brackets"]
-            base_deduction = regime["standard_deduction"]
+            base_fed: list[BracketDict] = regime["federal_brackets"]  # type: ignore[assignment]
+            base_irmaa: list[BracketDict] = regime["irmaa_tiers"]  # type: ignore[assignment]
+            base_capgains: list[BracketDict] = regime["capital_gains_brackets"]  # type: ignore[assignment]
+            base_deduction: float = regime["standard_deduction"]  # type: ignore[assignment]
         elif cfg.tax_brackets_federal:
             base_fed = [{"limit": b.limit, "rate": b.rate} for b in cfg.tax_brackets_federal]
             base_irmaa = IRMAA_TIERS_MFJ
