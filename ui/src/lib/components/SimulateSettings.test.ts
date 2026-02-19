@@ -100,7 +100,7 @@ describe('SimulateSettings', () => {
 		expect(screen.getByText(/4\.0% of Portfolio/)).toBeInTheDocument();
 	});
 
-	it('disables conversion dropdown when age >= RMD age', () => {
+	it('conversion dropdown is enabled regardless of age', () => {
 		portfolio.update((p) => {
 			p.config.current_age_primary = 75;
 			p.config.rmd_start_age = 73;
@@ -108,28 +108,7 @@ describe('SimulateSettings', () => {
 		});
 		renderSettings();
 		const select = screen.getByRole('combobox');
-		expect(select).toBeDisabled();
-	});
-
-	it('enables conversion dropdown when age < RMD age', () => {
-		portfolio.update((p) => {
-			p.config.current_age_primary = 60;
-			p.config.rmd_start_age = 73;
-			return p;
-		});
-		renderSettings();
-		const select = screen.getByRole('combobox');
 		expect(select).not.toBeDisabled();
-	});
-
-	it('shows warning text when conversion disabled', () => {
-		portfolio.update((p) => {
-			p.config.current_age_primary = 73;
-			p.config.rmd_start_age = 73;
-			return p;
-		});
-		renderSettings();
-		expect(screen.getByText(/Conversions only apply before RMD age/)).toBeInTheDocument();
 	});
 
 	it('shows inline error for inflation input when validation fails', () => {

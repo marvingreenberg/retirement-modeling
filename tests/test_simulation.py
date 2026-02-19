@@ -701,3 +701,70 @@ class TestWithdrawalDetails:
             # Conversion details should approximate the aggregate
             if yr.roth_conversion > 0:
                 assert abs(conv_total - yr.roth_conversion) <= 2
+
+
+class TestPostRmdConversions:
+    """Roth conversions should work at any age, including after RMD age."""
+
+    def test_conversion_after_rmd_age_with_headroom(self):
+        """A 75-year-old with IRA and IRMAA strategy should convert when headroom exists."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=75,
+                current_age_spouse=0,
+                simulation_years=2,
+                start_year=2026,
+                annual_spend_net=30000,
+                strategy_target=WithdrawalStrategy.IRMAA_TIER_1,
+                irmaa_limit_tier_1=206000,
+                rmd_start_age=73,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=24000, primary_start_age=70,
+                    spouse_benefit=0, spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(id="ira1", name="IRA", balance=400000,
+                        type=AccountType.IRA, owner=Owner.PRIMARY),
+                Account(id="brok1", name="Brokerage", balance=200000,
+                        type=AccountType.BROKERAGE, owner=Owner.JOINT,
+                        cost_basis_ratio=0.5),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr0 = result.years[0]
+        # At 75, RMD is taken first, then conversion should still happen
+        assert yr0.rmd > 0, "RMD should be taken at age 75"
+        assert yr0.roth_conversion > 0, "Conversion should happen after RMD when headroom exists"
+
+    def test_no_conversion_after_rmd_when_no_headroom(self):
+        """When RMD pushes AGI above ceiling, no conversion should occur."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=80,
+                current_age_spouse=0,
+                simulation_years=2,
+                start_year=2026,
+                annual_spend_net=30000,
+                strategy_target=WithdrawalStrategy.IRMAA_TIER_1,
+                irmaa_limit_tier_1=206000,
+                rmd_start_age=73,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=50000, primary_start_age=70,
+                    spouse_benefit=0, spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(id="ira1", name="IRA", balance=5_000_000,
+                        type=AccountType.IRA, owner=Owner.PRIMARY),
+                Account(id="brok1", name="Brokerage", balance=100000,
+                        type=AccountType.BROKERAGE, owner=Owner.JOINT,
+                        cost_basis_ratio=0.5),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr0 = result.years[0]
+        # With $5M IRA at age 80, RMD is ~$237K, plus $50K SS = ~$287K AGI
+        # That exceeds the $206K IRMAA ceiling, so no conversion headroom
+        assert yr0.rmd > 0, "RMD should be taken"
+        assert yr0.roth_conversion == 0, "No conversion when RMD pushes AGI above ceiling"

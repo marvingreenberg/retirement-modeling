@@ -51,10 +51,6 @@
 		return `${infl}% infl, ${growth}% growth, ${conv}, ${strategySummary()}`;
 	});
 
-	let conversionDisabled = $derived(
-		$portfolio.config.current_age_primary >= $portfolio.config.rmd_start_age
-	);
-
 	let strategyOpen = $state(false);
 
 	function toggleCollapsed() {
@@ -90,17 +86,14 @@
 					<input type="number" class="input w-20 text-sm {growthError ? 'ring-2 ring-error-500 border-error-500' : ''}" value={toPct($portfolio.config.investment_growth_rate)} oninput={(e) => setPct(e, (v) => $portfolio.config.investment_growth_rate = v)} min="-50" max="50" step="0.5" />
 					{#if growthError}<span class="text-[10px] text-error-500">{growthError}</span>{/if}
 				</label>
-				<label class="flex flex-col gap-0.5 text-xs font-medium {conversionDisabled ? 'text-surface-400 dark:text-surface-500' : 'text-surface-600 dark:text-surface-400'}">
+				<label class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400">
 					<span class="flex items-center gap-1">Conversion <InfoPopover text="Controls Roth conversion aggressiveness. No Conversion skips conversions. Other strategies convert pre-tax to Roth up to a tax bracket or IRMAA threshold to reduce future taxes." /></span>
-					<select class="select w-40 text-sm {conversionDisabled ? 'opacity-50' : ''}" bind:value={$portfolio.config.strategy_target} disabled={conversionDisabled}>
+					<select class="select w-40 text-sm" bind:value={$portfolio.config.strategy_target}>
 						<option value="standard">No Conversion</option>
 						<option value="irmaa_tier_1">IRMAA Tier 1</option>
 						<option value="22_percent_bracket">22% Bracket</option>
 						<option value="24_percent_bracket">24% Bracket</option>
 					</select>
-					{#if conversionDisabled}
-						<span class="text-[10px] text-warning-500">Conversions only apply before RMD age ({$portfolio.config.rmd_start_age})</span>
-					{/if}
 				</label>
 			</div>
 

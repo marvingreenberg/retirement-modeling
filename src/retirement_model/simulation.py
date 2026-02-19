@@ -388,8 +388,8 @@ def run_simulation(
                 current_agi += result.amount_withdrawn
                 remaining_spend = 0
 
-        # Roth conversion logic (only pre-RMD age, only from IRA-eligible accounts)
-        if conversion_ceiling > 0 and age_primary < cfg.rmd_start_age:
+        # Roth conversion logic (from IRA-eligible accounts, any age)
+        if conversion_ceiling > 0:
             agi_headroom = max(0, conversion_ceiling - current_agi)
 
             if agi_headroom > 5000:
