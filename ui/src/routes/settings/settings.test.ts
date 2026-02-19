@@ -34,15 +34,11 @@ describe('Settings Page', () => {
 			expect(screen.getByText('Advanced Settings')).toBeInTheDocument();
 		});
 
-		it('renders Done button', () => {
+		it('renders Overview link in footer', () => {
 			render(SettingsPage);
-			expect(screen.getByRole('button', { name: /done/i })).toBeInTheDocument();
-		});
-
-		it('Done button navigates to home', async () => {
-			render(SettingsPage);
-			await fireEvent.click(screen.getByRole('button', { name: /done/i }));
-			expect(goto).toHaveBeenCalledWith('/');
+			const link = screen.getByRole('link', { name: /overview/i });
+			expect(link).toBeInTheDocument();
+			expect(link).toHaveAttribute('href', '/');
 		});
 
 		it('shows avatar header with User icon when no name', () => {
@@ -85,9 +81,9 @@ describe('Settings Page', () => {
 			expect(screen.queryByRole('button', { name: /get started/i })).not.toBeInTheDocument();
 		});
 
-		it('shows Load Sample Data dropdown', () => {
+		it('does not show Load Sample Data on Basic Info', () => {
 			render(SettingsPage);
-			expect(screen.getByRole('combobox', { name: /load sample data/i })).toBeInTheDocument();
+			expect(screen.queryByRole('combobox', { name: /load sample data/i })).not.toBeInTheDocument();
 		});
 
 		it('shows spouse toggle', () => {
@@ -132,8 +128,15 @@ describe('Settings Page', () => {
 			expect(goto).toHaveBeenCalledWith('/');
 		});
 
+		it('Load Sample Data dropdown is in Load/Save section', async () => {
+			render(SettingsPage);
+			await fireEvent.click(screen.getByText('Load / Save'));
+			expect(screen.getByRole('combobox', { name: /load sample data/i })).toBeInTheDocument();
+		});
+
 		it('Load Sample Data dropdown loads scenario and navigates home', async () => {
 			render(SettingsPage);
+			await fireEvent.click(screen.getByText('Load / Save'));
 			const select = screen.getByRole('combobox', { name: /load sample data/i });
 			await fireEvent.change(select, { target: { value: 'Moderate Couple' } });
 			expect(get(portfolio).config.current_age_primary).toBe(65);

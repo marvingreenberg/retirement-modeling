@@ -36,6 +36,14 @@
 		return '';
 	}
 
+	function toPct(v: number | null): string {
+		return v != null ? String(Math.round(v * 10000) / 100) : '';
+	}
+	function pctToDecimal(s: string): number | null {
+		if (!s) return null;
+		return +s / 100;
+	}
+
 	function ensureSSAuto() {
 		if (!config.ss_auto) {
 			config.ss_auto = {
@@ -128,7 +136,7 @@
 				<span class="w-28">Start Year</span>
 				<span class="w-28">End Year</span>
 				<span class="w-20">COLA %</span>
-				<span class="w-20">Taxable</span>
+				<span class="w-20">Taxable %</span>
 				{#if hasSpouse}<span class="w-24">Owner</span>{/if}
 			</div>
 		{/if}
@@ -167,8 +175,16 @@
 						<span class="text-xs text-surface-400">lifetime</span>
 					{/if}
 				</div>
-				<input type="number" class="input w-20 text-sm" bind:value={stream.cola_rate} onfocus={(e) => e.currentTarget.select()} min="0" max="0.2" step="0.005" aria-label="COLA %" />
-				<input type="number" class="input w-20 text-sm" bind:value={stream.taxable_pct} onfocus={(e) => e.currentTarget.select()} min="0" max="1" step="0.05" aria-label="Taxable" />
+				<input type="number" class="input w-20 text-sm"
+				value={toPct(stream.cola_rate)}
+				onfocus={(e) => e.currentTarget.select()}
+				onchange={(e) => { stream.cola_rate = pctToDecimal(e.currentTarget.value); }}
+				min="0" max="20" step="0.5" placeholder="0" aria-label="COLA %" />
+				<input type="number" class="input w-20 text-sm"
+				value={toPct(stream.taxable_pct)}
+				onfocus={(e) => e.currentTarget.select()}
+				onchange={(e) => { stream.taxable_pct = +(e.currentTarget.value) / 100; }}
+				min="0" max="100" step="5" aria-label="Taxable %" />
 				{#if hasSpouse}
 					<select class="select w-24 text-sm" bind:value={stream.owner} aria-label="Owner">
 						<option value="primary">Primary</option>

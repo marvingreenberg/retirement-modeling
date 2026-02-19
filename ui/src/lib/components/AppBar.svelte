@@ -40,7 +40,7 @@
 				{#each navItems as { href, label, icon: Icon }}
 					<a
 						{href}
-						class="btn btn-sm flex items-center gap-1.5 {isActive(href) ? 'preset-filled' : 'preset-ghost'}"
+						class="btn btn-md flex items-center gap-1.5 {isActive(href) ? 'preset-filled' : 'preset-ghost'}"
 						aria-current={isActive(href) ? 'page' : undefined}
 					>
 						<Icon size={18} />
@@ -50,8 +50,8 @@
 			</nav>
 		</SkAppBar.Headline>
 		<SkAppBar.Trail>
-			<button class="btn btn-sm preset-ghost" onclick={() => helpOpen = true} aria-label="Open help">
-				<CircleHelp size={22} />
+			<button class="btn btn-sm preset-ghost" color="dark cyan" onclick={() => helpOpen = true} aria-label="Open help">
+				<CircleHelp color="DarkCyan" size={36} />
 			</button>
 			<AvatarButton onclick={() => dropdownOpen = !dropdownOpen} />
 		</SkAppBar.Trail>

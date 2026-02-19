@@ -120,7 +120,8 @@
 				step="1000"
 				aria-label="Balance"
 			/>
-			<select class="select w-30" bind:value={account.owner} aria-label="Owner">
+			<select class="select w-30" value={account.owner} aria-label="Owner"
+				onchange={(e) => { accounts[i] = { ...account, owner: (e.target as HTMLSelectElement).value as any }; accounts = [...accounts]; }}>
 				<option value="primary">Primary</option>
 				<option value="spouse">Spouse</option>
 				{#if !INDIVIDUAL_ONLY_TYPES.has(account.type)}

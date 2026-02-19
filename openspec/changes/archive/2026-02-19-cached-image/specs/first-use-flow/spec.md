@@ -1,4 +1,4 @@
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Setup detection
 The app SHALL detect when a portfolio is unconfigured and redirect to the settings page. An unconfigured portfolio is one with primary age of 0. The redirect navigates to `/settings` with the Basic Info panel active.
@@ -22,10 +22,3 @@ The app SHALL detect when a portfolio is unconfigured and redirect to the settin
 #### Scenario: Welcome banner references Load/Save
 - **WHEN** the first-use banner is shown on Basic Info
 - **THEN** the text SHALL read "Enter your info to get started, or use Load / Save to load previously saved data or sample data."
-
-### Requirement: Empty default portfolio
-The app SHALL start with an empty portfolio state: primary age 0, spouse age 0, no accounts, zeroed income and spending. Sensible defaults are provided for simulation parameters (inflation, growth rate, tax rates).
-
-#### Scenario: Initial portfolio state
-- **WHEN** the app loads with no prior state
-- **THEN** the portfolio store contains age 0, no accounts, $0 spending, and zeroed SS benefits

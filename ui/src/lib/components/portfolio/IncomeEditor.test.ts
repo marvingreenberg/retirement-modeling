@@ -91,4 +91,23 @@ describe('IncomeEditor', () => {
 		}]);
 		expect(screen.getByText('end < start')).toBeInTheDocument();
 	});
+
+	it('displays COLA rate and taxable_pct as percentages', () => {
+		renderEditor({ current_age_primary: 65, start_year: 2026 }, [{
+			name: 'Pension', amount: 24000, start_age: 65, end_age: null,
+			taxable_pct: 0.85, cola_rate: 0.02, owner: 'primary',
+		}]);
+		const colaInput = screen.getByLabelText('COLA %') as HTMLInputElement;
+		const taxableInput = screen.getByLabelText('Taxable %') as HTMLInputElement;
+		expect(colaInput.value).toBe('2');
+		expect(taxableInput.value).toBe('85');
+	});
+
+	it('shows column header as Taxable %', () => {
+		renderEditor({}, [{
+			name: 'Test', amount: 1000, start_age: 65, end_age: null,
+			taxable_pct: 1.0, cola_rate: null, owner: 'primary',
+		}]);
+		expect(screen.getByText('Taxable %')).toBeInTheDocument();
+	});
 });

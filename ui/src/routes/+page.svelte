@@ -59,6 +59,24 @@
 	let mcResult = $state<MonteCarloResponse | null>(stored.mcResult);
 	let settingsCollapsed = $state(stored.singleResult !== null);
 
+	// Clear cached results when portfolio inputs change
+	let lastPortfolioJson = $state(JSON.stringify($portfolio));
+	let simRunning = $state(false);
+	$effect(() => {
+		const json = JSON.stringify($portfolio);
+		if (json !== lastPortfolioJson) {
+			lastPortfolioJson = json;
+			if (!simRunning) {
+				singleResult = null;
+				mcResult = null;
+				settingsCollapsed = false;
+				error = '';
+				simulationResults.set({ singleResult: null, mcResult: null });
+				comparisonSnapshots.set([]);
+			}
+		}
+	});
+
 	async function handleRun() {
 		if ($portfolio.accounts.length === 0) {
 			simulateBlockedSection.set('accounts');
@@ -78,6 +96,7 @@
 			return;
 		}
 
+		simRunning = true;
 		loading = true;
 		mcLoading = true;
 		error = '';
@@ -124,6 +143,9 @@
 			error = e.message || 'Simulation failed';
 			loading = false;
 			mcLoading = false;
+		} finally {
+			simRunning = false;
+			lastPortfolioJson = JSON.stringify($portfolio);
 		}
 	}
 

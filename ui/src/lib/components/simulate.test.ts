@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ComparisonSnapshot } from '$lib/types';
 import { get } from 'svelte/store';
-import { comparisonSnapshots, samplePortfolio } from '$lib/stores';
+import { comparisonSnapshots, simulationResults, samplePortfolio } from '$lib/stores';
 
 describe('Portfolio defaults', () => {
 	it('default portfolio config still has simulation params for API compatibility', () => {
@@ -112,6 +112,21 @@ describe('Comparison store', () => {
 		expect(get(comparisonSnapshots)[0].finalBalance).toBe(3500000);
 
 		comparisonSnapshots.set([]);
+	});
+
+	it('simulationResults store can be cleared', () => {
+		simulationResults.set({ singleResult: { result: {} } as any, mcResult: { success_rate: 0.9 } as any });
+		expect(get(simulationResults).singleResult).not.toBeNull();
+		simulationResults.set({ singleResult: null, mcResult: null });
+		expect(get(simulationResults).singleResult).toBeNull();
+		expect(get(simulationResults).mcResult).toBeNull();
+	});
+
+	it('comparisonSnapshots can be cleared', () => {
+		comparisonSnapshots.set([{ id: 'x', name: 'X' } as ComparisonSnapshot]);
+		expect(get(comparisonSnapshots)).toHaveLength(1);
+		comparisonSnapshots.set([]);
+		expect(get(comparisonSnapshots)).toHaveLength(0);
 	});
 
 	it('MC snapshot includes success rate', () => {

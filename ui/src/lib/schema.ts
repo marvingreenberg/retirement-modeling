@@ -47,7 +47,7 @@ export const incomeStreamSchema = z.object({
 	start_age: z.number().int().min(0),
 	end_age: z.number().int().min(0).nullable().default(null),
 	taxable_pct: z.number().min(0).max(1).default(1.0),
-	cola_rate: z.number().nullable().default(null),
+	cola_rate: z.number().min(0).max(0.20).nullable().default(null),
 	owner: ownerSchema.default('primary'),
 });
 

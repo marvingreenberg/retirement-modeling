@@ -76,7 +76,7 @@
 				type: acctType,
 				owner: 'primary' as const,
 				cost_basis_ratio: ACCOUNT_TYPE_DEFAULTS[acctType]?.cost_basis_ratio ?? 0.0,
-				available_at_age: 0,
+				available_at_age: ACCOUNT_TYPE_DEFAULTS[acctType]?.default_available_age ?? 0,
 			};
 		});
 		accounts = [...accounts, ...newAccounts];

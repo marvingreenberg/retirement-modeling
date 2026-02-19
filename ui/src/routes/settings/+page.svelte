@@ -9,7 +9,7 @@
 	import { avatarSrc, fetchAvatarSvg } from '$lib/avatar.svelte';
 	import { saveJsonFile, loadJsonFile, generateFilename } from '$lib/fileIO';
 	import InfoPopover from '$lib/components/InfoPopover.svelte';
-	import { User, FolderOpen, Sliders, Shuffle } from 'lucide-svelte';
+	import { User, FolderOpen, Sliders, Shuffle, LayoutDashboard } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 
 	type Section = 'basic' | 'loadsave' | 'advanced';
@@ -165,10 +165,6 @@
 		}
 	}
 
-	function handleDone() {
-		goto('/');
-	}
-
 	const sections: { id: Section; label: string; icon: typeof User }[] = [
 		{ id: 'basic', label: 'Basic Info', icon: User },
 		{ id: 'loadsave', label: 'Load / Save', icon: FolderOpen },
@@ -213,9 +209,12 @@
 			{/each}
 		</div>
 
-		<!-- Footer: Done -->
+		<!-- Footer: Back to Overview -->
 		<div class="p-4 border-t border-surface-300 dark:border-surface-700">
-			<button class="btn preset-filled w-full" onclick={handleDone}>Done</button>
+			<a href="/" class="flex items-center gap-2 px-3 py-2 text-sm text-surface-600 dark:text-surface-400 hover:text-primary-600 dark:hover:text-primary-300 transition-colors">
+				<LayoutDashboard size={18} />
+				Overview
+			</a>
 		</div>
 	</nav>
 
@@ -226,7 +225,7 @@
 
 			{#if initialNeedsSetup}
 				<div class="bg-primary-50 dark:bg-primary-950 border border-primary-200 dark:border-primary-800 rounded p-4 mb-6">
-					<p class="text-sm text-primary-700 dark:text-primary-300">Enter your info to get started, or use Load/Save to load saved data.</p>
+					<p class="text-sm text-primary-700 dark:text-primary-300">Enter your info to get started, or use Load / Save to load previously saved data or sample data.</p>
 				</div>
 			{/if}
 
@@ -272,25 +271,11 @@
 					<p class="text-sm text-error-500">{setupError}</p>
 				{/if}
 
-				<div class="flex gap-3 items-center pt-2">
-					{#if initialNeedsSetup}
+				{#if initialNeedsSetup}
+					<div class="pt-2">
 						<button class="btn preset-filled" onclick={handleGetStarted}>Get Started</button>
-					{/if}
-					<label class="flex items-center gap-2 text-sm font-medium text-surface-700 dark:text-surface-300">
-						Load Sample Data
-						<select class="select text-sm w-48" aria-label="Load Sample Data"
-							onchange={(e) => {
-								const val = (e.target as HTMLSelectElement).value;
-								if (val) loadScenario(val);
-								(e.target as HTMLSelectElement).value = '';
-							}}>
-							<option value="">Select scenario...</option>
-							{#each Object.keys(sampleScenarios) as name}
-								<option value={name}>{name}</option>
-							{/each}
-						</select>
-					</label>
-				</div>
+					</div>
+				{/if}
 			</div>
 
 		{:else if activeSection === 'loadsave'}
@@ -308,6 +293,22 @@
 				{#if loadError}
 					<pre class="text-sm text-error-500 bg-error-50 dark:bg-error-950 p-3 rounded whitespace-pre-wrap">{loadError}</pre>
 				{/if}
+
+				<div class="space-y-2">
+					<h3 class="text-sm font-semibold text-surface-700 dark:text-surface-300">Load Sample Data</h3>
+					<p class="text-xs text-surface-500">Load a pre-built scenario to explore the simulator.</p>
+					<select class="select text-sm w-48" aria-label="Load Sample Data"
+						onchange={(e) => {
+							const val = (e.target as HTMLSelectElement).value;
+							if (val) loadScenario(val);
+							(e.target as HTMLSelectElement).value = '';
+						}}>
+						<option value="">Select scenario...</option>
+						{#each Object.keys(sampleScenarios) as name}
+							<option value={name}>{name}</option>
+						{/each}
+					</select>
+				</div>
 
 				<div class="space-y-2">
 					<h3 class="text-sm font-semibold text-surface-700 dark:text-surface-300">Save Portfolio</h3>

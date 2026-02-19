@@ -207,7 +207,7 @@ class IncomeStream(BaseModel):
     start_age: int = Field(ge=0)
     end_age: int | None = Field(default=None, ge=0)
     taxable_pct: float = Field(default=1.0, ge=0.0, le=1.0)
-    cola_rate: float | None = Field(default=None)
+    cola_rate: float | None = Field(default=None, ge=0.0, le=0.20)
     owner: Owner = Owner.PRIMARY
 
 

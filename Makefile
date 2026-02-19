@@ -46,6 +46,7 @@ check-tools:
 
 setup: check-tools
 	keyring get $(REPO) $(REPO_OWNER) | docker login $(REPO) --username $(REPO_OWNER) --password-stdin
+	python -m venv .venv; $(ACTIVATE); pip3 install -q .[dev]
 	./scripts/set-gcloud-creds-for-deploy
 
 build: build-api build-ui
