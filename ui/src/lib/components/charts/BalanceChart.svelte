@@ -17,50 +17,42 @@
       chart?.destroy();
       const labels = years.map((y) => `Age ${y.age_primary}`);
 
+      const areaStyle = {
+         borderWidth: 1.5,
+         pointRadius: 0,
+         pointStyle: 'rectRounded' as const,
+         fill: true,
+         yAxisID: 'y',
+         order: 2,
+      };
       const balanceDatasets = [
          {
             label: 'Pre-tax',
             data: years.map((y) => y.pretax_balance),
             borderColor: '#dc2626',
             backgroundColor: 'rgba(220,38,38,0.55)',
-            borderWidth: 1.5,
-            pointRadius: 0,
-            pointStyle: 'rectRounded' as const,
-            fill: true,
-            yAxisID: 'y',
+            ...areaStyle,
          },
          {
             label: 'Roth Conversions',
             data: years.map((y) => y.roth_conversion_balance ?? 0),
             borderColor: '#7c3aed',
             backgroundColor: 'rgba(124,58,237,0.3)',
-            borderWidth: 1.5,
-            pointRadius: 0,
-            pointStyle: 'rectRounded' as const,
-            fill: true,
-            yAxisID: 'y',
+            ...areaStyle,
          },
          {
             label: 'Roth',
             data: years.map((y) => y.roth_balance),
             borderColor: '#16a34a',
             backgroundColor: 'rgba(22,163,74,0.3)',
-            borderWidth: 1.5,
-            pointRadius: 0,
-            pointStyle: 'rectRounded' as const,
-            fill: true,
-            yAxisID: 'y',
+            ...areaStyle,
          },
          {
             label: 'Brokerage',
             data: years.map((y) => y.brokerage_balance),
             borderColor: '#ca8a04',
             backgroundColor: 'rgba(202,138,4,0.3)',
-            borderWidth: 1.5,
-            pointRadius: 0,
-            pointStyle: 'rectRounded' as const,
-            fill: true,
-            yAxisID: 'y',
+            ...areaStyle,
          },
       ];
 
@@ -70,6 +62,7 @@
          pointStyle: 'line' as const,
          fill: false,
          yAxisID: 'y2',
+         order: 1,
       };
       const cashFlowDatasets = [
          {

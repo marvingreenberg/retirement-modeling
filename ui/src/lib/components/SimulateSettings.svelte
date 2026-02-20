@@ -31,6 +31,29 @@
       setter(+(e.target as HTMLInputElement).value / 100);
    }
 
+   function guardrailFloor(): number {
+      const g = $portfolio.config.guardrails_config;
+      if (!g) return 4;
+      return (
+         Math.round(g.initial_withdrawal_rate * g.floor_percent * 1000) / 10
+      );
+   }
+   function guardrailCeiling(): number {
+      const g = $portfolio.config.guardrails_config;
+      if (!g) return 6;
+      return (
+         Math.round(g.initial_withdrawal_rate * g.ceiling_percent * 1000) / 10
+      );
+   }
+   function setGuardrailRange(floor: number, ceiling: number) {
+      const g = $portfolio.config.guardrails_config;
+      if (!g) return;
+      const init = (floor + ceiling) / 2 / 100;
+      g.initial_withdrawal_rate = init;
+      g.floor_percent = init > 0 ? floor / 100 / init : 0.8;
+      g.ceiling_percent = init > 0 ? ceiling / 100 / init : 1.2;
+   }
+
    function strategySummary(): string {
       const c = $portfolio.config;
       const s = c.spending_strategy ?? 'fixed_dollar';
@@ -44,8 +67,8 @@
       if (s === 'percent_of_portfolio')
          return `${toPct(c.withdrawal_rate ?? 0.04).toFixed(1)}% of Portfolio`;
       if (s === 'guardrails' && c.guardrails_config) {
-         const g = c.guardrails_config;
-         return `Guardrails ${toPct(g.initial_withdrawal_rate).toFixed(1)}%, (${Math.round(g.floor_percent * 100)}/${Math.round(g.ceiling_percent * 100)})`;
+         const adj = toPct(c.guardrails_config.adjustment_percent).toFixed(1);
+         return `Guardrails ${guardrailFloor()}-${guardrailCeiling()}% Adj ${adj}%`;
       }
       return 'RMD-Based';
    }
@@ -68,8 +91,7 @@
 >
    <div class="flex gap-4 flex-wrap items-end">
       <button
-         class="btn btn-md preset-tonal self-end"
-         color="#443300"
+         class="btn btn-md preset-tonal self-end border-2 border-primary-500"
          onclick={onrun}
          disabled={loading}
          aria-label="Run simulation"
@@ -227,70 +249,45 @@
                <label
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
-                  Init. WD Rate
+                  <span class="flex items-center gap-1"
+                     >Floor Rate % <InfoPopover
+                        text="Minimum withdrawal rate. When the actual rate drops below this, spending is increased."
+                     /></span
+                  >
                   <input
                      type="number"
-                     class="input w-24 text-sm"
-                     value={toPct(
-                        $portfolio.config.guardrails_config
-                           .initial_withdrawal_rate,
-                     )}
+                     class="input w-20 text-sm"
+                     value={guardrailFloor()}
                      oninput={(e) =>
-                        setPct(
-                           e,
-                           (v) =>
-                              ($portfolio.config.guardrails_config!.initial_withdrawal_rate =
-                                 v),
+                        setGuardrailRange(
+                           +(e.target as HTMLInputElement).value,
+                           guardrailCeiling(),
                         )}
                      min="1"
-                     max="15"
+                     max="10"
                      step="0.5"
                   />
                </label>
-            </div>
-            <div class="flex gap-4 flex-wrap items-end">
                <label
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
-                  Floor %
+                  <span class="flex items-center gap-1"
+                     >Ceiling Rate % <InfoPopover
+                        text="Maximum withdrawal rate. When the actual rate exceeds this, spending is cut."
+                     /></span
+                  >
                   <input
                      type="number"
                      class="input w-20 text-sm"
-                     value={toPct(
-                        $portfolio.config.guardrails_config.floor_percent,
-                     )}
+                     value={guardrailCeiling()}
                      oninput={(e) =>
-                        setPct(
-                           e,
-                           (v) =>
-                              ($portfolio.config.guardrails_config!.floor_percent =
-                                 v),
+                        setGuardrailRange(
+                           guardrailFloor(),
+                           +(e.target as HTMLInputElement).value,
                         )}
-                     min="50"
-                     max="100"
-                     step="5"
-                  />
-               </label>
-               <label
-                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
-               >
-                  Ceiling %
-                  <input
-                     type="number"
-                     class="input w-20 text-sm"
-                     value={toPct(
-                        $portfolio.config.guardrails_config.ceiling_percent,
-                     )}
-                     oninput={(e) =>
-                        setPct(
-                           e,
-                           (v) =>
-                              ($portfolio.config.guardrails_config!.ceiling_percent =
-                                 v),
-                        )}
-                     min="100"
-                     max="200"
-                     step="5"
+                     min="2"
+                     max="15"
+                     step="0.5"
                   />
                </label>
                <label
@@ -312,9 +309,15 @@
                         )}
                      min="1"
                      max="25"
-                     step="1"
+                     step="0.5"
                   />
                </label>
+               <span class="text-xs text-surface-500 self-end pb-1.5"
+                  >Initial rate: {toPct(
+                     $portfolio.config.guardrails_config
+                        .initial_withdrawal_rate,
+                  ).toFixed(1)}%</span
+               >
             </div>
          {:else}
             <div class="flex gap-4 flex-wrap items-end">

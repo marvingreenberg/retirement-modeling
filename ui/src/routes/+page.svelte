@@ -22,12 +22,31 @@
    import { goto } from '$app/navigation';
    import { isNarrow } from '$lib/components/PortraitBlocker.svelte';
 
-   const spendingLabels: Record<string, string> = {
-      fixed_dollar: 'Fixed Dollar',
-      percent_of_portfolio: '% of Portfolio',
-      guardrails: 'Guardrails',
-      rmd_based: 'RMD-Based',
-   };
+   function spendingLabel(): string {
+      const c = $portfolio.config;
+      const s = c.spending_strategy ?? 'fixed_dollar';
+      if (s === 'fixed_dollar') {
+         const spend =
+            c.annual_spend_net >= 1000
+               ? `$${Math.round(c.annual_spend_net / 1000)}K`
+               : `$${c.annual_spend_net}`;
+         return `Fixed ${spend}`;
+      }
+      if (s === 'percent_of_portfolio') {
+         const rate = Math.round((c.withdrawal_rate ?? 0.04) * 1000) / 10;
+         return `${rate}% of Portfolio`;
+      }
+      if (s === 'guardrails' && c.guardrails_config) {
+         const g = c.guardrails_config;
+         const init = g.initial_withdrawal_rate;
+         const floor = Math.round(init * g.floor_percent * 1000) / 10;
+         const ceil = Math.round(init * g.ceiling_percent * 1000) / 10;
+         const adj = Math.round(g.adjustment_percent * 1000) / 10;
+         return `Guardrails ${floor}-${ceil}% Adj ${adj}%`;
+      }
+      return 'RMD-Based';
+   }
+
    const conversionLabels: Record<string, string> = {
       standard: 'No Conversion',
       irmaa_tier_1: 'IRMAA Tier 1',
@@ -64,8 +83,7 @@
          name: '',
          inflationRate: c.inflation_rate,
          growthRate: c.investment_growth_rate,
-         spendingStrategy:
-            spendingLabels[c.spending_strategy ?? 'fixed_dollar'],
+         spendingStrategy: spendingLabel(),
          conversionStrategy: conversionLabels[c.strategy_target],
          taxRateState: c.tax_rate_state,
       };
@@ -97,7 +115,6 @@
             mcResult = null;
             error = '';
             simulationResults.set({ singleResult: null, mcResult: null });
-            comparisonSnapshots.set([]);
          }
       }
    });

@@ -44,10 +44,10 @@ describe('SimulateSettings', () => {
       renderSettings();
       const toggle = screen.getByText(/Withdrawal Strategy/);
       await fireEvent.click(toggle);
-      expect(screen.getByText('Init. WD Rate')).toBeInTheDocument();
-      expect(screen.getByText('Floor %')).toBeInTheDocument();
-      expect(screen.getByText('Ceiling %')).toBeInTheDocument();
+      expect(screen.getByText(/Floor Rate %/)).toBeInTheDocument();
+      expect(screen.getByText(/Ceiling Rate %/)).toBeInTheDocument();
       expect(screen.getByText('Adjust %')).toBeInTheDocument();
+      expect(screen.getByText(/Initial rate:/)).toBeInTheDocument();
    });
 
    it('shows withdrawal rate after expanding strategy for POP', async () => {
