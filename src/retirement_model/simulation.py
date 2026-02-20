@@ -14,6 +14,7 @@ from retirement_model.models import (
     AccountType,
     AccountWithdrawal,
     ConversionStrategy,
+    IncomeDetail,
     Owner,
     PlannedExpense,
     Portfolio,
@@ -266,11 +267,22 @@ def run_simulation(
 
         # Social Security income (legacy path, skipped when ss_auto generates streams)
         ss_income = 0.0
+        income_details: list[IncomeDetail] = []
         if use_legacy_ss:
             if age_primary >= cfg.social_security.primary_start_age:
                 ss_income += cfg.social_security.primary_benefit
+                income_details.append(
+                    IncomeDetail(
+                        name="SS (primary)", amount=round(cfg.social_security.primary_benefit)
+                    )
+                )
             if age_spouse >= cfg.social_security.spouse_start_age:
                 ss_income += cfg.social_security.spouse_benefit
+                income_details.append(
+                    IncomeDetail(
+                        name="SS (spouse)", amount=round(cfg.social_security.spouse_benefit)
+                    )
+                )
 
         # Additional income streams (pensions, annuities, rental income, etc.)
         stream_income = 0.0
@@ -286,6 +298,7 @@ def run_simulation(
                 adjusted = stream.amount * cola_factor
                 stream_income += adjusted
                 stream_taxable += adjusted * stream.taxable_pct
+                income_details.append(IncomeDetail(name=stream.name, amount=round(adjusted)))
 
         # SS taxable portion uses IRS tiered formula
         other_income_for_ss = stream_taxable
@@ -499,6 +512,7 @@ def run_simulation(
                     + get_total_balance_by_category(accounts, TaxCategory.CASH)
                 ),
                 withdrawal_details=withdrawal_details,
+                income_details=income_details,
             )
         )
 

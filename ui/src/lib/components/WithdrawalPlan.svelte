@@ -42,6 +42,21 @@
 						</div>
 					{/if}
 
+					{#if (yr.income_details ?? []).length > 0}
+						<div class="pt-1 border-t border-surface-200 dark:border-surface-600">
+							<div class="flex justify-between font-medium">
+								<span>Income</span>
+								<span>{currency(yr.total_income)}</span>
+							</div>
+							{#each yr.income_details ?? [] as inc}
+								<div class="flex justify-between pl-3 text-surface-500 dark:text-surface-400">
+									<span>{inc.name}</span>
+									<span>{currency(inc.amount)}</span>
+								</div>
+							{/each}
+						</div>
+					{/if}
+
 					{#if byPurpose(yr.withdrawal_details, 'rmd').length > 0}
 						<div class="pt-1 border-t border-surface-200 dark:border-surface-600">
 							<div class="flex justify-between font-medium">

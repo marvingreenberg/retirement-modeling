@@ -166,6 +166,11 @@ export interface AccountWithdrawal {
 	purpose: 'rmd' | 'spending' | 'conversion';
 }
 
+export interface IncomeDetail {
+	name: string;
+	amount: number;
+}
+
 export interface YearResult {
 	year: number;
 	age_primary: number;
@@ -192,6 +197,7 @@ export interface YearResult {
 	roth_conversion_balance: number;
 	brokerage_balance: number;
 	withdrawal_details: AccountWithdrawal[];
+	income_details: IncomeDetail[];
 }
 
 export interface SimulationResult {

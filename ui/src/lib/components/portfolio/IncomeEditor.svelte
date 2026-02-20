@@ -144,8 +144,8 @@
 			{@const oa = ownerAge(stream.owner)}
 			{@const warning = streamWarning(stream)}
 			<div class="flex gap-3 items-center p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap mb-2">
-				<input type="text" class="input w-32 text-sm" bind:value={stream.name} onfocus={(e) => e.currentTarget.select()} placeholder="e.g. Pension" aria-label="Name" />
-				<input type="number" class="input w-28 text-sm" bind:value={stream.amount} onfocus={(e) => e.currentTarget.select()} min="0" step="1000" aria-label="Amount" />
+				<input type="text" class="input w-32 text-sm" bind:value={incomeStreams[idx].name} onfocus={(e) => e.currentTarget.select()} placeholder="e.g. Pension" aria-label="Name" />
+				<input type="number" class="input w-28 text-sm" bind:value={incomeStreams[idx].amount} onfocus={(e) => e.currentTarget.select()} min="0" step="1000" aria-label="Amount" />
 				<div class="w-28">
 					<input type="number" class="input w-full text-sm"
 						value={ageToYear(stream.start_age, oa)}
@@ -186,7 +186,7 @@
 				onchange={(e) => { stream.taxable_pct = +(e.currentTarget.value) / 100; }}
 				min="0" max="100" step="5" aria-label="Taxable %" />
 				{#if hasSpouse}
-					<select class="select w-24 text-sm" bind:value={stream.owner} aria-label="Owner">
+					<select class="select w-24 text-sm" bind:value={incomeStreams[idx].owner} aria-label="Owner">
 						<option value="primary">Primary</option>
 						<option value="spouse">Spouse</option>
 					</select>

@@ -286,6 +286,13 @@ class AccountWithdrawal(BaseModel):
     purpose: str  # "rmd", "spending", "conversion"
 
 
+class IncomeDetail(BaseModel):
+    """Per-source income detail for a simulation year."""
+
+    name: str
+    amount: float
+
+
 class YearResult(BaseModel):
     """Results for a single simulation year."""
 
@@ -320,6 +327,9 @@ class YearResult(BaseModel):
 
     # Per-account withdrawal details
     withdrawal_details: list[AccountWithdrawal] = []
+
+    # Per-source income details
+    income_details: list[IncomeDetail] = []
 
 
 class SimulationResult(BaseModel):

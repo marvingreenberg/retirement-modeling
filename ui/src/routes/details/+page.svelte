@@ -1,11 +1,20 @@
 <script lang="ts">
-	import { simulationResults } from '$lib/stores';
+	import { simulationResults, profile } from '$lib/stores';
 	import { currency } from '$lib/format';
-	import { TableProperties, TrendingUp } from 'lucide-svelte';
+	import { TableProperties, TrendingUp, Download } from 'lucide-svelte';
 	import WithdrawalPlan from '$lib/components/WithdrawalPlan.svelte';
+	import { generateTextReport } from '$lib/textReport';
+	import { saveTextFile, generateFilename } from '$lib/fileIO';
 
 	let activeTab = $state<'single' | 'monte_carlo'>('single');
 	let hasAny = $derived($simulationResults.singleResult !== null || $simulationResults.mcResult !== null);
+
+	async function downloadReport() {
+		if (!$simulationResults.singleResult) return;
+		const text = generateTextReport($simulationResults.singleResult);
+		const base = generateFilename($profile.primaryName, $profile.spouseName).replace(/\.json$/, '');
+		await saveTextFile(text, `${base}-Report.txt`);
+	}
 </script>
 
 <h2 class="text-xl font-semibold text-surface-900 dark:text-surface-50 mb-4">Detailed Results</h2>
@@ -37,9 +46,14 @@
 			{@const years = depletionIdx >= 0 ? allYears.slice(0, depletionIdx + 1) : allYears}
 			<WithdrawalPlan {years} />
 			<div class="card bg-surface-100 dark:bg-surface-800 p-4">
-				<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2">
-					<TableProperties size={18} class="text-primary-500" /> Year-by-Year Detail
-				</h3>
+				<div class="flex items-center justify-between mb-3">
+					<h3 class="text-base font-semibold text-surface-900 dark:text-surface-50 flex items-center gap-2">
+						<TableProperties size={18} class="text-primary-500" /> Year-by-Year Detail
+					</h3>
+					<button class="btn btn-sm preset-tonal flex items-center gap-1" onclick={downloadReport}>
+						<Download size={14} /> Download Report
+					</button>
+				</div>
 				<div class="overflow-x-auto">
 					<table class="table table-sm">
 						<thead>

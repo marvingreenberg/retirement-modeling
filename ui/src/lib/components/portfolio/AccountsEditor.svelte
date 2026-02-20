@@ -104,7 +104,7 @@
 					<TrendingUp size={18} class="text-amber-500" />
 				{/if}
 			</div>
-			<input type="text" class="input w-44" bind:value={account.name} onfocus={(e) => e.currentTarget.select()} placeholder="Account name" aria-label="Name" />
+			<input type="text" class="input w-44" bind:value={accounts[i].name} onfocus={(e) => e.currentTarget.select()} placeholder="Account name" aria-label="Name" />
 			<select class="select w-36" value={account.type} aria-label="Type"
 				onchange={(e) => handleTypeChange(i, (e.target as HTMLSelectElement).value as AccountType)}>
 				{#each EDITOR_ACCOUNT_TYPES as t}
@@ -114,7 +114,7 @@
 			<input
 				type="number"
 				class="input w-30 no-spinner {balanceError ? 'ring-2 ring-error-500 border-error-500' : ''}"
-				bind:value={account.balance}
+				bind:value={accounts[i].balance}
 				onfocus={(e) => e.currentTarget.select()}
 				min="0"
 				step="1000"
@@ -160,7 +160,7 @@
 					{/if}
 				</div>
 			{:else}
-				<input type="number" class="input w-20 no-spinner" bind:value={account.available_at_age} onfocus={(e) => e.currentTarget.select()} min="0" aria-label="Avail. Age" />
+				<input type="number" class="input w-20 no-spinner" bind:value={accounts[i].available_at_age} onfocus={(e) => e.currentTarget.select()} min="0" aria-label="Avail. Age" />
 			{/if}
 			<button
 				class="btn preset-outlined btn-sm"
