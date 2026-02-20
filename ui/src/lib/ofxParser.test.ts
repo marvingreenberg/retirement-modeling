@@ -170,86 +170,89 @@ DATA:OFXSGML
 </OFX>`;
 
 describe('preprocessOFX', () => {
-	it('strips header and produces parseable XML', () => {
-		const xml = preprocessOFX(MINIMAL_OFX);
-		expect(xml.startsWith('<OFX>')).toBe(true);
-		expect(xml).not.toContain('OFXHEADER');
-		// Should be parseable by DOMParser
-		const parser = new DOMParser();
-		const doc = parser.parseFromString(xml, 'text/xml');
-		expect(doc.querySelector('parsererror')).toBeNull();
-	});
+   it('strips header and produces parseable XML', () => {
+      const xml = preprocessOFX(MINIMAL_OFX);
+      expect(xml.startsWith('<OFX>')).toBe(true);
+      expect(xml).not.toContain('OFXHEADER');
+      // Should be parseable by DOMParser
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'text/xml');
+      expect(doc.querySelector('parsererror')).toBeNull();
+   });
 
-	it('throws for content without <OFX> tag', () => {
-		expect(() => preprocessOFX('just some text')).toThrow('Not a valid OFX file');
-	});
+   it('throws for content without <OFX> tag', () => {
+      expect(() => preprocessOFX('just some text')).toThrow(
+         'Not a valid OFX file',
+      );
+   });
 
-	it('closes unclosed leaf tags', () => {
-		const xml = preprocessOFX('<OFX><CODE>0<SEVERITY>INFO</OFX>');
-		expect(xml).toContain('<CODE>0</CODE>');
-		expect(xml).toContain('<SEVERITY>INFO</SEVERITY>');
-	});
+   it('closes unclosed leaf tags', () => {
+      const xml = preprocessOFX('<OFX><CODE>0<SEVERITY>INFO</OFX>');
+      expect(xml).toContain('<CODE>0</CODE>');
+      expect(xml).toContain('<SEVERITY>INFO</SEVERITY>');
+   });
 
-	it('strips dot-extension tags (SGML-style, no closing tags)', () => {
-		const input = '<OFX><INTU.BID>12345<CODE>0</OFX>';
-		const xml = preprocessOFX(input);
-		expect(xml).not.toContain('INTU.BID');
-		expect(xml).toContain('<CODE>0</CODE>');
-	});
+   it('strips dot-extension tags (SGML-style, no closing tags)', () => {
+      const input = '<OFX><INTU.BID>12345<CODE>0</OFX>';
+      const xml = preprocessOFX(input);
+      expect(xml).not.toContain('INTU.BID');
+      expect(xml).toContain('<CODE>0</CODE>');
+   });
 
-	it('strips dot-extension tags (XML-style, with closing tags)', () => {
-		const input = '<OFX><SONRS><INTU.BID>17260</INTU.BID><INTU.USERID>12345</INTU.USERID></SONRS></OFX>';
-		const xml = preprocessOFX(input);
-		expect(xml).not.toContain('INTU.BID');
-		expect(xml).not.toContain('INTU.USERID');
-		const parser = new DOMParser();
-		const doc = parser.parseFromString(xml, 'text/xml');
-		expect(doc.querySelector('parsererror')).toBeNull();
-	});
+   it('strips dot-extension tags (XML-style, with closing tags)', () => {
+      const input =
+         '<OFX><SONRS><INTU.BID>17260</INTU.BID><INTU.USERID>12345</INTU.USERID></SONRS></OFX>';
+      const xml = preprocessOFX(input);
+      expect(xml).not.toContain('INTU.BID');
+      expect(xml).not.toContain('INTU.USERID');
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'text/xml');
+      expect(doc.querySelector('parsererror')).toBeNull();
+   });
 
-	it('strips non-INTU dot-extension tags', () => {
-		const input = '<OFX><SONRS><CUSTOM.EXT>foo</CUSTOM.EXT></SONRS></OFX>';
-		const xml = preprocessOFX(input);
-		expect(xml).not.toContain('CUSTOM.EXT');
-	});
+   it('strips non-INTU dot-extension tags', () => {
+      const input = '<OFX><SONRS><CUSTOM.EXT>foo</CUSTOM.EXT></SONRS></OFX>';
+      const xml = preprocessOFX(input);
+      expect(xml).not.toContain('CUSTOM.EXT');
+   });
 
-	it('handles tags with extra whitespace in values', () => {
-		const xml = preprocessOFX('<OFX><TICKER>  VTI  </OFX>');
-		expect(xml).toContain('<TICKER>VTI</TICKER>');
-	});
+   it('handles tags with extra whitespace in values', () => {
+      const xml = preprocessOFX('<OFX><TICKER>  VTI  </OFX>');
+      expect(xml).toContain('<TICKER>VTI</TICKER>');
+   });
 });
 
 describe('parseOFX', () => {
-	it('extracts stock and MF positions', () => {
-		const accounts = parseOFX(MINIMAL_OFX);
-		expect(accounts).toHaveLength(1);
-		const acct = accounts[0];
-		expect(acct.holdings).toHaveLength(2);
+   it('extracts stock and MF positions', () => {
+      const accounts = parseOFX(MINIMAL_OFX);
+      expect(accounts).toHaveLength(1);
+      const acct = accounts[0];
+      expect(acct.holdings).toHaveLength(2);
 
-		const stock = acct.holdings.find((h) => h.security_type === 'Stock');
-		expect(stock).toBeDefined();
-		expect(stock!.quantity).toBe(100);
-		expect(stock!.price).toBe(250.5);
-		expect(stock!.market_value).toBe(25050);
+      const stock = acct.holdings.find((h) => h.security_type === 'Stock');
+      expect(stock).toBeDefined();
+      expect(stock!.quantity).toBe(100);
+      expect(stock!.price).toBe(250.5);
+      expect(stock!.market_value).toBe(25050);
 
-		const mf = acct.holdings.find((h) => h.security_type === 'MF');
-		expect(mf).toBeDefined();
-		expect(mf!.quantity).toBe(500);
-		expect(mf!.market_value).toBe(50000);
-	});
+      const mf = acct.holdings.find((h) => h.security_type === 'MF');
+      expect(mf).toBeDefined();
+      expect(mf!.quantity).toBe(500);
+      expect(mf!.market_value).toBe(50000);
+   });
 
-	it('resolves CUSIP to ticker via SECLIST', () => {
-		const accounts = parseOFX(MINIMAL_OFX);
-		const stock = accounts[0].holdings.find((h) => h.cusip === '922908363');
-		expect(stock!.symbol).toBe('VTI');
-		expect(stock!.name).toBe('VANGUARD TOTAL STOCK MKT ETF');
+   it('resolves CUSIP to ticker via SECLIST', () => {
+      const accounts = parseOFX(MINIMAL_OFX);
+      const stock = accounts[0].holdings.find((h) => h.cusip === '922908363');
+      expect(stock!.symbol).toBe('VTI');
+      expect(stock!.name).toBe('VANGUARD TOTAL STOCK MKT ETF');
 
-		const mf = accounts[0].holdings.find((h) => h.cusip === '921937835');
-		expect(mf!.symbol).toBe('BND');
-	});
+      const mf = accounts[0].holdings.find((h) => h.cusip === '921937835');
+      expect(mf!.symbol).toBe('BND');
+   });
 
-	it('uses CUSIP as name for unmatched securities', () => {
-		const ofx = `OFXHEADER:100
+   it('uses CUSIP as name for unmatched securities', () => {
+      const ofx = `OFXHEADER:100
 <OFX>
 <SIGNONMSGSRSV1><SONRS><STATUS><CODE>0<SEVERITY>INFO</STATUS><DTSERVER>20240115<LANGUAGE>ENG</SONRS></SIGNONMSGSRSV1>
 <INVSTMTMSGSRSV1><INVSTMTTRNRS><TRNUID>1<STATUS><CODE>0<SEVERITY>INFO</STATUS>
@@ -262,63 +265,63 @@ describe('parseOFX', () => {
 <INVBAL><AVAILCASH>0</INVBAL>
 </INVSTMTRS></INVSTMTTRNRS></INVSTMTMSGSRSV1>
 </OFX>`;
-		const accounts = parseOFX(ofx);
-		const h = accounts[0].holdings[0];
-		expect(h.symbol).toBeNull();
-		expect(h.name).toBe('UNKNOWN123');
-	});
+      const accounts = parseOFX(ofx);
+      const h = accounts[0].holdings[0];
+      expect(h.symbol).toBeNull();
+      expect(h.name).toBe('UNKNOWN123');
+   });
 
-	it('extracts cash balance', () => {
-		const accounts = parseOFX(MINIMAL_OFX);
-		expect(accounts[0].cash_balance).toBe(5000);
-	});
+   it('extracts cash balance', () => {
+      const accounts = parseOFX(MINIMAL_OFX);
+      expect(accounts[0].cash_balance).toBe(5000);
+   });
 
-	it('computes total value (holdings + cash)', () => {
-		const accounts = parseOFX(MINIMAL_OFX);
-		expect(accounts[0].total_value).toBe(25050 + 50000 + 5000);
-	});
+   it('computes total value (holdings + cash)', () => {
+      const accounts = parseOFX(MINIMAL_OFX);
+      expect(accounts[0].total_value).toBe(25050 + 50000 + 5000);
+   });
 
-	it('extracts as-of date', () => {
-		const accounts = parseOFX(MINIMAL_OFX);
-		expect(accounts[0].as_of_date).toBe('2024-01-15');
-	});
+   it('extracts as-of date', () => {
+      const accounts = parseOFX(MINIMAL_OFX);
+      expect(accounts[0].as_of_date).toBe('2024-01-15');
+   });
 
-	it('detects broker from FID', () => {
-		const accounts = parseOFX(MINIMAL_OFX);
-		expect(accounts[0].broker).toBe('Vanguard');
-	});
+   it('detects broker from FID', () => {
+      const accounts = parseOFX(MINIMAL_OFX);
+      expect(accounts[0].broker).toBe('Vanguard');
+   });
 
-	it('handles multi-account files', () => {
-		const accounts = parseOFX(MULTI_ACCOUNT_OFX);
-		expect(accounts).toHaveLength(2);
-		expect(accounts[0].account_id).toBe('AAA111');
-		expect(accounts[1].account_id).toBe('BBB222');
-		expect(accounts[0].broker).toBe('Fidelity');
-	});
+   it('handles multi-account files', () => {
+      const accounts = parseOFX(MULTI_ACCOUNT_OFX);
+      expect(accounts).toHaveLength(2);
+      expect(accounts[0].account_id).toBe('AAA111');
+      expect(accounts[1].account_id).toBe('BBB222');
+      expect(accounts[0].broker).toBe('Fidelity');
+   });
 
-	it('correctly types positions across accounts', () => {
-		const accounts = parseOFX(MULTI_ACCOUNT_OFX);
-		expect(accounts[0].holdings[0].security_type).toBe('Stock');
-		expect(accounts[0].holdings[0].symbol).toBe('AAPL');
-		expect(accounts[1].holdings[0].security_type).toBe('MF');
-		expect(accounts[1].holdings[0].symbol).toBe('VXUS');
-	});
+   it('correctly types positions across accounts', () => {
+      const accounts = parseOFX(MULTI_ACCOUNT_OFX);
+      expect(accounts[0].holdings[0].security_type).toBe('Stock');
+      expect(accounts[0].holdings[0].symbol).toBe('AAPL');
+      expect(accounts[1].holdings[0].security_type).toBe('MF');
+      expect(accounts[1].holdings[0].symbol).toBe('VXUS');
+   });
 
-	it('throws for files with no investment accounts', () => {
-		const ofx = `OFXHEADER:100
+   it('throws for files with no investment accounts', () => {
+      const ofx = `OFXHEADER:100
 <OFX>
 <SIGNONMSGSRSV1><SONRS><STATUS><CODE>0<SEVERITY>INFO</STATUS></SONRS></SIGNONMSGSRSV1>
 </OFX>`;
-		expect(() => parseOFX(ofx)).toThrow('No investment accounts found');
-	});
+      expect(() => parseOFX(ofx)).toThrow('No investment accounts found');
+   });
 
-	it('sets account_type to null (OFX cannot encode this)', () => {
-		const accounts = parseOFX(MINIMAL_OFX);
-		expect(accounts[0].account_type).toBeNull();
-	});
+   it('sets account_type to null (OFX cannot encode this)', () => {
+      const accounts = parseOFX(MINIMAL_OFX);
+      expect(accounts[0].account_type).toBeNull();
+   });
 
-	it('parses Wealthfront-style pre-closed XML with INTU tags', () => {
-		const ofx = `OFXHEADER:100
+   it('parses Wealthfront-style pre-closed XML with INTU tags', () => {
+      const ofx = `OFXHEADER:100
 DATA:OFXSGML
 VERSION:102
 <OFX>
@@ -368,21 +371,23 @@ VERSION:102
 </SECLIST>
 </SECLISTMSGSRSV1>
 </OFX>`;
-		const accounts = parseOFX(ofx);
-		expect(accounts).toHaveLength(1);
-		expect(accounts[0].broker).toBe('Wealthfront');
-		expect(accounts[0].holdings).toHaveLength(1);
-		expect(accounts[0].holdings[0].quantity).toBe(74.87);
-	});
+      const accounts = parseOFX(ofx);
+      expect(accounts).toHaveLength(1);
+      expect(accounts[0].broker).toBe('Wealthfront');
+      expect(accounts[0].holdings).toHaveLength(1);
+      expect(accounts[0].holdings[0].quantity).toBe(74.87);
+   });
 
-	it('provides friendly error message for unparseable XML', () => {
-		const ofx = `OFXHEADER:100
+   it('provides friendly error message for unparseable XML', () => {
+      const ofx = `OFXHEADER:100
 <OFX><SONRS></MISMATCH></OFX>`;
-		expect(() => parseOFX(ofx)).toThrow('does not appear to be a valid OFX/QFX');
-	});
+      expect(() => parseOFX(ofx)).toThrow(
+         'does not appear to be a valid OFX/QFX',
+      );
+   });
 
-	it('handles OFX date with time component', () => {
-		const ofx = `OFXHEADER:100
+   it('handles OFX date with time component', () => {
+      const ofx = `OFXHEADER:100
 <OFX>
 <SIGNONMSGSRSV1><SONRS><STATUS><CODE>0<SEVERITY>INFO</STATUS><DTSERVER>20240115<LANGUAGE>ENG</SONRS></SIGNONMSGSRSV1>
 <INVSTMTMSGSRSV1><INVSTMTTRNRS><TRNUID>1<STATUS><CODE>0<SEVERITY>INFO</STATUS>
@@ -396,7 +401,7 @@ VERSION:102
 <INVBAL><AVAILCASH>0</INVBAL>
 </INVSTMTRS></INVSTMTTRNRS></INVSTMTMSGSRSV1>
 </OFX>`;
-		const accounts = parseOFX(ofx);
-		expect(accounts[0].as_of_date).toBe('2024-01-15');
-	});
+      const accounts = parseOFX(ofx);
+      expect(accounts[0].as_of_date).toBe('2024-01-15');
+   });
 });

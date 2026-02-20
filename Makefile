@@ -1,4 +1,5 @@
-.PHONY: help check-tools setup build test e2e clean lint format dev deploy \
+.PHONY: help check-tools setup build test e2e clean lint lint-api lint-ui \
+       format format-api format-ui dev deploy \
        setup-api setup-ui build-api build-ui test-api test-ui \
        run-api run-cli run-ui dev docker-run
 
@@ -26,8 +27,8 @@ help:
 	@echo "  deploy     - Build, push, and deploy to GCP Cloud Run"
 	@echo "  e2e        - Run E2E tests (starts backend, builds UI, runs Playwright)"
 	@echo "  clean      - Remove all build artifacts and generated files"
-	@echo "  lint       - Run linters (black, isort, mypy)"
-	@echo "  format     - Auto-format code (black, isort)"
+	@echo "  lint       - Run all linters (API + UI)"
+	@echo "  format     - Auto-format all code (API + UI)"
 	@echo ""
 	@echo "Component targets: setup-api, setup-ui, build-api, build-ui,"
 	@echo "  test-api, test-ui, run-api, run-ui, run-cli"
@@ -109,16 +110,26 @@ e2e:
 	  cd ui && npx playwright test; \
 	  exit $$?
 
-lint:
+lint: lint-api lint-ui
+
+lint-api:
 	$(ACTIVATE) && \
 	  black --check src/ tests/ && \
 	  isort --check-only src/ tests/ && \
 	  mypy src/
 
-format:
+lint-ui:
+	cd ui && pnpm lint && pnpm format:check
+
+format: format-api format-ui
+
+format-api:
 	$(ACTIVATE) && \
 	  black src/ tests/ && \
 	  isort src/ tests/
+
+format-ui:
+	cd ui && pnpm lint:fix && pnpm format
 
 
 

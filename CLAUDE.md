@@ -61,6 +61,17 @@ For each TODO task, follow these steps in order. The goal is autonomous completi
 - Delta specs use `## ADDED Requirements`, `## MODIFIED Requirements`, `## REMOVED Requirements` headers
 - When syncing/archiving, these change headers get stripped — only the requirement content merges into main specs
 
+### Linting
+
+All changes must conform to existing lint/format styles. Run linters before committing and fix any issues in changed code.
+
+**Backend**: `black --check src/ tests/` and `isort --check src/ tests/` (configured in `pyproject.toml`)
+**Frontend**: `cd ui && pnpm lint` (ESLint + eslint-plugin-svelte) and `cd ui && pnpm format:check` (Prettier)
+**All at once**: `make lint` (both) / `make format` (auto-fix both)
+
+- ESLint is configured with warnings (not errors) for pre-existing patterns like `no-explicit-any`, `require-each-key`, `no-navigation-without-resolve` (off — project uses adapter-static)
+- New code should not introduce new warnings; fix or suppress with inline comments if justified
+
 ### Testing
 
 **Backend**: `python -m pytest tests/ -x -q` (currently ~353 tests, 95% coverage)

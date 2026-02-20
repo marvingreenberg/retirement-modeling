@@ -24,66 +24,66 @@ Account Number,Investment Name,Symbol,Shares,Share Price,Total Value
 `.trim();
 
 describe('parseCSV', () => {
-	it('parses Fidelity positions', () => {
-		const accounts = parseCSV(FIDELITY_CSV);
-		expect(accounts.length).toBe(1);
-		expect(accounts[0].broker).toBe('Fidelity');
-		expect(accounts[0].holdings.length).toBe(2);
-		expect(accounts[0].cash_balance).toBeGreaterThan(0);
-		const symbols = accounts[0].holdings.map((h) => h.symbol);
-		expect(symbols).toContain('VTI');
-		expect(symbols).toContain('BND');
-	});
+   it('parses Fidelity positions', () => {
+      const accounts = parseCSV(FIDELITY_CSV);
+      expect(accounts.length).toBe(1);
+      expect(accounts[0].broker).toBe('Fidelity');
+      expect(accounts[0].holdings.length).toBe(2);
+      expect(accounts[0].cash_balance).toBeGreaterThan(0);
+      const symbols = accounts[0].holdings.map((h) => h.symbol);
+      expect(symbols).toContain('VTI');
+      expect(symbols).toContain('BND');
+   });
 
-	it('parses Schwab positions', () => {
-		const accounts = parseCSV(SCHWAB_CSV);
-		expect(accounts.length).toBe(1);
-		expect(accounts[0].broker).toBe('Schwab');
-		expect(accounts[0].holdings.length).toBe(2);
-		const symbols = accounts[0].holdings.map((h) => h.symbol);
-		expect(symbols).toContain('VOO');
-		expect(symbols).toContain('SCHZ');
-	});
+   it('parses Schwab positions', () => {
+      const accounts = parseCSV(SCHWAB_CSV);
+      expect(accounts.length).toBe(1);
+      expect(accounts[0].broker).toBe('Schwab');
+      expect(accounts[0].holdings.length).toBe(2);
+      const symbols = accounts[0].holdings.map((h) => h.symbol);
+      expect(symbols).toContain('VOO');
+      expect(symbols).toContain('SCHZ');
+   });
 
-	it('parses Vanguard positions', () => {
-		const accounts = parseCSV(VANGUARD_CSV);
-		expect(accounts.length).toBe(1);
-		expect(accounts[0].broker).toBe('Vanguard');
-		expect(accounts[0].holdings.length).toBe(3);
-	});
+   it('parses Vanguard positions', () => {
+      const accounts = parseCSV(VANGUARD_CSV);
+      expect(accounts.length).toBe(1);
+      expect(accounts[0].broker).toBe('Vanguard');
+      expect(accounts[0].holdings.length).toBe(3);
+   });
 
-	it('classifies cash holdings correctly', () => {
-		const accounts = parseCSV(FIDELITY_CSV);
-		// SPAXX is cash, should be in cash_balance not holdings
-		expect(accounts[0].cash_balance).toBe(5000);
-	});
+   it('classifies cash holdings correctly', () => {
+      const accounts = parseCSV(FIDELITY_CSV);
+      // SPAXX is cash, should be in cash_balance not holdings
+      expect(accounts[0].cash_balance).toBe(5000);
+   });
 
-	it('calculates total value including cash', () => {
-		const accounts = parseCSV(FIDELITY_CSV);
-		// VTI=25000 + BND=15000 + SPAXX(cash)=5000
-		expect(accounts[0].total_value).toBe(45000);
-	});
+   it('calculates total value including cash', () => {
+      const accounts = parseCSV(FIDELITY_CSV);
+      // VTI=25000 + BND=15000 + SPAXX(cash)=5000
+      expect(accounts[0].total_value).toBe(45000);
+   });
 
-	it('extracts quantity and price', () => {
-		const accounts = parseCSV(FIDELITY_CSV);
-		const vti = accounts[0].holdings.find((h) => h.symbol === 'VTI');
-		expect(vti?.quantity).toBe(100);
-		expect(vti?.price).toBe(250);
-		expect(vti?.market_value).toBe(25000);
-	});
+   it('extracts quantity and price', () => {
+      const accounts = parseCSV(FIDELITY_CSV);
+      const vti = accounts[0].holdings.find((h) => h.symbol === 'VTI');
+      expect(vti?.quantity).toBe(100);
+      expect(vti?.price).toBe(250);
+      expect(vti?.market_value).toBe(25000);
+   });
 
-	it('throws on empty input', () => {
-		expect(() => parseCSV('')).toThrow('No data rows');
-	});
+   it('throws on empty input', () => {
+      expect(() => parseCSV('')).toThrow('No data rows');
+   });
 
-	it('throws on headerless data', () => {
-		expect(() => parseCSV('a,b\n1,2')).toThrow();
-	});
+   it('throws on headerless data', () => {
+      expect(() => parseCSV('a,b\n1,2')).toThrow();
+   });
 
-	it('handles quoted values with commas', () => {
-		const csv = `Symbol,Description,Quantity,Price,Current Value
+   it('handles quoted values with commas', () => {
+      const csv = `Symbol,Description,Quantity,Price,Current Value
 VTI,"Vanguard Total Stock, ETF",100,250.00,"$25,000.00"`;
-		const accounts = parseCSV(csv);
-		expect(accounts[0].holdings[0].name).toBe('Vanguard Total Stock, ETF');
-	});
+      const accounts = parseCSV(csv);
+      expect(accounts[0].holdings[0].name).toBe('Vanguard Total Stock, ETF');
+   });
 });
