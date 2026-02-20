@@ -89,7 +89,7 @@ build-image: build-ui
 
 deploy: build-image
 	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
-    docker push $(GCP_IMAGE) && \
+	docker push $(GCP_IMAGE) && \
 	  gcloud run deploy $(SERVICE_NAME) \
 	    --image=$(GCP_IMAGE) \
 	    --platform=managed \
