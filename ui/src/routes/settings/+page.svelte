@@ -5,24 +5,14 @@
       portfolio,
       profile,
       numSimulations,
-      sampleScenarios,
       markFormTouched,
-      randomizeForDemo,
    } from '$lib/stores';
-   import { saveFileSchema } from '$lib/schema';
-   import type { Portfolio } from '$lib/types';
    import { initDarkMode } from '$lib/darkMode.svelte';
    import { isAutoSave, initAutoSave } from '$lib/autoSave.svelte';
    import { avatarSrc, fetchAvatarSvg } from '$lib/avatar.svelte';
-   import { saveJsonFile, loadJsonFile, generateFilename } from '$lib/fileIO';
-   import InfoPopover from '$lib/components/InfoPopover.svelte';
-   import {
-      User,
-      FolderOpen,
-      Sliders,
-      Shuffle,
-      LayoutDashboard,
-   } from 'lucide-svelte';
+   import LoadSaveSection from '$lib/components/settings/LoadSaveSection.svelte';
+   import AdvancedSettings from '$lib/components/settings/AdvancedSettings.svelte';
+   import { User, FolderOpen, Sliders, LayoutDashboard } from 'lucide-svelte';
    import { onMount } from 'svelte';
 
    type Section = 'basic' | 'loadsave' | 'advanced';
@@ -33,8 +23,8 @@
       return validSections.includes(s as Section) ? (s as Section) : 'basic';
    }
 
+   // eslint-disable-next-line svelte/prefer-writable-derived -- also written directly by sidebar clicks
    let activeSection = $state<Section>(sectionFromUrl());
-   let showRandomizeConfirm = $state(false);
 
    // Re-read query param when URL changes (e.g. navigating from dropdown)
    $effect(() => {
@@ -43,7 +33,6 @@
 
    // Track initial setup state at mount time, not reactively (so button doesn't vanish as user types age)
    let initialNeedsSetup = $state(false);
-   let needsSetup = $derived($portfolio.config.current_age_primary === 0);
    onMount(() => {
       initialNeedsSetup = $portfolio.config.current_age_primary === 0;
       initDarkMode();
@@ -110,64 +99,6 @@
       goto('/');
    }
 
-   function loadScenario(name: string) {
-      const scenario = sampleScenarios[name];
-      if (!scenario) return;
-      profile.set(structuredClone(scenario.profile));
-      portfolio.set(structuredClone(scenario.portfolio));
-      goto('/');
-   }
-
-   // Load/Save
-   let fileInput = $state<HTMLInputElement>(undefined!);
-   let loadError = $state('');
-
-   async function loadFile() {
-      const text = await loadJsonFile();
-      if (text !== null) {
-         parseAndLoad(text);
-      } else {
-         fileInput.click();
-      }
-   }
-   function handleFile(event: Event) {
-      const input = event.target as HTMLInputElement;
-      const file = input.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => parseAndLoad(e.target?.result as string);
-      reader.readAsText(file);
-      input.value = '';
-   }
-   function parseAndLoad(text: string) {
-      loadError = '';
-      try {
-         const json = JSON.parse(text);
-         const result = saveFileSchema.safeParse(json);
-         if (!result.success) {
-            loadError =
-               'Invalid portfolio file — may be pre-version 0.10.0 data.';
-            return;
-         }
-         const { profile: loadedProfile, ...portfolioData } = result.data;
-         portfolio.set(portfolioData as Portfolio);
-         if (loadedProfile) profile.set(loadedProfile);
-      } catch {
-         loadError = 'Invalid JSON file';
-      }
-   }
-
-   async function saveFile() {
-      const p = $state.snapshot($portfolio);
-      const profileData = $state.snapshot($profile);
-      const saveData = { ...p, profile: profileData };
-      const filename = generateFilename(
-         $profile.primaryName,
-         $profile.spouseName,
-      );
-      await saveJsonFile(saveData, filename);
-   }
-
    // Auto-save effect — uses shared module state
    $effect(() => {
       if (isAutoSave()) {
@@ -179,14 +110,6 @@
          localStorage.setItem('retirement-sim-state', JSON.stringify(data));
       }
    });
-
-   // Advanced
-   function toPct(v: number): number {
-      return Math.round(v * 10000) / 100;
-   }
-   function setPct(e: Event, setter: (v: number) => void) {
-      setter(+(e.target as HTMLInputElement).value / 100);
-   }
 
    // Enter key handler
    function handleKeydown(e: KeyboardEvent) {
@@ -240,7 +163,7 @@
 
       <!-- Section Links -->
       <div class="flex-1 py-3">
-         {#each sections as { id, label, icon: Icon }}
+         {#each sections as { id, label, icon: Icon } (id)}
             <button
                class="w-full text-left px-5 py-2.5 flex items-center gap-3 text-sm transition-colors
 						{activeSection === id
@@ -391,195 +314,9 @@
             {/if}
          </div>
       {:else if activeSection === 'loadsave'}
-         <h2
-            class="text-xl font-bold text-surface-900 dark:text-surface-50 mb-6"
-         >
-            Load / Save
-         </h2>
-
-         <input
-            type="file"
-            accept=".json"
-            bind:this={fileInput}
-            onchange={handleFile}
-            hidden
-         />
-
-         <div class="space-y-6 max-w-md">
-            <div class="space-y-2">
-               <h3
-                  class="text-sm font-semibold text-surface-700 dark:text-surface-300"
-               >
-                  Load Portfolio
-               </h3>
-               <p class="text-xs text-surface-500">
-                  Load a previously saved portfolio JSON file.
-               </p>
-               <button class="btn preset-tonal" onclick={loadFile}
-                  >Choose File...</button
-               >
-            </div>
-
-            {#if loadError}
-               <pre
-                  class="text-sm text-error-500 bg-error-50 dark:bg-error-950 p-3 rounded whitespace-pre-wrap">{loadError}</pre>
-            {/if}
-
-            <div class="space-y-2">
-               <h3
-                  class="text-sm font-semibold text-surface-700 dark:text-surface-300"
-               >
-                  Load Sample Data
-               </h3>
-               <p class="text-xs text-surface-500">
-                  Load a pre-built scenario to explore the simulator.
-               </p>
-               <select
-                  class="select text-sm w-48"
-                  aria-label="Load Sample Data"
-                  onchange={(e) => {
-                     const val = (e.target as HTMLSelectElement).value;
-                     if (val) loadScenario(val);
-                     (e.target as HTMLSelectElement).value = '';
-                  }}
-               >
-                  <option value="">Select scenario...</option>
-                  {#each Object.keys(sampleScenarios) as name}
-                     <option value={name}>{name}</option>
-                  {/each}
-               </select>
-            </div>
-
-            <div class="space-y-2">
-               <h3
-                  class="text-sm font-semibold text-surface-700 dark:text-surface-300"
-               >
-                  Save Portfolio
-               </h3>
-               <p class="text-xs text-surface-500">
-                  Download your portfolio and profile as a JSON file.
-               </p>
-               <button class="btn preset-tonal" onclick={saveFile}
-                  >Download JSON</button
-               >
-            </div>
-         </div>
+         <LoadSaveSection />
       {:else if activeSection === 'advanced'}
-         <h2
-            class="text-xl font-bold text-surface-900 dark:text-surface-50 mb-6"
-         >
-            Advanced Settings
-         </h2>
-
-         <div class="space-y-4 max-w-md">
-            <label
-               class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
-            >
-               State/Local Tax %
-               <input
-                  type="number"
-                  class="input text-sm"
-                  value={toPct($portfolio.config.tax_rate_state)}
-                  oninput={(e) =>
-                     setPct(e, (v) => ($portfolio.config.tax_rate_state = v))}
-                  min="0"
-                  max="20"
-                  step="0.25"
-               />
-            </label>
-
-            <label
-               class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
-            >
-               <span class="flex items-center gap-1"
-                  >RMD Age <InfoPopover
-                     text="Age at which Required Minimum Distributions from pre-tax accounts begin. Currently 73 under the SECURE 2.0 Act."
-                  /></span
-               >
-               <input
-                  type="number"
-                  class="input text-sm"
-                  bind:value={$portfolio.config.rmd_start_age}
-                  min="70"
-                  max="80"
-               />
-            </label>
-
-            <label
-               class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
-            >
-               <span class="flex items-center gap-1"
-                  >IRMAA Limit ($) <InfoPopover
-                     text="Income threshold above which Medicare Part B/D premiums increase. Roth conversions that push income above this trigger surcharges."
-                  /></span
-               >
-               <input
-                  type="number"
-                  class="input text-sm"
-                  bind:value={$portfolio.config.irmaa_limit_tier_1}
-                  min="0"
-                  step="1000"
-               />
-            </label>
-
-            <label
-               class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
-            >
-               <span class="flex items-center gap-1"
-                  >MC Iterations <InfoPopover
-                     text="Number of Monte Carlo simulations to run. More iterations give more stable results but take longer."
-                  /></span
-               >
-               <input
-                  type="number"
-                  class="input text-sm"
-                  bind:value={$numSimulations}
-                  min="1"
-                  max="10000"
-               />
-            </label>
-
-            <div
-               class="pt-4 border-t border-surface-300 dark:border-surface-700"
-            >
-               <h3
-                  class="text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2"
-               >
-                  Demo
-               </h3>
-               {#if showRandomizeConfirm}
-                  <p class="text-xs text-surface-500 mb-2">
-                     This will randomize all account balances and replace names.
-                     Continue?
-                  </p>
-                  <div class="flex gap-2">
-                     <button
-                        class="btn btn-sm preset-filled-warning"
-                        onclick={() => {
-                           randomizeForDemo();
-                           showRandomizeConfirm = false;
-                        }}
-                     >
-                        Yes, Randomize
-                     </button>
-                     <button
-                        class="btn btn-sm preset-tonal"
-                        onclick={() => (showRandomizeConfirm = false)}
-                     >
-                        Cancel
-                     </button>
-                  </div>
-               {:else}
-                  <button
-                     class="btn btn-sm preset-tonal"
-                     onclick={() => (showRandomizeConfirm = true)}
-                  >
-                     <Shuffle size={14} />
-                     Randomize for Demo
-                  </button>
-               {/if}
-            </div>
-         </div>
+         <AdvancedSettings />
       {/if}
    </div>
 </div>

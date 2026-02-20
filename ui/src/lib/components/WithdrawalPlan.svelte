@@ -29,7 +29,7 @@
       <ClipboardList size={18} class="text-primary-500" /> Withdrawal Plan
    </h3>
    <div class="grid gap-4 {planYears.length > 1 ? 'md:grid-cols-2' : ''}">
-      {#each planYears as yr}
+      {#each planYears as yr (yr.year)}
          <div
             class="rounded-lg bg-surface-50 dark:bg-surface-700 p-3 space-y-2"
          >
@@ -65,7 +65,7 @@
                         <span>Income</span>
                         <span>{currency(yr.total_income)}</span>
                      </div>
-                     {#each yr.income_details ?? [] as inc}
+                     {#each yr.income_details ?? [] as inc (inc.name)}
                         <div
                            class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                         >
@@ -84,7 +84,7 @@
                         <span>RMD</span>
                         <span>{currency(yr.rmd)}</span>
                      </div>
-                     {#each byPurpose(yr.withdrawal_details, 'rmd') as d}
+                     {#each byPurpose(yr.withdrawal_details, 'rmd') as d (d.account_name)}
                         <div
                            class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                         >
@@ -110,7 +110,7 @@
                            )}</span
                         >
                      </div>
-                     {#each byPurpose(yr.withdrawal_details, 'spending') as d}
+                     {#each byPurpose(yr.withdrawal_details, 'spending') as d (d.account_name)}
                         <div
                            class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                         >
@@ -129,7 +129,7 @@
                         <span>Roth Conversion</span>
                         <span>{currency(yr.roth_conversion)}</span>
                      </div>
-                     {#each byPurpose(yr.withdrawal_details, 'conversion') as d}
+                     {#each byPurpose(yr.withdrawal_details, 'conversion') as d (d.account_name)}
                         <div
                            class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                         >

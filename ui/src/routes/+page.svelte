@@ -6,8 +6,6 @@
       simulateBlockedSection,
       numSimulations as numSimsStore,
       comparisonSnapshots,
-      formTouched,
-      markFormTouched,
    } from '$lib/stores';
    import { validatePortfolio } from '$lib/validation';
    import { runSimulation, runMonteCarlo } from '$lib/api';
@@ -85,7 +83,6 @@
    let stored = get(simulationResults);
    let singleResult = $state<SimulationResponse | null>(stored.singleResult);
    let mcResult = $state<MonteCarloResponse | null>(stored.mcResult);
-   let settingsCollapsed = $state(stored.singleResult !== null);
 
    // Clear cached results when portfolio inputs change
    let lastPortfolioJson = $state(JSON.stringify($portfolio));
@@ -97,7 +94,6 @@
          if (!simRunning) {
             singleResult = null;
             mcResult = null;
-            settingsCollapsed = false;
             error = '';
             simulationResults.set({ singleResult: null, mcResult: null });
             comparisonSnapshots.set([]);
@@ -138,7 +134,6 @@
       const singlePromise = runSimulation(p).then((res) => {
          singleResult = res;
          loading = false;
-         settingsCollapsed = true;
          simulationResults.update((s) => ({ ...s, singleResult: res }));
          addSnapshot({
             ...buildSnapshotBase(),
@@ -169,8 +164,8 @@
 
       try {
          await Promise.all([singlePromise, mcPromise]);
-      } catch (e: any) {
-         error = e.message || 'Simulation failed';
+      } catch (e: unknown) {
+         error = e instanceof Error ? e.message : 'Simulation failed';
          loading = false;
          mcLoading = false;
       } finally {
@@ -185,11 +180,7 @@
 <div class="space-y-6">
    <PortfolioEditor />
 
-   <SimulateSettings
-      bind:collapsed={settingsCollapsed}
-      onrun={handleRun}
-      {loading}
-   />
+   <SimulateSettings onrun={handleRun} {loading} />
 
    {#if hasResults || error}
       <SimulateView {singleResult} {mcResult} {mcLoading} {error} />

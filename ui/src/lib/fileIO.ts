@@ -1,3 +1,20 @@
+interface FilePickerOptions {
+   suggestedName?: string;
+   types?: { description: string; accept: Record<string, string[]> }[];
+   multiple?: boolean;
+}
+
+interface FileSystemWindow {
+   showSaveFilePicker(opts?: FilePickerOptions): Promise<FileSystemFileHandle>;
+   showOpenFilePicker(
+      opts?: FilePickerOptions,
+   ): Promise<FileSystemFileHandle[]>;
+}
+
+function fsWindow(): FileSystemWindow {
+   return window as unknown as FileSystemWindow;
+}
+
 export function generateFilename(
    primaryName: string,
    spouseName: string,
@@ -25,7 +42,7 @@ export async function saveJsonFile(
    const json = JSON.stringify(data, null, 2);
    if (hasFileSystemAccess()) {
       try {
-         const handle = await (window as any).showSaveFilePicker({
+         const handle = await fsWindow().showSaveFilePicker({
             suggestedName: filename,
             types: [
                {
@@ -38,8 +55,8 @@ export async function saveJsonFile(
          await writable.write(json);
          await writable.close();
          return;
-      } catch (e: any) {
-         if (e.name === 'AbortError') return;
+      } catch (e: unknown) {
+         if (e instanceof DOMException && e.name === 'AbortError') return;
       }
    }
    const blob = new Blob([json], { type: 'application/json' });
@@ -57,7 +74,7 @@ export async function saveTextFile(
 ): Promise<void> {
    if (hasFileSystemAccess()) {
       try {
-         const handle = await (window as any).showSaveFilePicker({
+         const handle = await fsWindow().showSaveFilePicker({
             suggestedName: filename,
             types: [
                {
@@ -70,8 +87,8 @@ export async function saveTextFile(
          await writable.write(text);
          await writable.close();
          return;
-      } catch (e: any) {
-         if (e.name === 'AbortError') return;
+      } catch (e: unknown) {
+         if (e instanceof DOMException && e.name === 'AbortError') return;
       }
    }
    const blob = new Blob([text], { type: 'text/plain' });
@@ -87,7 +104,7 @@ export async function loadJsonFile(): Promise<string | null> {
    if (typeof window === 'undefined' || !('showOpenFilePicker' in window))
       return null;
    try {
-      const [handle] = await (window as any).showOpenFilePicker({
+      const [handle] = await fsWindow().showOpenFilePicker({
          types: [
             {
                description: 'JSON Files',
@@ -98,8 +115,8 @@ export async function loadJsonFile(): Promise<string | null> {
       });
       const file = await handle.getFile();
       return await file.text();
-   } catch (e: any) {
-      if (e.name === 'AbortError') return null;
+   } catch (e: unknown) {
+      if (e instanceof DOMException && e.name === 'AbortError') return null;
       return null;
    }
 }

@@ -53,7 +53,7 @@
       </SkAppBar.Lead>
       <SkAppBar.Headline>
          <nav class="flex items-center justify-center gap-1">
-            {#each navItems as { href, label, icon: Icon }}
+            {#each navItems as { href, label, icon: Icon } (href)}
                <a
                   {href}
                   class="btn btn-md flex items-center gap-1.5 {isActive(href)

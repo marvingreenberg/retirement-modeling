@@ -91,7 +91,7 @@
                      </tr>
                   </thead>
                   <tbody>
-                     {#each years as yr}
+                     {#each years as yr (yr.year)}
                         <tr
                            class={yr.total_balance <= 0
                               ? 'text-error-500 dark:text-error-400'
@@ -154,7 +154,7 @@
                         </tr>
                      </thead>
                      <tbody>
-                        {#each percentiles as p}
+                        {#each percentiles as p (p.age)}
                            <tr>
                               <td>{p.age}</td>
                               <td>{currency(p.balance_p5)}</td>

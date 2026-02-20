@@ -1,5 +1,10 @@
 <script lang="ts">
-   import type { Account, AccountType, SimulationConfig } from '$lib/types';
+   import type {
+      Account,
+      AccountType,
+      Owner,
+      SimulationConfig,
+   } from '$lib/types';
    import {
       ACCOUNT_TYPE_DEFAULTS,
       ACCOUNT_TYPE_LABELS,
@@ -112,7 +117,7 @@
          <span class="w-24">{config ? 'Avail. Year' : 'Avail. Age'}</span>
       </div>
    {/if}
-   {#each accounts as account, i}
+   {#each accounts as account, i (i)}
       {@const balanceError = hasError(`accounts.${i}.balance`)}
       {@const iconType = typeIcon(account.type)}
       <div
@@ -147,7 +152,7 @@
                   (e.target as HTMLSelectElement).value as AccountType,
                )}
          >
-            {#each EDITOR_ACCOUNT_TYPES as t}
+            {#each EDITOR_ACCOUNT_TYPES as t (t)}
                <option value={t}>{ACCOUNT_TYPE_LABELS[t]}</option>
             {/each}
          </select>
@@ -169,7 +174,7 @@
             onchange={(e) => {
                accounts[i] = {
                   ...account,
-                  owner: (e.target as HTMLSelectElement).value as any,
+                  owner: (e.target as HTMLSelectElement).value as Owner,
                };
                accounts = [...accounts];
             }}

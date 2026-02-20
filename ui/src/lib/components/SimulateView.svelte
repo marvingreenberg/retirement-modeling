@@ -1,5 +1,4 @@
 <script lang="ts">
-   import { portfolio } from '$lib/stores';
    import { currency, pct } from '$lib/format';
    import BalanceChart from './charts/BalanceChart.svelte';
    import FanChart from './charts/FanChart.svelte';
@@ -19,11 +18,6 @@
    } = $props();
 
    let activeTab = $state<'single' | 'monte_carlo'>('single');
-
-   function medianDepletion(ages: number[]): number {
-      const sorted = [...ages].sort((a, b) => a - b);
-      return sorted[Math.floor(sorted.length / 2)];
-   }
 </script>
 
 <div class="space-y-4">
@@ -197,7 +191,7 @@
                <TrendingUp size={18} class="text-tertiary-500" /> Final Balance Range
             </h3>
             <div class="flex gap-6 flex-wrap">
-               {#each [['5th', mcResult.final_balance_p5], ['Median', mcResult.median_simulation.years.at(-1)?.total_balance ?? 0], ['95th', mcResult.final_balance_p95]] as [label, value]}
+               {#each [['5th', mcResult.final_balance_p5], ['Median', mcResult.median_simulation.years.at(-1)?.total_balance ?? 0], ['95th', mcResult.final_balance_p95]] as [label, value] (label)}
                   <div class="flex flex-col gap-0.5">
                      <span class="text-xs text-surface-500">{label}</span>
                      <span

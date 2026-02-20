@@ -123,7 +123,9 @@
                         `${ctx.dataset.label}: $${Math.round(ctx.parsed.y ?? 0).toLocaleString()}`,
                      footer: (items) => {
                         const balanceItems = items.filter(
-                           (i) => (i.dataset as any).yAxisID === 'y',
+                           (i) =>
+                              (i.dataset as { yAxisID?: string }).yAxisID ===
+                              'y',
                         );
                         if (balanceItems.length === 0) return '';
                         const total = balanceItems.reduce(

@@ -13,7 +13,7 @@
       open?: boolean;
       icon?: Snippet;
       summary?: Snippet;
-      children: any;
+      children: Snippet;
    }>();
 
    let value = $derived(open ? ['item'] : []);

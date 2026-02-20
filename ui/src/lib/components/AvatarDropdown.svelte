@@ -92,7 +92,7 @@
          <hr class="border-surface-300 dark:border-surface-700 mb-2" />
 
          <!-- Section navigation links -->
-         {#each sectionLinks as { href, label, icon: Icon }}
+         {#each sectionLinks as { href, label, icon: Icon } (href)}
             <a
                {href}
                class="flex items-center gap-2 px-3 py-2 text-sm text-surface-700 dark:text-surface-300 rounded hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"

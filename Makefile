@@ -61,6 +61,7 @@ clean:
 
 
 dev:
+	@$(ACTIVATE) && pip install -q -e . 2>&1 | grep -v 'already satisfied' || true
 	@cleanup() { kill 0 2>/dev/null; wait 2>/dev/null; }; \
 	  trap cleanup INT TERM EXIT; \
 	  $(ACTIVATE) && uvicorn retirement_model.api:app --reload & API_PID=$$!; \

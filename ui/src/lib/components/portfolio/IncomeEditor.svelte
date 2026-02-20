@@ -1,6 +1,7 @@
 <script lang="ts">
    import type { SimulationConfig, IncomeStream } from '$lib/types';
    import { Trash2 } from 'lucide-svelte';
+   import SocialSecurityEditor from './SocialSecurityEditor.svelte';
 
    let {
       config = $bindable(),
@@ -34,7 +35,6 @@
    }
 
    function streamWarning(stream: IncomeStream): string {
-      const oa = ownerAge(stream.owner);
       if (stream.start_age > simEndAge) return 'past sim end';
       if (stream.end_age != null && stream.end_age < stream.start_age)
          return 'end < start';
@@ -47,18 +47,6 @@
    function pctToDecimal(s: string): number | null {
       if (!s) return null;
       return +s / 100;
-   }
-
-   function ensureSSAuto() {
-      if (!config.ss_auto) {
-         config.ss_auto = {
-            primary_fra_amount: 0,
-            primary_start_age: 67,
-            spouse_fra_amount: null,
-            spouse_start_age: null,
-            fra_age: 67,
-         };
-      }
    }
 
    function addStream() {
@@ -79,119 +67,10 @@
    function removeStream(idx: number) {
       incomeStreams = incomeStreams.filter((_, i) => i !== idx);
    }
-
-   $effect(() => {
-      if (config.ss_auto) {
-         config.social_security.primary_benefit =
-            config.ss_auto.primary_fra_amount;
-         config.social_security.primary_start_age =
-            config.ss_auto.primary_start_age;
-         config.social_security.spouse_benefit =
-            config.ss_auto.spouse_fra_amount ?? 0;
-         config.social_security.spouse_start_age =
-            config.ss_auto.spouse_start_age ?? 67;
-      }
-   });
-
-   ensureSSAuto();
 </script>
 
 <div class="flex flex-col gap-4">
-   <div class="p-3 bg-surface-100 dark:bg-surface-800 rounded">
-      <h4
-         class="text-sm text-surface-500 dark:text-surface-400 font-medium mb-2"
-      >
-         Social Security
-      </h4>
-      {#if config.ss_auto}
-         <div class="flex gap-4 flex-wrap">
-            <label
-               class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400"
-            >
-               Primary FRA Benefit ($/yr)
-               <input
-                  type="number"
-                  class="input w-36"
-                  bind:value={config.ss_auto.primary_fra_amount}
-                  onfocus={(e) => e.currentTarget.select()}
-                  min="0"
-                  step="1000"
-               />
-            </label>
-            <label
-               class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400"
-            >
-               Primary Start Year
-               <div class="flex items-center gap-2">
-                  <input
-                     type="number"
-                     class="input w-24"
-                     value={ageToYear(
-                        config.ss_auto.primary_start_age,
-                        config.current_age_primary,
-                     )}
-                     onfocus={(e) => e.currentTarget.select()}
-                     onchange={(e) => {
-                        config.ss_auto!.primary_start_age = yearToAge(
-                           Number(e.currentTarget.value),
-                           config.current_age_primary,
-                        );
-                     }}
-                     min={ageToYear(62, config.current_age_primary)}
-                     max={ageToYear(70, config.current_age_primary)}
-                  />
-                  <span class="text-xs text-surface-400"
-                     >({ageHint(config.ss_auto.primary_start_age)})</span
-                  >
-               </div>
-            </label>
-         </div>
-         {#if hasSpouse}
-            <div class="flex gap-4 flex-wrap mt-2">
-               <label
-                  class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400"
-               >
-                  Spouse FRA Benefit ($/yr)
-                  <input
-                     type="number"
-                     class="input w-36"
-                     bind:value={config.ss_auto.spouse_fra_amount}
-                     onfocus={(e) => e.currentTarget.select()}
-                     min="0"
-                     step="1000"
-                  />
-               </label>
-               <label
-                  class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400"
-               >
-                  Spouse Start Year
-                  <div class="flex items-center gap-2">
-                     <input
-                        type="number"
-                        class="input w-24"
-                        value={ageToYear(
-                           config.ss_auto.spouse_start_age ?? 67,
-                           config.current_age_spouse,
-                        )}
-                        onfocus={(e) => e.currentTarget.select()}
-                        onchange={(e) => {
-                           config.ss_auto!.spouse_start_age = yearToAge(
-                              Number(e.currentTarget.value),
-                              config.current_age_spouse,
-                           );
-                        }}
-                        min={ageToYear(62, config.current_age_spouse)}
-                        max={ageToYear(70, config.current_age_spouse)}
-                     />
-                     <span class="text-xs text-surface-400"
-                        >({ageHint(config.ss_auto.spouse_start_age)})</span
-                     >
-                  </div>
-               </label>
-            </div>
-         {/if}
-      {/if}
-   </div>
+   <SocialSecurityEditor bind:config />
 
    <div>
       <h4
@@ -212,7 +91,7 @@
             {#if hasSpouse}<span class="w-24">Owner</span>{/if}
          </div>
       {/if}
-      {#each incomeStreams as stream, idx}
+      {#each incomeStreams as stream, idx (idx)}
          {@const oa = ownerAge(stream.owner)}
          {@const warning = streamWarning(stream)}
          <div

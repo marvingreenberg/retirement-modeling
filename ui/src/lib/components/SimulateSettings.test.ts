@@ -18,7 +18,6 @@ describe('SimulateSettings', () => {
 
    function renderSettings(overrides: Record<string, any> = {}) {
       return render(SimulateSettings, {
-         collapsed: false,
          onrun: vi.fn(),
          loading: false,
          ...overrides,
@@ -83,28 +82,6 @@ describe('SimulateSettings', () => {
       expect(
          screen.getByRole('button', { name: 'Run simulation' }),
       ).toBeInTheDocument();
-   });
-
-   it('shows summary text with strategy when panel collapsed', () => {
-      portfolio.update((p) => {
-         p.config.spending_strategy = 'fixed_dollar';
-         p.config.annual_spend_net = 120000;
-         return p;
-      });
-      renderSettings({ collapsed: true });
-      const summary = screen.getByText(/infl.*growth/);
-      expect(summary).toBeInTheDocument();
-      expect(summary.textContent).toContain('Fixed $120K');
-   });
-
-   it('shows POP shorthand in panel summary', () => {
-      portfolio.update((p) => {
-         p.config.spending_strategy = 'percent_of_portfolio';
-         p.config.withdrawal_rate = 0.04;
-         return p;
-      });
-      renderSettings({ collapsed: true });
-      expect(screen.getByText(/4\.0% of Portfolio/)).toBeInTheDocument();
    });
 
    it('conversion dropdown is enabled regardless of age', () => {

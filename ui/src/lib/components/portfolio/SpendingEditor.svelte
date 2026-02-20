@@ -84,7 +84,7 @@
          <span class="w-10 text-center">Infl.</span>
       </div>
    {/if}
-   {#each plannedExpenses as expense, i}
+   {#each plannedExpenses as expense, i (i)}
       {@const amountError = hasError(`config.planned_expenses.${i}.amount`)}
       {@const yearError = hasError(`config.planned_expenses.${i}.year`)}
       <div

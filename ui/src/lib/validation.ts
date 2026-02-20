@@ -1,4 +1,3 @@
-import { type ZodError } from 'zod';
 import { portfolioSchema } from './schema';
 import type { Portfolio } from './types';
 

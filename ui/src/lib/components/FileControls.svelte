@@ -79,7 +79,7 @@
          }}
       >
          <option value="">Select scenario...</option>
-         {#each Object.keys(sampleScenarios) as name}
+         {#each Object.keys(sampleScenarios) as name (name)}
             <option value={name}>{name}</option>
          {/each}
       </select>

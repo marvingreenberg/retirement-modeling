@@ -1,7 +1,6 @@
 import type {
    YearResult,
    AccountWithdrawal,
-   IncomeDetail,
    SimulationResponse,
 } from './types';
 

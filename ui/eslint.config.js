@@ -20,9 +20,9 @@ export default ts.config(
    },
    {
       rules: {
-         '@typescript-eslint/no-explicit-any': 'warn',
+         '@typescript-eslint/no-explicit-any': 'error',
          '@typescript-eslint/no-unused-vars': [
-            'warn',
+            'error',
             { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
          ],
          '@typescript-eslint/no-unused-expressions': 'off',
@@ -45,11 +45,11 @@ export default ts.config(
          },
       },
       rules: {
-         'svelte/require-each-key': 'warn',
-         'svelte/no-at-html-tags': 'warn',
+         'svelte/require-each-key': 'error',
+         'svelte/no-at-html-tags': 'error',
          'svelte/no-navigation-without-resolve': 'off',
-         'svelte/prefer-writable-derived': 'warn',
-         'svelte/prefer-svelte-reactivity': 'warn',
+         'svelte/prefer-writable-derived': 'error',
+         'svelte/prefer-svelte-reactivity': 'error',
       },
    },
    {

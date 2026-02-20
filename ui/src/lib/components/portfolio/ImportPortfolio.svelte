@@ -188,7 +188,7 @@
             </button>
          </div>
 
-         {#each parsedAccounts as parsed, i}
+         {#each parsedAccounts as parsed, i (parsed.account_id)}
             {@const summary = summaries[i]}
             <div
                class="bg-surface-100 dark:bg-surface-800 rounded p-4 space-y-3"
@@ -224,7 +224,7 @@
                      Account Type
                      <select class="select w-36" bind:value={accountTypes[i]}>
                         <option value="" disabled>-- Select type --</option>
-                        {#each EDITOR_ACCOUNT_TYPES as t}
+                        {#each EDITOR_ACCOUNT_TYPES as t (t)}
                            <option value={t}>{ACCOUNT_TYPE_LABELS[t]}</option>
                         {/each}
                      </select>
@@ -248,7 +248,7 @@
                         >
                      </div>
                      <div class="flex flex-wrap gap-2 mt-1">
-                        {#each summary.allocation.slice(0, 5) as entry}
+                        {#each summary.allocation.slice(0, 5) as entry (entry.label)}
                            <span
                               class="badge preset-outlined-surface-500 text-xs"
                            >

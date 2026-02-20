@@ -1,7 +1,6 @@
 <script lang="ts">
    import { comparisonSnapshots } from '$lib/stores';
    import { currency, pct } from '$lib/format';
-   import type { ComparisonSnapshot } from '$lib/types';
 
    let snapshots = $derived($comparisonSnapshots);
 
@@ -70,7 +69,7 @@
                </tr>
             </thead>
             <tbody>
-               {#each snapshots as snap}
+               {#each snapshots as snap (snap.id)}
                   <tr>
                      <td class="text-xs">
                         {#if snap.runType === 'monte_carlo'}

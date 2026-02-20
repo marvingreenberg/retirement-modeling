@@ -97,7 +97,7 @@
             >
                {#if !maximized}
                   <div class="flex gap-1 flex-wrap">
-                     {#each helpTopics as topic}
+                     {#each helpTopics as topic (topic.id)}
                         <button
                            class="btn btn-sm {currentTopicId === topic.id
                               ? 'preset-filled'
@@ -110,7 +110,7 @@
                   </div>
                {:else}
                   <ul class="space-y-1">
-                     {#each helpTopics as topic}
+                     {#each helpTopics as topic (topic.id)}
                         <li>
                            <button
                               class="w-full text-left text-sm px-3 py-2 rounded {currentTopicId ===
@@ -138,6 +138,7 @@
                   <div
                      class="prose-help text-sm text-surface-700 dark:text-surface-300 leading-relaxed space-y-3"
                   >
+                     <!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted app-authored help content -->
                      {@html currentTopic.content}
                   </div>
 
@@ -150,7 +151,7 @@
                            >Related Topics</span
                         >
                         <div class="flex gap-2 mt-2 flex-wrap">
-                           {#each relatedTopics as related}
+                           {#each relatedTopics as related (related.id)}
                               <button
                                  class="btn btn-sm preset-ghost text-primary-500"
                                  onclick={() => selectTopic(related.id)}

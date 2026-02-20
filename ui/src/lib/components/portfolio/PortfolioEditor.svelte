@@ -128,7 +128,7 @@
          <ul
             class="text-error-600 dark:text-error-400 text-sm list-disc list-inside space-y-1"
          >
-            {#each errorList as [path, message]}
+            {#each errorList as [path, message] (path)}
                <li><strong>{friendlyPath(path)}</strong>: {message}</li>
             {/each}
          </ul>
