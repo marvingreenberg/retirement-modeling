@@ -68,7 +68,8 @@
 >
    <div class="flex gap-4 flex-wrap items-end">
       <button
-         class="btn btn-sm preset-tonal self-end"
+         class="btn btn-md preset-tonal self-end"
+         color="#443300"
          onclick={onrun}
          disabled={loading}
          aria-label="Run simulation"

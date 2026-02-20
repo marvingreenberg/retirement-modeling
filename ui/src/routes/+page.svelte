@@ -20,6 +20,7 @@
    } from '$lib/types';
    import { get } from 'svelte/store';
    import { goto } from '$app/navigation';
+   import { isNarrow } from '$lib/components/PortraitBlocker.svelte';
 
    const spendingLabels: Record<string, string> = {
       fixed_dollar: 'Fixed Dollar',
@@ -73,7 +74,7 @@
    let needsSetup = $derived($portfolio.config.current_age_primary === 0);
 
    $effect(() => {
-      if (needsSetup) goto('/settings');
+      if (needsSetup && !isNarrow()) goto('/settings');
    });
 
    let loading = $state(false);

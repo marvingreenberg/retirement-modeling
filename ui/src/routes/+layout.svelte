@@ -2,6 +2,7 @@
    import '../app.css';
    import favicon from '$lib/assets/favicon.svg';
    import AppBar from '$lib/components/AppBar.svelte';
+   import PortraitBlocker from '$lib/components/PortraitBlocker.svelte';
    import { portfolio, profile, numSimulations } from '$lib/stores';
    import { portfolioSchema, userProfileSchema } from '$lib/schema';
    import type { Portfolio } from '$lib/types';
@@ -36,6 +37,7 @@
 </svelte:head>
 
 <AppBar />
+<PortraitBlocker />
 <div
    class="h-1 bg-gradient-to-r from-primary-500 via-tertiary-500 to-success-500"
 ></div>

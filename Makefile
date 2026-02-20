@@ -68,7 +68,8 @@ dev:
 	  sleep 1; \
 	  kill -0 $$API_PID 2>/dev/null || { echo "ERROR: API server failed to start (port 8000 in use?)"; exit 1; }; \
 	  (cd ui && npx vite dev) & \
-	  sleep 1 && open http://localhost:5173; \
+	  for i in 1 2 3 4 5 6 7 8 9 10; do curl -s http://localhost:5173 >/dev/null && break; sleep 1; done; \
+	  open http://localhost:5173; \
 	  wait
 
 docker-run:
