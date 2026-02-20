@@ -77,7 +77,8 @@ GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
 GCP_REGION  ?= $(shell gcloud config get-value run/region 2>/dev/null)
 GCP_REGION := $(if $(GCP_REGION),$(GCP_REGION),us-central1)
 GH_IMAGE := ghcr.io/marvingreenberg/$(SERVICE_NAME)
-GCP_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/retirement-sim/$(SERVICE_NAME)
+PROJECT_REPOSITORY := container-images
+GCP_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(PROJECT_REPOSITORY)/$(SERVICE_NAME)
 
 build-image: build-ui
 	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
