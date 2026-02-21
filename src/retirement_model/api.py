@@ -334,9 +334,23 @@ STATIC_DIR = Path(__file__).parent / "static"
 def mount_static_or_root() -> None:
     """Mount static files if present, otherwise register root health endpoint."""
     if STATIC_DIR.is_dir():
+        from starlette.exceptions import HTTPException as StarletteHTTPException
+        from starlette.responses import Response
         from starlette.staticfiles import StaticFiles
+        from starlette.types import Scope
 
-        app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
+        class SPAStaticFiles(StaticFiles):
+            """StaticFiles with SPA fallback — serves index.html for unknown routes."""
+
+            async def get_response(self, path: str, scope: Scope) -> Response:
+                try:
+                    return await super().get_response(path, scope)
+                except StarletteHTTPException as exc:
+                    if exc.status_code == 404 and not Path(path).suffix:
+                        return await super().get_response("index.html", scope)
+                    raise
+
+        app.mount("/", SPAStaticFiles(directory=str(STATIC_DIR), html=True), name="static")
         logger.info("Static asset serving: ACTIVE (serving from %s)", STATIC_DIR)
     else:
 

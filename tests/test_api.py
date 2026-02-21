@@ -384,3 +384,34 @@ class TestStaticServing:
 
         # Restore original routes
         app.routes[:] = saved_routes
+
+    def test_spa_fallback_serves_index_for_client_routes(self, tmp_path):
+        """SPA routes like /settings return index.html instead of 404."""
+        from unittest.mock import patch
+
+        static_dir = tmp_path / "static"
+        static_dir.mkdir()
+        (static_dir / "index.html").write_text("<html><body>SPA</body></html>")
+
+        from retirement_model import api as api_module
+
+        saved_routes = list(app.routes)
+        with patch.object(api_module, "STATIC_DIR", static_dir):
+            app.routes[:] = [
+                r for r in app.routes if getattr(r, "name", "") not in ("static", "root")
+            ]
+            api_module.mount_static_or_root()
+
+            test_client = TestClient(app)
+
+            # SPA routes should serve index.html
+            for path in ["/settings", "/details", "/compare", "/settings?section=advanced"]:
+                response = test_client.get(path)
+                assert response.status_code == 200, f"{path} returned {response.status_code}"
+                assert "SPA" in response.text, f"{path} didn't serve index.html"
+
+            # Actual missing static files (with extension) should still 404
+            response = test_client.get("/missing-file.js")
+            assert response.status_code == 404
+
+        app.routes[:] = saved_routes

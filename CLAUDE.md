@@ -54,20 +54,15 @@ For each TODO task, follow these steps in order. The goal is autonomous completi
    Conflicts should be resolved by user
 10. **Push**: Push main to origin. Leave local branches in place. Do NOT push feature branches.
 
-### OpenSpec Structure
-- `openspec/specs/<capability>/spec.md` — Main requirement specs (the source of truth)
-- `openspec/changes/<name>/` — Active changes with proposal, design, delta specs, tasks
-- `openspec/changes/archive/` — Completed changes (dated)
-- Delta specs use `## ADDED Requirements`, `## MODIFIED Requirements`, `## REMOVED Requirements` headers
-- When syncing/archiving, these change headers get stripped — only the requirement content merges into main specs
-
 ### Linting
 
-All changes must conform to existing lint/format styles. Run linters before committing and fix any issues in changed code.
+All changes must conform to existing lint/format styles. **Always run `make lint` before committing** and fix any issues in changed code.
 
-**Backend**: `black --check src/ tests/` and `isort --check src/ tests/` (configured in `pyproject.toml`)
-**Frontend**: `cd ui && pnpm lint` (ESLint + eslint-plugin-svelte) and `cd ui && pnpm format:check` (Prettier)
+**Backend**: `make lint-api` / `make format-api`
+**Frontend**: `make lint-ui` / `make format-ui`
 **All at once**: `make lint` (both) / `make format` (auto-fix both)
+
+Keep the Makefile lint/format targets up to date as the project evolves.
 
 - ESLint is configured with warnings (not errors) for pre-existing patterns like `no-explicit-any`, `require-each-key`, `no-navigation-without-resolve` (off — project uses adapter-static)
 - New code should not introduce new warnings; fix or suppress with inline comments if justified

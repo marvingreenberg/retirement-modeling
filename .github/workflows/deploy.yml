@@ -7,6 +7,7 @@ on:
 env:
   SERVICE_NAME: retirement-model
   GCP_REGION: us-central1
+  GCP_REPOSITORY: container-images
 
 jobs:
   test:
@@ -61,15 +62,15 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }}
             ghcr.io/${{ github.repository_owner }}/${{ env.SERVICE_NAME }}:latest
-            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/retirement-model/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }}
-            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/retirement-model/${{ env.SERVICE_NAME }}:latest
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.GCP_REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }}
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.GCP_REPOSITORY }}/${{ env.SERVICE_NAME }}:latest
 
       - name: Deploy to Cloud Run
         env:
           VERSION: ${{ steps.version.outputs.version }}
           GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
         run: |
-          GCP_IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/retirement-model/${SERVICE_NAME}"
+          GCP_IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GCP_REPOSITORY}/${SERVICE_NAME}"
           gcloud run deploy "${SERVICE_NAME}" \
             --image="${GCP_IMAGE}:${VERSION}" \
             --platform=managed \
