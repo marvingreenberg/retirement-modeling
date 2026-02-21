@@ -40,19 +40,15 @@ Full-stack retirement planning simulator: Python/FastAPI backend + SvelteKit fro
 
 ### Task Execution Process
 
-For each TODO task, follow these steps in order. The goal is autonomous completion with minimal user intervention.
-
 1. **Branch**: `git checkout -b <feature-branch>` off main
-2. **Spec**: `/opsx:ff <change-name>: <description>` — creates proposal, design, specs, tasks
-3. **Implement**: `/opsx:apply <change-name>` — work through tasks
-4. **Test**: Run all tests, fix failures by correcting implementation (unless the test itself doesn't match the spec)
-5. **Verify**: `/opsx:verify <change-name>` — check implementation against specs
-6. **Resolve**: If verify finds issues, fix them. Note issue/resolution/choices in VerificationIssues.md
-7. **Sync/Archive**: `/opsx:archive <change-name>` — sync delta specs to main specs (remove "change language" like ADDED/MODIFIED/REMOVED headers when merging), then archive
-8. **Commit**: Commit changes to the feature branch
-9. **Merge**: Merge feature branch onto main
-   Conflicts should be resolved by user
-10. **Push**: Push main to origin. Leave local branches in place. Do NOT push feature branches.
+2. **Plan**: Use plan mode for non-trivial changes to design the approach
+3. **Implement**: Write code and tests
+4. **Test**: Run all tests, fix failures
+5. **Commit**: Commit changes to the feature branch
+6. **Merge**: Merge feature branch onto main (conflicts resolved by user)
+7. **Push**: Push main to origin. Leave local branches in place. Do NOT push feature branches.
+
+Update DESIGN.md when changes affect the overall architecture.
 
 ### Linting
 
