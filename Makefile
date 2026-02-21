@@ -1,5 +1,5 @@
 .PHONY: help check-tools setup build test e2e clean lint lint-api lint-ui \
-       format format-api format-ui dev deploy \
+       format format-api format-ui dev deploy build-image \
        setup-api setup-ui build-api build-ui test-api test-ui \
        run-api run-cli run-ui dev docker-run
 
@@ -15,6 +15,14 @@ REPO_OWNER := marvingreenberg
 REPO_PATH := $(REPO)/$(REPO_OWNER)
 SERVICE_NAME := retirement-model
 
+GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
+GCP_REGION  ?= $(shell gcloud config get-value run/region 2>/dev/null)
+GCP_REGION := $(if $(GCP_REGION),$(GCP_REGION),us-central1)
+GH_IMAGE := ghcr.io/marvingreenberg/$(SERVICE_NAME)
+PROJECT_REPOSITORY := container-images
+GCP_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(PROJECT_REPOSITORY)/$(SERVICE_NAME)
+
+
 # ── Standard targets ────────────────────────────────────────────
 
 help:
@@ -23,8 +31,9 @@ help:
 	@echo "  build      - Build all packages (API + UI)"
 	@echo "  test       - Run all tests (API + UI)"
 	@echo "  dev        - Start API + UI dev servers, open browser, Ctrl-C stops both"
-	@echo "  docker-run - Build and run combined Docker image on port 8000"
-	@echo "  deploy     - Build, push, and deploy to GCP Cloud Run"
+	@echo "  build-image- Build Docker image locally via buildx"
+	@echo "  docker-run - Build (via buildx) and run Docker image on port 8000"
+	@echo "  deploy     - Build, push (via buildx), and deploy to GCP Cloud Run"
 	@echo "  e2e        - Run E2E tests (starts backend, builds UI, runs Playwright)"
 	@echo "  clean      - Remove all build artifacts and generated files"
 	@echo "  lint       - Run all linters (API + UI)"
@@ -72,30 +81,22 @@ dev:
 	  open http://localhost:5173; \
 	  wait
 
-docker-run:
-	docker build --build-arg VERSION=$(VERSION) -t retirement-app . && \
-	  docker run --rm -p 8000:8000 retirement-app
+docker-run: build-image
+	docker run --rm -p 8000:8000 $(GH_IMAGE):$(VERSION)
 
-GCP_PROJECT ?= $(shell gcloud config get-value project 2>/dev/null)
-GCP_REGION  ?= $(shell gcloud config get-value run/region 2>/dev/null)
-GCP_REGION := $(if $(GCP_REGION),$(GCP_REGION),us-central1)
-GH_IMAGE := ghcr.io/marvingreenberg/$(SERVICE_NAME)
-PROJECT_REPOSITORY := container-images
-GCP_IMAGE := $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(PROJECT_REPOSITORY)/$(SERVICE_NAME)
-
-build-image: build-ui
+build-image:
 	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
-	docker build --progress plain --build-arg VERSION=$(VERSION) -t $(GH_IMAGE):$(VERSION) .
-	docker tag $(GH_IMAGE):$(VERSION) $(GH_IMAGE):latest
-	docker tag $(GH_IMAGE):$(VERSION) $(GCP_IMAGE):$(VERSION)
-	docker tag $(GH_IMAGE):$(VERSION) $(GCP_IMAGE):latest
-	docker push $(GH_IMAGE)
+	docker buildx build --load --progress plain --build-arg VERSION=$(VERSION) \
+	  -t $(GH_IMAGE):$(VERSION) -t $(GH_IMAGE):latest \
+	  -t $(GCP_IMAGE):$(VERSION) -t $(GCP_IMAGE):latest .
 
 deploy: build-image
 	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
-	docker push $(GCP_IMAGE) && \
+	docker buildx build --push --progress plain --build-arg VERSION=$(VERSION) \
+	  -t $(GH_IMAGE):$(VERSION) -t $(GH_IMAGE):latest \
+	  -t $(GCP_IMAGE):$(VERSION) -t $(GCP_IMAGE):latest . && \
 	  gcloud run deploy $(SERVICE_NAME) \
-	    --image=$(GCP_IMAGE) \
+	    --image=$(GCP_IMAGE):$(VERSION) \
 	    --platform=managed \
 	    --allow-unauthenticated \
 	    --port=8000 --memory=512Mi --cpu=1 \
@@ -114,25 +115,7 @@ e2e:
 
 lint: lint-api lint-ui
 
-lint-api:
-	$(ACTIVATE) && \
-	  black --check src/ tests/ && \
-	  isort --check-only src/ tests/ && \
-	  mypy src/
-
-lint-ui:
-	cd ui && pnpm lint && pnpm format:check
-
 format: format-api format-ui
-
-format-api:
-	$(ACTIVATE) && \
-	  black src/ tests/ && \
-	  isort src/ tests/
-
-format-ui:
-	cd ui && pnpm lint:fix && pnpm format
-
 
 
 # ── Component targets ───────────────────────────────────────────
@@ -165,3 +148,20 @@ run-ui:
 
 run-cli:
 	$(ACTIVATE) && retirement-model run $(FILE)
+
+
+lint-api:
+	$(ACTIVATE) && \
+	  black --check src/ tests/ && \
+	  isort --check-only src/ tests/ && \
+	  mypy src/
+
+lint-ui:
+	cd ui && pnpm lint && pnpm format:check
+format-api:
+	$(ACTIVATE) && \
+	  black src/ tests/ && \
+	  isort src/ tests/
+
+format-ui:
+	cd ui && pnpm lint:fix && pnpm format
