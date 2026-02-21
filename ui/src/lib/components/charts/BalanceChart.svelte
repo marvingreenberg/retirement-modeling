@@ -34,7 +34,7 @@
             ...areaStyle,
          },
          {
-            label: 'Roth Conversions',
+            label: 'Roth Conv Acct',
             data: years.map((y) => y.roth_conversion_balance ?? 0),
             borderColor: '#7c3aed',
             backgroundColor: 'rgba(124,58,237,0.3)',

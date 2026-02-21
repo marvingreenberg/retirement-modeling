@@ -108,7 +108,7 @@ describe('SimulateView (tabbed results)', () => {
       expect(screen.getByText('Final Balance')).toBeInTheDocument();
       expect(screen.getByText('Total Taxes')).toBeInTheDocument();
       expect(screen.getByText('Total IRMAA')).toBeInTheDocument();
-      expect(screen.getByText('Roth Conversions')).toBeInTheDocument();
+      expect(screen.getByText('Roth Conv Acct')).toBeInTheDocument();
    });
 
    it('shows details link for single results', () => {
