@@ -15,7 +15,7 @@ Set these once per project:
 ```bash
 export GCP_PROJECT=your-project-id
 export GCP_REGION=us-central1
-export SERVICE_NAME=retirement-sim
+export SERVICE_NAME=retirement-model
 
 gcloud config set project $GCP_PROJECT
 gcloud config set run/region $GCP_REGION
@@ -33,7 +33,7 @@ gcloud services enable \
 Create an Artifact Registry repository (one-time):
 
 ```bash
-gcloud artifacts repositories create retirement-sim \
+gcloud artifacts repositories create retirement-model \
   --repository-format=docker \
   --location=$GCP_REGION \
   --description="Retirement simulator images"
@@ -48,7 +48,7 @@ gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev
 ## Build and Push
 
 ```bash
-IMAGE=${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/retirement-sim/${SERVICE_NAME}:latest
+IMAGE=${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/retirement-model/${SERVICE_NAME}:latest
 
 docker build -t $IMAGE .
 docker push $IMAGE
@@ -134,5 +134,5 @@ The image is rebuilt and the service updates with zero downtime (Cloud Run handl
 
 ```bash
 gcloud run services delete $SERVICE_NAME
-gcloud artifacts repositories delete retirement-sim --location=$GCP_REGION
+gcloud artifacts repositories delete retirement-model --location=$GCP_REGION
 ```
