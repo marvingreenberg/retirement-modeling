@@ -7,8 +7,8 @@ WORKDIR /app
 
 COPY ui/package.json ui/pnpm-lock.yaml ui/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
-
 COPY ui/ .
+RUN pnpm exec svelte-kit sync
 RUN pnpm build
 
 # Stage 2: Python API + static assets
