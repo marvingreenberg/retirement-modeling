@@ -50,12 +50,15 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             income_streams: [
                {
                   name: 'Pension',
+                  kind: 'pension',
                   amount: 22000,
                   start_age: 65,
                   end_age: null,
                   taxable_pct: 1.0,
                   cola_rate: 0.02,
                   owner: 'primary',
+                  pretax_401k: 0,
+                  roth_401k: 0,
                },
             ],
             ss_auto: {
@@ -65,6 +68,8 @@ export const sampleScenarios: Record<string, SampleScenario> = {
                spouse_start_age: 67,
                fra_age: 67,
             },
+            retirement_age: 65,
+            excess_income_routing: 'brokerage',
          },
          accounts: [
             {
@@ -139,21 +144,27 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             income_streams: [
                {
                   name: 'Alimony',
+                  kind: 'alimony',
                   amount: 18000,
                   start_age: 63,
                   end_age: null,
                   taxable_pct: 1.0,
                   cola_rate: null,
                   owner: 'primary',
+                  pretax_401k: 0,
+                  roth_401k: 0,
                },
                {
                   name: 'Rental income',
+                  kind: 'rental',
                   amount: 52500,
                   start_age: 63,
                   end_age: null,
                   taxable_pct: 1.0,
                   cola_rate: 0.02,
                   owner: 'primary',
+                  pretax_401k: 0,
+                  roth_401k: 0,
                },
             ],
             ss_auto: {
@@ -163,6 +174,8 @@ export const sampleScenarios: Record<string, SampleScenario> = {
                spouse_start_age: null,
                fra_age: 67,
             },
+            retirement_age: null,
+            excess_income_routing: 'brokerage',
          },
          accounts: [
             {
@@ -237,12 +250,15 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             income_streams: [
                {
                   name: 'Alimony',
+                  kind: 'alimony',
                   amount: 18000,
                   start_age: 62,
                   end_age: null,
                   taxable_pct: 1.0,
                   cola_rate: null,
                   owner: 'primary',
+                  pretax_401k: 0,
+                  roth_401k: 0,
                },
             ],
             ss_auto: {
@@ -252,6 +268,8 @@ export const sampleScenarios: Record<string, SampleScenario> = {
                spouse_start_age: 67,
                fra_age: 67,
             },
+            retirement_age: null,
+            excess_income_routing: 'brokerage',
          },
          accounts: [
             {

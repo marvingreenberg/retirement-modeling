@@ -53,6 +53,7 @@ class YearlyResultPercentiles:
     """Percentile data for each field of YearResult across simulations."""
 
     age: int
+    year: int
     balance_p5: float
     balance_p25: float
     balance_median: float
@@ -433,6 +434,7 @@ def run_full_monte_carlo(
         yearly_percentiles.append(
             YearlyResultPercentiles(
                 age=start_age + year_idx,
+                year=portfolio.config.start_year + year_idx,
                 balance_p5=balances[int(n * 0.05)],
                 balance_p25=balances[int(n * 0.25)],
                 balance_median=balances[n // 2],

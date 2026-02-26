@@ -1,5 +1,6 @@
 <script lang="ts">
-   import type { SimulationConfig, IncomeStream } from '$lib/types';
+   import type { SimulationConfig, IncomeStream, IncomeKind } from '$lib/types';
+   import { INCOME_KIND_LABELS } from '$lib/types';
    import { Trash2 } from 'lucide-svelte';
    import SocialSecurityEditor from './SocialSecurityEditor.svelte';
 
@@ -15,6 +16,14 @@
    let simEndAge = $derived(
       config.current_age_primary + config.simulation_years,
    );
+
+   const editableKinds: IncomeKind[] = [
+      'employment',
+      'pension',
+      'rental',
+      'alimony',
+      'other',
+   ];
 
    function ageToYear(age: number, ownerAge: number): number {
       return config.start_year + (age - ownerAge);
@@ -54,18 +63,29 @@
          ...incomeStreams,
          {
             name: '',
+            kind: 'other' as IncomeKind,
             amount: 0,
             start_age: 65,
             end_age: null,
             taxable_pct: 1.0,
             cola_rate: null,
             owner: 'primary' as const,
+            pretax_401k: 0,
+            roth_401k: 0,
          },
       ];
    }
 
    function removeStream(idx: number) {
       incomeStreams = incomeStreams.filter((_, i) => i !== idx);
+   }
+
+   function handleKindChange(idx: number, newKind: IncomeKind) {
+      incomeStreams[idx].kind = newKind;
+      if (newKind !== 'employment') {
+         incomeStreams[idx].pretax_401k = 0;
+         incomeStreams[idx].roth_401k = 0;
+      }
    }
 </script>
 
@@ -82,6 +102,7 @@
          <div
             class="flex gap-3 items-end px-3 mb-1 text-xs font-medium text-surface-500 dark:text-surface-400"
          >
+            <span class="w-24">Kind</span>
             <span class="w-32">Name</span>
             <span class="w-28">Amount ($/yr)</span>
             <span class="w-28">Start Year</span>
@@ -97,6 +118,17 @@
          <div
             class="flex gap-3 items-center p-3 bg-surface-100 dark:bg-surface-800 rounded flex-wrap mb-2"
          >
+            <select
+               class="select w-24 text-sm"
+               value={stream.kind}
+               onchange={(e) =>
+                  handleKindChange(idx, e.currentTarget.value as IncomeKind)}
+               aria-label="Kind"
+            >
+               {#each editableKinds as k (k)}
+                  <option value={k}>{INCOME_KIND_LABELS[k]}</option>
+               {/each}
+            </select>
             <input
                type="text"
                class="input w-32 text-sm"
@@ -214,6 +246,41 @@
                <span class="text-xs text-warning-500 w-full">{warning}</span>
             {/if}
          </div>
+
+         <!-- 401k contribution fields for employment income -->
+         {#if stream.kind === 'employment'}
+            <div
+               class="flex gap-3 items-center px-3 pb-3 ml-6 text-sm flex-wrap"
+            >
+               <label class="flex items-center gap-1">
+                  <span class="text-xs text-surface-500">Pre-tax 401k</span>
+                  <input
+                     type="number"
+                     class="input w-28 text-sm"
+                     bind:value={incomeStreams[idx].pretax_401k}
+                     onfocus={(e) => e.currentTarget.select()}
+                     min="0"
+                     step="500"
+                     aria-label="Pre-tax 401k"
+                  />
+               </label>
+               <label class="flex items-center gap-1">
+                  <span class="text-xs text-surface-500">Roth 401k</span>
+                  <input
+                     type="number"
+                     class="input w-28 text-sm"
+                     bind:value={incomeStreams[idx].roth_401k}
+                     onfocus={(e) => e.currentTarget.select()}
+                     min="0"
+                     step="500"
+                     aria-label="Roth 401k"
+                  />
+               </label>
+               <span class="text-xs text-surface-400"
+                  >2025 limit: $23,500 (under 50) / $31,000 (50+)</span
+               >
+            </div>
+         {/if}
       {/each}
       <button class="btn btn-sm preset-tonal mt-1" onclick={addStream}
          >Add Income</button

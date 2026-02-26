@@ -27,6 +27,21 @@ export const spendingStrategySchema = z.enum([
    'rmd_based',
 ]);
 
+export const incomeKindSchema = z.enum([
+   'employment',
+   'pension',
+   'rental',
+   'alimony',
+   'ss',
+   'other',
+]);
+
+export const excessIncomeRoutingSchema = z.enum([
+   'brokerage',
+   'ira_first',
+   'roth_ira_first',
+]);
+
 export const guardrailsConfigSchema = z.object({
    initial_withdrawal_rate: z.number().min(0.01).max(0.15).default(0.05),
    floor_percent: z.number().min(0.5).max(1.0).default(0.8),
@@ -58,12 +73,15 @@ export const taxBracketSchema = z.object({
 
 export const incomeStreamSchema = z.object({
    name: z.string().min(1),
+   kind: incomeKindSchema.default('other'),
    amount: z.number().min(0),
    start_age: z.number().int().min(0),
    end_age: z.number().int().min(0).nullable().default(null),
    taxable_pct: z.number().min(0).max(1).default(1.0),
    cola_rate: z.number().min(0).max(0.2).nullable().default(null),
    owner: ownerSchema.default('primary'),
+   pretax_401k: z.number().min(0).default(0),
+   roth_401k: z.number().min(0).default(0),
 });
 
 export const ssAutoConfigSchema = z.object({
@@ -110,6 +128,8 @@ export const simulationConfigSchema = z
       planned_expenses: z.array(plannedExpenseSchema).default([]),
       income_streams: z.array(incomeStreamSchema).default([]),
       ss_auto: ssAutoConfigSchema.nullable().default(null),
+      retirement_age: z.number().int().min(0).max(120).nullable().default(null),
+      excess_income_routing: excessIncomeRoutingSchema.default('brokerage'),
    })
    .strip();
 

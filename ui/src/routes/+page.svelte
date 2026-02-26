@@ -201,7 +201,13 @@
    <SimulateSettings onrun={handleRun} {loading} />
 
    {#if hasResults || error}
-      <SimulateView {singleResult} {mcResult} {mcLoading} {error} />
+      <SimulateView
+         {singleResult}
+         {mcResult}
+         {mcLoading}
+         {error}
+         config={$portfolio.config}
+      />
    {:else if loading}
       <div class="flex flex-col items-center justify-center py-16 gap-3">
          <div

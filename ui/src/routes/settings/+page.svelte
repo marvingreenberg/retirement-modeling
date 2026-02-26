@@ -301,6 +301,27 @@
                />
             </label>
 
+            <label
+               class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
+            >
+               Retirement Age
+               <input
+                  type="number"
+                  class="input text-sm"
+                  value={$portfolio.config.retirement_age ?? ''}
+                  onchange={(e) => {
+                     const v = e.currentTarget.value;
+                     $portfolio.config.retirement_age = v ? Number(v) : null;
+                  }}
+                  min="0"
+                  max="120"
+                  placeholder="Not set"
+               />
+               <span class="text-xs text-surface-400"
+                  >Shown as marker on charts</span
+               >
+            </label>
+
             {#if setupError}
                <p class="text-sm text-error-500">{setupError}</p>
             {/if}

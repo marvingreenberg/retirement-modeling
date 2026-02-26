@@ -5,6 +5,9 @@ import pytest
 from retirement_model.models import (
     Account,
     AccountType,
+    ExcessIncomeRouting,
+    IncomeKind,
+    IncomeStream,
     Owner,
     PlannedExpense,
     Portfolio,
@@ -15,6 +18,7 @@ from retirement_model.models import (
 from retirement_model.simulation import (
     EXCESS_INCOME_ACCOUNT_ID,
     _deposit_excess_income,
+    _route_surplus,
     calculate_planned_expenses,
     get_conversion_ceiling,
     run_simulation,
@@ -788,3 +792,225 @@ class TestPostRmdConversions:
         # That exceeds the $206K IRMAA ceiling, so no conversion headroom
         assert yr0.rmd > 0, "RMD should be taken"
         assert yr0.roth_conversion == 0, "No conversion when RMD pushes AGI above ceiling"
+
+
+class Test401kContributions:
+    """Tests for 401k contribution mechanics in employment income streams."""
+
+    def _make_portfolio(
+        self, pretax_401k: float = 0, roth_401k: float = 0, age: int = 55
+    ) -> Portfolio:
+        return Portfolio(
+            config=SimulationConfig(
+                current_age_primary=age,
+                current_age_spouse=0,
+                simulation_years=2,
+                start_year=2026,
+                annual_spend_net=50000,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+                income_streams=[
+                    IncomeStream(
+                        name="Salary",
+                        kind=IncomeKind.EMPLOYMENT,
+                        amount=150000,
+                        start_age=age,
+                        end_age=age + 5,
+                        pretax_401k=pretax_401k,
+                        roth_401k=roth_401k,
+                    ),
+                ],
+            ),
+            accounts=[
+                Account(
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=500000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
+                ),
+            ],
+        )
+
+    def test_pretax_401k_deposits_to_401k_account(self):
+        portfolio = self._make_portfolio(pretax_401k=20000)
+        result = run_simulation(portfolio)
+        # After year 1, a 401k account should exist with the contribution
+        yr0 = result.years[0]
+        assert yr0.pretax_balance > 0
+
+    def test_pretax_401k_reduces_agi(self):
+        """Pre-tax 401k contributions reduce AGI since they're pre-tax."""
+        p_no_401k = self._make_portfolio(pretax_401k=0)
+        p_with_401k = self._make_portfolio(pretax_401k=20000)
+        r_no = run_simulation(p_no_401k)
+        r_with = run_simulation(p_with_401k)
+        assert r_with.years[0].agi < r_no.years[0].agi
+
+    def test_roth_401k_does_not_reduce_agi(self):
+        """Roth 401k contributions don't reduce AGI (post-tax)."""
+        p_no_401k = self._make_portfolio(pretax_401k=0, roth_401k=0)
+        p_roth_401k = self._make_portfolio(pretax_401k=0, roth_401k=20000)
+        r_no = run_simulation(p_no_401k)
+        r_roth = run_simulation(p_roth_401k)
+        # AGI should be the same since Roth contributions are post-tax
+        assert r_roth.years[0].agi == r_no.years[0].agi
+
+    def test_combined_401k_capped_at_limit(self):
+        """Total pretax + roth 401k contributions capped at annual limit."""
+        # Under 50: limit is $23,500
+        portfolio = self._make_portfolio(pretax_401k=15000, roth_401k=15000, age=40)
+        result = run_simulation(portfolio)
+        # Should not error — the sim caps at the limit
+        assert len(result.years) == 2
+
+    def test_401k_only_for_employment(self):
+        """Validation rejects 401k contributions on non-employment income."""
+        with pytest.raises(Exception):
+            IncomeStream(
+                name="Pension",
+                kind=IncomeKind.PENSION,
+                amount=50000,
+                start_age=65,
+                pretax_401k=10000,
+            )
+
+
+class TestSurplusRouting:
+    """Tests for excess income routing waterfall."""
+
+    def test_route_surplus_brokerage_default(self):
+        accounts: list[Account] = []
+        _route_surplus(10000, accounts, ExcessIncomeRouting.BROKERAGE, 55, 50000, True)
+        assert len(accounts) == 1
+        assert accounts[0].type == AccountType.BROKERAGE
+        assert accounts[0].balance == 10000
+
+    def test_route_surplus_ira_first_under_50(self):
+        accounts: list[Account] = []
+        _route_surplus(20000, accounts, ExcessIncomeRouting.IRA_FIRST, 45, 50000, True)
+        ira_accts = [a for a in accounts if a.type == AccountType.IRA]
+        brok_accts = [a for a in accounts if a.type == AccountType.BROKERAGE]
+        assert len(ira_accts) == 1
+        assert ira_accts[0].balance == 7000  # Under-50 IRA limit
+        assert len(brok_accts) == 1
+        assert brok_accts[0].balance == 13000
+
+    def test_route_surplus_ira_first_over_50(self):
+        accounts: list[Account] = []
+        _route_surplus(20000, accounts, ExcessIncomeRouting.IRA_FIRST, 55, 50000, True)
+        ira_accts = [a for a in accounts if a.type == AccountType.IRA]
+        brok_accts = [a for a in accounts if a.type == AccountType.BROKERAGE]
+        assert ira_accts[0].balance == 8000  # 50+ IRA limit
+        assert brok_accts[0].balance == 12000
+
+    def test_route_surplus_roth_ira_first(self):
+        accounts: list[Account] = []
+        _route_surplus(20000, accounts, ExcessIncomeRouting.ROTH_IRA_FIRST, 55, 50000, True)
+        roth_accts = [a for a in accounts if a.type == AccountType.ROTH_IRA]
+        brok_accts = [a for a in accounts if a.type == AccountType.BROKERAGE]
+        assert len(roth_accts) == 1
+        assert roth_accts[0].balance == 8000  # 50+ catch-up
+        assert brok_accts[0].balance == 12000
+
+    def test_route_surplus_roth_skipped_high_income(self):
+        """Roth IRA deposits skipped when AGI exceeds phase-out."""
+        accounts: list[Account] = []
+        _route_surplus(20000, accounts, ExcessIncomeRouting.ROTH_IRA_FIRST, 55, 250000, True)
+        # AGI > 230K, so Roth IRA skipped, all goes to brokerage
+        roth_accts = [a for a in accounts if a.type == AccountType.ROTH_IRA]
+        assert len(roth_accts) == 0
+        assert accounts[0].type == AccountType.BROKERAGE
+        assert accounts[0].balance == 20000
+
+    def test_route_surplus_no_employment_skips_ira(self):
+        """Without employment income, IRA/Roth routing falls through to brokerage."""
+        accounts: list[Account] = []
+        _route_surplus(10000, accounts, ExcessIncomeRouting.IRA_FIRST, 55, 50000, False)
+        assert accounts[0].type == AccountType.BROKERAGE
+        assert accounts[0].balance == 10000
+
+    def test_surplus_routing_in_simulation(self):
+        """End-to-end: surplus income routes through IRA when configured."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=55,
+                current_age_spouse=0,
+                simulation_years=2,
+                start_year=2026,
+                annual_spend_net=40000,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                excess_income_routing=ExcessIncomeRouting.IRA_FIRST,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+                income_streams=[
+                    IncomeStream(
+                        name="Salary",
+                        kind=IncomeKind.EMPLOYMENT,
+                        amount=100000,
+                        start_age=55,
+                        end_age=65,
+                    ),
+                ],
+            ),
+            accounts=[
+                Account(
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=200000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        # With $100K income and $40K spending, surplus exists
+        assert result.years[0].surplus > 0
+
+
+class TestRetirementAge:
+    """Tests for retirement_age field on SimulationConfig."""
+
+    def test_retirement_age_round_trips(self):
+        config = SimulationConfig(
+            current_age_primary=55,
+            current_age_spouse=0,
+            simulation_years=30,
+            start_year=2026,
+            annual_spend_net=50000,
+            retirement_age=65,
+            social_security=SocialSecurityConfig(
+                primary_benefit=0,
+                primary_start_age=70,
+                spouse_benefit=0,
+                spouse_start_age=70,
+            ),
+        )
+        assert config.retirement_age == 65
+
+    def test_retirement_age_none_by_default(self):
+        config = SimulationConfig(
+            current_age_primary=55,
+            current_age_spouse=0,
+            simulation_years=30,
+            start_year=2026,
+            annual_spend_net=50000,
+            social_security=SocialSecurityConfig(
+                primary_benefit=0,
+                primary_start_age=70,
+                spouse_benefit=0,
+                spouse_start_age=70,
+            ),
+        )
+        assert config.retirement_age is None

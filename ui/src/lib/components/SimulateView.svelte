@@ -2,7 +2,11 @@
    import { currency, pct } from '$lib/format';
    import BalanceChart from './charts/BalanceChart.svelte';
    import FanChart from './charts/FanChart.svelte';
-   import type { SimulationResponse, MonteCarloResponse } from '$lib/types';
+   import type {
+      SimulationResponse,
+      MonteCarloResponse,
+      SimulationConfig,
+   } from '$lib/types';
    import { BarChart3, TrendingUp, ShieldCheck } from 'lucide-svelte';
 
    let {
@@ -10,11 +14,13 @@
       mcResult = null,
       mcLoading = false,
       error = '',
+      config = null,
    }: {
       singleResult: SimulationResponse | null;
       mcResult: MonteCarloResponse | null;
       mcLoading: boolean;
       error: string;
+      config?: SimulationConfig | null;
    } = $props();
 
    let activeTab = $state<'single' | 'monte_carlo'>('single');
@@ -126,7 +132,12 @@
             </div>
          </div>
 
-         <BalanceChart years={singleResult.result.years} />
+         <BalanceChart
+            years={singleResult.result.years}
+            retirementAge={config?.retirement_age}
+            startAge={config?.current_age_primary ?? 0}
+            startYear={config?.start_year ?? 0}
+         />
 
          <div class="flex items-center gap-4">
             <a
@@ -204,7 +215,12 @@
          </div>
 
          {#if mcResult.yearly_percentiles.length > 0}
-            <FanChart percentiles={mcResult.yearly_percentiles} />
+            <FanChart
+               percentiles={mcResult.yearly_percentiles}
+               retirementAge={config?.retirement_age}
+               startAge={config?.current_age_primary ?? 0}
+               startYear={config?.start_year ?? 0}
+            />
          {/if}
 
          <div class="card bg-surface-100 dark:bg-surface-800 p-4">

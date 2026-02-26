@@ -235,6 +235,23 @@ class TestFormatMonteCarloResult:
             assert "Depletion" in formatted
 
 
+class TestYearlyResultPercentilesYear:
+    """Tests for the year field on YearlyResultPercentiles."""
+
+    def test_full_mc_percentiles_have_year(self, simple_portfolio: Portfolio):
+        result = run_full_monte_carlo(simple_portfolio, num_simulations=10, seed=42)
+        start_year = simple_portfolio.config.start_year
+        for i, yp in enumerate(result.yearly_percentiles):
+            assert yp.year == start_year + i
+
+    def test_full_mc_year_matches_age(self, simple_portfolio: Portfolio):
+        result = run_full_monte_carlo(simple_portfolio, num_simulations=10, seed=42)
+        cfg = simple_portfolio.config
+        for yp in result.yearly_percentiles:
+            expected_year = cfg.start_year + (yp.age - cfg.current_age_primary)
+            assert yp.year == expected_year
+
+
 class TestFullMonteCarlo:
     def test_run_full_monte_carlo(self, simple_portfolio: Portfolio):
         result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)

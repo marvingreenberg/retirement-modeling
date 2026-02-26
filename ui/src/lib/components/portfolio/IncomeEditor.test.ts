@@ -47,7 +47,8 @@ describe('IncomeEditor', () => {
 
    it('renders existing income streams from sample data', () => {
       renderEditor();
-      expect(screen.getByDisplayValue('Pension')).toBeInTheDocument();
+      const nameInput = screen.getByLabelText('Name') as HTMLInputElement;
+      expect(nameInput.value).toBe('Pension');
    });
 
    it('renders Add Income button', () => {
@@ -87,12 +88,15 @@ describe('IncomeEditor', () => {
          [
             {
                name: 'Pension',
+               kind: 'pension',
                amount: 24000,
                start_age: 72,
                end_age: null,
                taxable_pct: 1.0,
                cola_rate: null,
                owner: 'primary',
+               pretax_401k: 0,
+               roth_401k: 0,
             },
          ],
       );
@@ -105,12 +109,15 @@ describe('IncomeEditor', () => {
       renderEditor({}, [
          {
             name: 'Test',
+            kind: 'other',
             amount: 1000,
             start_age: 65,
             end_age: null,
             taxable_pct: 1.0,
             cola_rate: null,
             owner: 'primary',
+            pretax_401k: 0,
+            roth_401k: 0,
          },
       ]);
       expect(screen.getByText('Start Year')).toBeInTheDocument();
@@ -123,12 +130,15 @@ describe('IncomeEditor', () => {
          [
             {
                name: 'Late',
+               kind: 'other',
                amount: 1000,
                start_age: 96,
                end_age: null,
                taxable_pct: 1.0,
                cola_rate: null,
                owner: 'primary',
+               pretax_401k: 0,
+               roth_401k: 0,
             },
          ],
       );
@@ -139,12 +149,15 @@ describe('IncomeEditor', () => {
       renderEditor({ current_age_primary: 65, start_year: 2026 }, [
          {
             name: 'Bad',
+            kind: 'other',
             amount: 1000,
             start_age: 70,
             end_age: 65,
             taxable_pct: 1.0,
             cola_rate: null,
             owner: 'primary',
+            pretax_401k: 0,
+            roth_401k: 0,
          },
       ]);
       expect(screen.getByText('end < start')).toBeInTheDocument();
@@ -154,12 +167,15 @@ describe('IncomeEditor', () => {
       renderEditor({ current_age_primary: 65, start_year: 2026 }, [
          {
             name: 'Pension',
+            kind: 'pension',
             amount: 24000,
             start_age: 65,
             end_age: null,
             taxable_pct: 0.85,
             cola_rate: 0.02,
             owner: 'primary',
+            pretax_401k: 0,
+            roth_401k: 0,
          },
       ]);
       const colaInput = screen.getByLabelText('COLA %') as HTMLInputElement;
@@ -174,14 +190,81 @@ describe('IncomeEditor', () => {
       renderEditor({}, [
          {
             name: 'Test',
+            kind: 'other',
             amount: 1000,
             start_age: 65,
             end_age: null,
             taxable_pct: 1.0,
             cola_rate: null,
             owner: 'primary',
+            pretax_401k: 0,
+            roth_401k: 0,
          },
       ]);
       expect(screen.getByText('Taxable %')).toBeInTheDocument();
+   });
+
+   it('shows Kind column header and dropdown', () => {
+      renderEditor({}, [
+         {
+            name: 'Job',
+            kind: 'employment',
+            amount: 100000,
+            start_age: 55,
+            end_age: 65,
+            taxable_pct: 1.0,
+            cola_rate: null,
+            owner: 'primary',
+            pretax_401k: 0,
+            roth_401k: 0,
+         },
+      ]);
+      expect(screen.getByText('Kind')).toBeInTheDocument();
+      const kindSelect = screen.getByLabelText('Kind') as HTMLSelectElement;
+      expect(kindSelect.value).toBe('employment');
+   });
+
+   it('shows 401k fields for employment income', () => {
+      renderEditor({}, [
+         {
+            name: 'Salary',
+            kind: 'employment',
+            amount: 120000,
+            start_age: 55,
+            end_age: 65,
+            taxable_pct: 1.0,
+            cola_rate: null,
+            owner: 'primary',
+            pretax_401k: 15000,
+            roth_401k: 5000,
+         },
+      ]);
+      const pretaxInput = screen.getByLabelText(
+         'Pre-tax 401k',
+      ) as HTMLInputElement;
+      const rothInput = screen.getByLabelText('Roth 401k') as HTMLInputElement;
+      expect(pretaxInput).toBeInTheDocument();
+      expect(rothInput).toBeInTheDocument();
+      expect(Number(pretaxInput.value)).toBe(15000);
+      expect(Number(rothInput.value)).toBe(5000);
+   });
+
+   it('hides 401k fields for non-employment income', () => {
+      renderEditor({}, [
+         {
+            name: 'Pension',
+            kind: 'pension',
+            amount: 24000,
+            start_age: 65,
+            end_age: null,
+            taxable_pct: 1.0,
+            cola_rate: null,
+            owner: 'primary',
+            pretax_401k: 0,
+            roth_401k: 0,
+         },
+      ]);
+      expect(screen.queryByLabelText('Pre-tax 401k')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Roth 401k')).not.toBeInTheDocument();
    });
 });

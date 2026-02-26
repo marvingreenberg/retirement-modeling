@@ -14,6 +14,7 @@ function makeYear(overrides: Partial<YearResult> = {}): YearResult {
       surplus: 0,
       roth_conversion: 0,
       conversion_tax: 0,
+      conversion_tax_from_brokerage: 0,
       pretax_withdrawal: 0,
       roth_withdrawal: 0,
       brokerage_withdrawal: 50000,
@@ -21,11 +22,15 @@ function makeYear(overrides: Partial<YearResult> = {}): YearResult {
       irmaa_cost: 0,
       total_balance: 900000,
       spending_target: 80000,
+      planned_expense: 0,
+      total_income: 0,
+      income_tax: 12000,
       pretax_balance: 400000,
       roth_balance: 200000,
       roth_conversion_balance: 0,
       brokerage_balance: 300000,
       withdrawal_details: [],
+      income_details: [],
       ...overrides,
    };
 }

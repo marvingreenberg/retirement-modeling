@@ -85,6 +85,24 @@
       />
    </label>
 
+   <label
+      class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
+   >
+      <span class="flex items-center gap-1"
+         >Excess Income Routing <InfoPopover
+            text="When income exceeds spending, surplus is invested. Choose where: brokerage (default), IRA first (then brokerage), or Roth IRA first (then brokerage). IRA/Roth options require employment income."
+         /></span
+      >
+      <select
+         class="select text-sm"
+         bind:value={$portfolio.config.excess_income_routing}
+      >
+         <option value="brokerage">Brokerage (default)</option>
+         <option value="ira_first">IRA first, then brokerage</option>
+         <option value="roth_ira_first">Roth IRA first, then brokerage</option>
+      </select>
+   </label>
+
    <div class="pt-4 border-t border-surface-300 dark:border-surface-700">
       <h3
          class="text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2"

@@ -1,13 +1,24 @@
 <script lang="ts">
    import { onMount } from 'svelte';
    import { Chart, registerables } from 'chart.js';
+   import annotationPlugin from 'chartjs-plugin-annotation';
    import type { YearResult } from '$lib/types';
 
-   let { years }: { years: YearResult[] } = $props();
+   let {
+      years,
+      retirementAge = null,
+      startAge = 0,
+      startYear = 0,
+   }: {
+      years: YearResult[];
+      retirementAge?: number | null;
+      startAge?: number;
+      startYear?: number;
+   } = $props();
    let canvas: HTMLCanvasElement;
    let chart: Chart | undefined;
 
-   Chart.register(...registerables);
+   Chart.register(...registerables, annotationPlugin);
 
    function hasNonZero(data: number[]): boolean {
       return data.some((v) => v > 0);
@@ -15,7 +26,7 @@
 
    function buildChart() {
       chart?.destroy();
-      const labels = years.map((y) => `Age ${y.age_primary}`);
+      const labels = years.map((y) => `${y.year}`);
 
       const areaStyle = {
          borderWidth: 1.5,
@@ -103,6 +114,39 @@
          ...cashFlowDatasets.filter((ds) => hasNonZero(ds.data)),
       ];
 
+      // Retirement marker annotation
+      const retirementYear =
+         retirementAge != null && startYear > 0 && startAge > 0
+            ? startYear + (retirementAge - startAge)
+            : null;
+      const retirementIdx =
+         retirementYear != null
+            ? years.findIndex((y) => y.year === retirementYear)
+            : -1;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const annotations: Record<string, any> =
+         retirementIdx >= 0
+            ? {
+                 retirementLine: {
+                    type: 'line',
+                    xMin: retirementIdx,
+                    xMax: retirementIdx,
+                    borderColor: 'rgba(100,100,100,0.6)',
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                    label: {
+                       display: true,
+                       content: 'Retires',
+                       position: 'start',
+                       backgroundColor: 'rgba(100,100,100,0.7)',
+                       color: '#fff',
+                       font: { size: 11 },
+                    },
+                 },
+              }
+            : {};
+
       chart = new Chart(canvas, {
          type: 'line',
          data: { labels, datasets },
@@ -110,8 +154,15 @@
             responsive: true,
             interaction: { mode: 'index', intersect: false },
             plugins: {
+               annotation: { annotations },
                tooltip: {
                   callbacks: {
+                     title: (items) => {
+                        const idx = items[0]?.dataIndex;
+                        if (idx == null || !years[idx]) return '';
+                        const yr = years[idx];
+                        return `${yr.year} (Age ${yr.age_primary})`;
+                     },
                      label: (ctx) =>
                         `${ctx.dataset.label}: $${Math.round(ctx.parsed.y ?? 0).toLocaleString()}`,
                      footer: (items) => {

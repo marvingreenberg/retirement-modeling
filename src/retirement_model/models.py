@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from retirement_model.constants import (
     DEFAULT_GROWTH_RATE,
@@ -11,6 +11,13 @@ from retirement_model.constants import (
     DEFAULT_SIMULATION_YEARS,
     DEFAULT_STATE_TAX_RATE,
 )
+
+# 401(k) and IRA contribution limits (2025)
+LIMIT_401K_UNDER_50 = 23500
+LIMIT_401K_CATCHUP_50 = 31000  # includes $7,500 catch-up
+LIMIT_IRA_UNDER_50 = 7000
+LIMIT_IRA_CATCHUP_50 = 8000
+ROTH_IRA_MAGI_PHASEOUT_MFJ = 230000
 
 
 class AccountType(str, Enum):
@@ -134,6 +141,25 @@ class SpendingStrategy(str, Enum):
     RMD_BASED = "rmd_based"
 
 
+class IncomeKind(str, Enum):
+    """Classification of income stream types."""
+
+    EMPLOYMENT = "employment"
+    PENSION = "pension"
+    RENTAL = "rental"
+    ALIMONY = "alimony"
+    SS = "ss"
+    OTHER = "other"
+
+
+class ExcessIncomeRouting(str, Enum):
+    """How surplus income (income > spending) is routed to accounts."""
+
+    BROKERAGE = "brokerage"
+    IRA_FIRST = "ira_first"
+    ROTH_IRA_FIRST = "roth_ira_first"
+
+
 # Backwards compatibility alias
 WithdrawalStrategy = ConversionStrategy
 
@@ -200,15 +226,25 @@ class PlannedExpense(BaseModel):
 
 
 class IncomeStream(BaseModel):
-    """A periodic income source (e.g. pension, annuity, rental income)."""
+    """A periodic income source (e.g. employment, pension, rental income)."""
 
     name: str
+    kind: IncomeKind = IncomeKind.OTHER
     amount: float = Field(ge=0)
     start_age: int = Field(ge=0)
     end_age: int | None = Field(default=None, ge=0)
     taxable_pct: float = Field(default=1.0, ge=0.0, le=1.0)
     cola_rate: float | None = Field(default=None, ge=0.0, le=0.20)
     owner: Owner = Owner.PRIMARY
+    pretax_401k: float = Field(default=0, ge=0)
+    roth_401k: float = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def validate_401k_fields(self) -> "IncomeStream":
+        if self.pretax_401k > 0 or self.roth_401k > 0:
+            if self.kind != IncomeKind.EMPLOYMENT:
+                raise ValueError("401k contributions only allowed for employment income")
+        return self
 
 
 class SSAutoConfig(BaseModel):
@@ -255,6 +291,9 @@ class SimulationConfig(BaseModel):
     income_streams: list[IncomeStream] = Field(default_factory=list)
 
     ss_auto: SSAutoConfig | None = None
+
+    retirement_age: int | None = Field(default=None, ge=0, le=120)
+    excess_income_routing: ExcessIncomeRouting = ExcessIncomeRouting.BROKERAGE
 
     vary_tax_regimes: bool = Field(default=False)
 

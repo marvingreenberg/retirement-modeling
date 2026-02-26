@@ -1,17 +1,62 @@
 <script lang="ts">
    import { onMount } from 'svelte';
    import { Chart, registerables } from 'chart.js';
+   import annotationPlugin from 'chartjs-plugin-annotation';
    import type { YearlyResultPercentiles } from '$lib/types';
 
-   let { percentiles }: { percentiles: YearlyResultPercentiles[] } = $props();
+   let {
+      percentiles,
+      retirementAge = null,
+      startAge = 0,
+      startYear = 0,
+   }: {
+      percentiles: YearlyResultPercentiles[];
+      retirementAge?: number | null;
+      startAge?: number;
+      startYear?: number;
+   } = $props();
    let canvas: HTMLCanvasElement;
    let chart: Chart | undefined;
 
-   Chart.register(...registerables);
+   Chart.register(...registerables, annotationPlugin);
 
    function buildChart() {
       chart?.destroy();
-      const labels = percentiles.map((p) => `Age ${p.age}`);
+      const labels = percentiles.map((p) => `${p.year}`);
+
+      // Retirement marker annotation
+      const retirementYear =
+         retirementAge != null && startYear > 0 && startAge > 0
+            ? startYear + (retirementAge - startAge)
+            : null;
+      const retirementIdx =
+         retirementYear != null
+            ? percentiles.findIndex((p) => p.year === retirementYear)
+            : -1;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const annotations: Record<string, any> =
+         retirementIdx >= 0
+            ? {
+                 retirementLine: {
+                    type: 'line',
+                    xMin: retirementIdx,
+                    xMax: retirementIdx,
+                    borderColor: 'rgba(100,100,100,0.6)',
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                    label: {
+                       display: true,
+                       content: 'Retires',
+                       position: 'start',
+                       backgroundColor: 'rgba(100,100,100,0.7)',
+                       color: '#fff',
+                       font: { size: 11 },
+                    },
+                 },
+              }
+            : {};
+
       chart = new Chart(canvas, {
          type: 'line',
          data: {
@@ -64,8 +109,15 @@
          options: {
             responsive: true,
             plugins: {
+               annotation: { annotations },
                tooltip: {
                   callbacks: {
+                     title: (items) => {
+                        const idx = items[0]?.dataIndex;
+                        if (idx == null || !percentiles[idx]) return '';
+                        const p = percentiles[idx];
+                        return `${p.year} (Age ${p.age})`;
+                     },
                      label: (ctx) =>
                         `${ctx.dataset.label}: $${Math.round(ctx.parsed.y ?? 0).toLocaleString()}`,
                   },

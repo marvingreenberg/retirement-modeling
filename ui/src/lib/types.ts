@@ -145,6 +145,25 @@ export type SpendingStrategy =
    | 'guardrails'
    | 'rmd_based';
 
+export type IncomeKind =
+   | 'employment'
+   | 'pension'
+   | 'rental'
+   | 'alimony'
+   | 'ss'
+   | 'other';
+
+export const INCOME_KIND_LABELS: Record<IncomeKind, string> = {
+   employment: 'Employment',
+   pension: 'Pension',
+   rental: 'Rental',
+   alimony: 'Alimony',
+   ss: 'Social Security',
+   other: 'Other',
+};
+
+export type ExcessIncomeRouting = 'brokerage' | 'ira_first' | 'roth_ira_first';
+
 export interface GuardrailsConfig {
    initial_withdrawal_rate: number;
    floor_percent: number;
@@ -176,12 +195,15 @@ export interface TaxBracket {
 
 export interface IncomeStream {
    name: string;
+   kind: IncomeKind;
    amount: number;
    start_age: number;
    end_age: number | null;
    taxable_pct: number;
    cola_rate: number | null;
    owner: Owner;
+   pretax_401k: number;
+   roth_401k: number;
 }
 
 export interface SSAutoConfig {
@@ -222,6 +244,8 @@ export interface SimulationConfig {
    planned_expenses: PlannedExpense[];
    income_streams: IncomeStream[];
    ss_auto: SSAutoConfig | null;
+   retirement_age: number | null;
+   excess_income_routing: ExcessIncomeRouting;
 }
 
 export interface Portfolio {
@@ -293,6 +317,7 @@ export interface SimulationResponse {
 
 export interface YearlyResultPercentiles {
    age: number;
+   year: number;
    balance_p5: number;
    balance_p25: number;
    balance_median: number;

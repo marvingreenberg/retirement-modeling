@@ -10,11 +10,18 @@ from retirement_model.constants import (
     BracketDict,
 )
 from retirement_model.models import (
+    LIMIT_401K_CATCHUP_50,
+    LIMIT_401K_UNDER_50,
+    LIMIT_IRA_CATCHUP_50,
+    LIMIT_IRA_UNDER_50,
+    ROTH_IRA_MAGI_PHASEOUT_MFJ,
     Account,
     AccountType,
     AccountWithdrawal,
     ConversionStrategy,
+    ExcessIncomeRouting,
     IncomeDetail,
+    IncomeKind,
     Owner,
     PlannedExpense,
     Portfolio,
@@ -91,6 +98,35 @@ def _deposit_excess_income(amount: float, accounts: list[Account]) -> None:
             cost_basis_ratio=1.0,
         )
     )
+
+
+def _route_surplus(
+    amount: float,
+    accounts: list[Account],
+    routing: ExcessIncomeRouting,
+    owner_age: int,
+    current_agi: float,
+    has_employment_income: bool,
+) -> None:
+    """Route surplus income through IRA/Roth IRA waterfall before brokerage fallback."""
+    if amount <= 0:
+        return
+    remaining = amount
+    ira_limit = LIMIT_IRA_CATCHUP_50 if owner_age >= 50 else LIMIT_IRA_UNDER_50
+
+    if routing == ExcessIncomeRouting.ROTH_IRA_FIRST and has_employment_income:
+        if current_agi < ROTH_IRA_MAGI_PHASEOUT_MFJ:
+            roth_deposit = min(remaining, ira_limit)
+            deposit_to_account(roth_deposit, accounts, AccountType.ROTH_IRA, Owner.PRIMARY)
+            remaining -= roth_deposit
+        # Shared IRA limit: Roth IRA deposit consumed the limit, no traditional IRA
+    elif routing == ExcessIncomeRouting.IRA_FIRST and has_employment_income:
+        ira_deposit = min(remaining, ira_limit)
+        deposit_to_account(ira_deposit, accounts, AccountType.IRA, Owner.PRIMARY)
+        remaining -= ira_deposit
+
+    if remaining > 0:
+        _deposit_excess_income(remaining, accounts)
 
 
 def get_conversion_ceiling(
@@ -287,6 +323,7 @@ def run_simulation(
         # Additional income streams (pensions, annuities, rental income, etc.)
         stream_income = 0.0
         stream_taxable = 0.0
+        has_employment_income = False
         for stream in working_streams:
             owner_age = age_spouse if stream.owner == Owner.SPOUSE else age_primary
             in_range = owner_age >= stream.start_age
@@ -296,8 +333,29 @@ def run_simulation(
                 years_active = owner_age - stream.start_age
                 cola_factor = (1 + stream.cola_rate) ** years_active if stream.cola_rate else 1.0
                 adjusted = stream.amount * cola_factor
-                stream_income += adjusted
-                stream_taxable += adjusted * stream.taxable_pct
+
+                # 401k contributions from employment income
+                contrib_pretax = 0.0
+                contrib_roth = 0.0
+                if stream.kind == IncomeKind.EMPLOYMENT:
+                    has_employment_income = True
+                    limit = LIMIT_401K_CATCHUP_50 if owner_age >= 50 else LIMIT_401K_UNDER_50
+                    contrib_pretax = min(stream.pretax_401k, limit)
+                    remaining_limit = limit - contrib_pretax
+                    contrib_roth = min(stream.roth_401k, remaining_limit)
+                    if contrib_pretax > 0:
+                        deposit_to_account(
+                            contrib_pretax, accounts, AccountType.TRADITIONAL_401K, stream.owner
+                        )
+                    if contrib_roth > 0:
+                        deposit_to_account(
+                            contrib_roth, accounts, AccountType.ROTH_401K, stream.owner
+                        )
+
+                net_income = adjusted - contrib_pretax - contrib_roth
+                net_taxable = adjusted * stream.taxable_pct - contrib_pretax
+                stream_income += net_income
+                stream_taxable += max(0, net_taxable)
                 income_details.append(IncomeDetail(name=stream.name, amount=round(adjusted)))
 
         # SS taxable portion uses IRS tiered formula
@@ -464,9 +522,16 @@ def run_simulation(
                     converted_amount += conv_result.amount_withdrawn
                     current_agi += conv_result.amount_withdrawn
 
-        # Reinvest surplus to dedicated excess_income brokerage account
+        # Reinvest surplus through configured routing waterfall
         if surplus_cash > 0:
-            _deposit_excess_income(surplus_cash, accounts)
+            _route_surplus(
+                surplus_cash,
+                accounts,
+                cfg.excess_income_routing,
+                age_primary,
+                current_agi,
+                has_employment_income,
+            )
 
         # Total tax calculation using progressive brackets
         taxable_income = max(0, current_agi - adj_deduction)
