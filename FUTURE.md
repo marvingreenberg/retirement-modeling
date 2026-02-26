@@ -1,8 +1,8 @@
-# Improvements
+# Future Improvements
 
-When an item here is completed, move it to Completed.md in the order of completion.  Move all the completed sections over first.  Do each task in whatever order seems appropriate.
+When an item here is completed, move it to Completed.md in the order of completion.
 
-For each TODO task, follow the Task Execution Process in CLAUDE.md (branch, plan, implement, test, commit, merge, push).
+For each task, follow the Task Execution Process in CLAUDE.md (branch, plan, implement, test, commit, merge, push).
 
 Where it makes sense, open up to three parallel agents to accomplish tasks.
 

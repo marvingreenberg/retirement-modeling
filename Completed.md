@@ -166,3 +166,39 @@ Expanded avatar dropdown from single Settings link to three section nav links (B
 ## E2E Test Fixes
 
 Fixed 3 pre-existing E2E failures: disambiguated "Basic Info" selector in setup test (`getByRole('heading')` instead of `getByText`), updated Monte Carlo test to use tabbed results view instead of removed radio button, updated settings-collapse test to check "Inflation %" visibility instead of removed "Single run" radio.
+
+---
+
+## Health Status Endpoint
+
+Added lightweight `GET /api/v1/status` endpoint returning `{"status": "ok", "version": "..."}`. Updated E2E test helpers to use it instead of misusing `/api/v1/strategies` for health checking.
+
+---
+
+## Cached Image & UI State Cleanup
+
+Simulation results clear automatically when any portfolio inputs change (reverts to "Ready to simulate"). Removed Done button from save/load in favor of left-nav Overview link. Moved Load Sample Data from Basic Info into the Load/Save section with a startup message directing users there.
+
+---
+
+## Age-to-Year Display Conversion
+
+Income and Account editors now show year inputs with age hints (e.g., "2032 (age 72)") using `ageToYear`/`yearToAge` helpers. IncomeEditor includes basic validation warnings (past sim end, end < start). AccountsEditor age validation not added — minor gap.
+
+---
+
+## Withdrawal Plan Display
+
+WithdrawalPlan component shows 2-year withdrawal details with per-account breakdowns for RMDs, spending withdrawals, and Roth conversions. Displays taxes, IRMAA surcharges, and conversion tax. Remaining display refinements (tax source identification, conversion cost view, gross vs net) tracked in `todo/203-withdrawal-plan-enhancements.md`.
+
+---
+
+## Multi-Select QFX File Loading & Demo Randomize
+
+File import supports multi-select (`multiple` attribute) with file type filtering (`.ofx`, `.qfx`, `.csv`). Handles multiple files in a single import, combining parsed accounts for review. "Randomize for Demo" button in Advanced Settings scales account balances (0.3–0.7x, rounded to $1K) and sets demo placeholder names (Alex & Sam) with confirmation dialog.
+
+---
+
+## Allow Roth Conversions After RMD Age
+
+Removed `age_primary < cfg.rmd_start_age` restriction on Roth conversions in simulation.py. Conversions now work at any age — take RMD first, then convert within AGI headroom. Removed disabled state and warning text from conversion strategy dropdown in SimulateSettings. Two new tests in `TestPostRmdConversions` class.
