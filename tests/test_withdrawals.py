@@ -2,9 +2,18 @@
 
 import pytest
 
-from retirement_model.models import Account, AccountType, Owner, TaxCategory
+from retirement_model.models import (
+    ACCOUNT_TYPE_DEFAULTS,
+    BOND_TAX_DRAG,
+    STOCK_TAX_DRAG,
+    Account,
+    AccountType,
+    Owner,
+    TaxCategory,
+)
 from retirement_model.withdrawals import (
     apply_growth,
+    calculate_tax_drag,
     deposit_to_account,
     get_available_balance,
     get_total_balance_by_category,
@@ -235,24 +244,29 @@ class TestDepositToAccount:
 
 class TestApplyGrowth:
     def test_positive_growth(self, test_accounts: list[Account]):
+        """Brokerage gets drag-reduced rate; IRA/Roth get full rate."""
+        drag = calculate_tax_drag(60)  # default stock_pct for brokerage
         total = apply_growth(test_accounts, 0.06)
-        expected = (100000 + 200000 + 150000 + 50000) * 1.06
-        assert total == pytest.approx(expected, rel=0.01)
+        expected = 100000 * (1 + 0.06 - drag) + (200000 + 150000 + 50000) * 1.06
+        assert total == pytest.approx(expected, rel=0.001)
 
     def test_zero_growth(self, test_accounts: list[Account]):
-        initial_total = sum(a.balance for a in test_accounts)
         total = apply_growth(test_accounts, 0.0)
-        assert total == pytest.approx(initial_total, rel=0.01)
+        # Brokerage has negative effective rate (0 - drag), others stay flat
+        drag = calculate_tax_drag(60)
+        expected = 100000 * (1 - drag) + 200000 + 150000 + 50000
+        assert total == pytest.approx(expected, rel=0.001)
 
     def test_negative_growth(self, test_accounts: list[Account]):
-        initial_total = sum(a.balance for a in test_accounts)
+        drag = calculate_tax_drag(60)
         total = apply_growth(test_accounts, -0.10)
-        assert total == pytest.approx(initial_total * 0.90, rel=0.01)
+        expected = 100000 * (1 - 0.10 - drag) + (200000 + 150000 + 50000) * 0.90
+        assert total == pytest.approx(expected, rel=0.001)
 
 
 class TestApplyGrowthCostBasis:
     def test_brokerage_basis_ratio_dilutes_after_growth(self):
-        """Growth adds gains, reducing cost_basis_ratio for brokerage accounts."""
+        """Growth adds gains (minus drag), reducing cost_basis_ratio for brokerage."""
         accounts = [
             Account(
                 id="b1",
@@ -261,12 +275,14 @@ class TestApplyGrowthCostBasis:
                 type=AccountType.BROKERAGE,
                 owner=Owner.JOINT,
                 cost_basis_ratio=0.40,
+                stock_pct=60,
             ),
         ]
+        drag = calculate_tax_drag(60)
         apply_growth(accounts, 0.10)
-        # Balance grew from 100k to 110k, basis is still 40k
-        assert accounts[0].balance == pytest.approx(110000, rel=0.01)
-        assert accounts[0].cost_basis_ratio == pytest.approx(40000 / 110000, rel=0.001)
+        expected_balance = 100000 * (1 + 0.10 - drag)
+        assert accounts[0].balance == pytest.approx(expected_balance, rel=0.001)
+        assert accounts[0].cost_basis_ratio == pytest.approx(40000 / expected_balance, rel=0.001)
 
     def test_pretax_ratio_unchanged_after_growth(self):
         """Pre-tax accounts always have ratio 0 regardless of growth."""
@@ -325,14 +341,14 @@ class TestApplyGrowthCostBasis:
                 type=AccountType.BROKERAGE,
                 owner=Owner.JOINT,
                 cost_basis_ratio=0.50,
+                stock_pct=60,
             ),
         ]
-        # Basis is 50k absolute
+        drag = calculate_tax_drag(60)
+        effective_rate = 0.07 - drag
         for _ in range(5):
             apply_growth(accounts, 0.07)
-        # After 5 years at 7%: balance = 100k * 1.07^5 ≈ 140255
-        # Basis stays at 50k → ratio ≈ 50000/140255 ≈ 0.3565
-        expected_balance = 100000 * (1.07**5)
+        expected_balance = 100000 * ((1 + effective_rate) ** 5)
         assert accounts[0].balance == pytest.approx(expected_balance, rel=0.01)
         assert accounts[0].cost_basis_ratio == pytest.approx(50000 / expected_balance, rel=0.01)
 
@@ -385,3 +401,156 @@ class TestGetAvailableBalance:
         age_map = {"primary": 65, "spouse": 60, "joint": 65}
         total = get_available_balance(test_accounts, TaxCategory.PRETAX, age_map)
         assert total == 200000  # Only primary's IRA
+
+
+class TestTaxDrag:
+    def test_all_stocks(self):
+        assert calculate_tax_drag(100) == pytest.approx(STOCK_TAX_DRAG, rel=0.001)
+
+    def test_all_bonds(self):
+        assert calculate_tax_drag(0) == pytest.approx(BOND_TAX_DRAG, rel=0.001)
+
+    def test_60_40_blend(self):
+        expected = 0.6 * STOCK_TAX_DRAG + 0.4 * BOND_TAX_DRAG
+        assert calculate_tax_drag(60) == pytest.approx(expected, rel=0.001)
+
+    def test_50_50_blend(self):
+        expected = 0.5 * STOCK_TAX_DRAG + 0.5 * BOND_TAX_DRAG
+        assert calculate_tax_drag(50) == pytest.approx(expected, rel=0.001)
+
+
+class TestApplyGrowthWithTaxDrag:
+    def test_brokerage_grows_less_than_ira(self):
+        """Same balance: brokerage grows less due to tax drag."""
+        brokerage = Account(
+            id="brk",
+            name="Brk",
+            balance=100000,
+            type=AccountType.BROKERAGE,
+            owner=Owner.JOINT,
+            stock_pct=60,
+        )
+        ira = Account(
+            id="ira",
+            name="IRA",
+            balance=100000,
+            type=AccountType.IRA,
+            owner=Owner.PRIMARY,
+        )
+        apply_growth([brokerage], 0.07)
+        apply_growth([ira], 0.07)
+        assert brokerage.balance < ira.balance
+
+    def test_stock_pct_none_uses_default(self):
+        """When stock_pct is None, uses ACCOUNT_TYPE_DEFAULTS."""
+        explicit = Account(
+            id="b1",
+            name="B1",
+            balance=100000,
+            type=AccountType.BROKERAGE,
+            owner=Owner.JOINT,
+            stock_pct=60,
+        )
+        default = Account(
+            id="b2",
+            name="B2",
+            balance=100000,
+            type=AccountType.BROKERAGE,
+            owner=Owner.JOINT,
+        )
+        apply_growth([explicit], 0.07)
+        apply_growth([default], 0.07)
+        # Default brokerage stock_pct is 60, same as explicit
+        assert explicit.balance == pytest.approx(default.balance, rel=0.0001)
+
+    def test_cost_basis_preserved_with_drag(self):
+        """Cost basis ratio still dilutes correctly with drag."""
+        accounts = [
+            Account(
+                id="b1",
+                name="B1",
+                balance=100000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=0.40,
+                stock_pct=60,
+            ),
+        ]
+        old_basis = 40000
+        apply_growth(accounts, 0.07)
+        # Basis absolute stays at 40k, ratio should be 40k / new_balance
+        assert accounts[0].cost_basis_ratio == pytest.approx(
+            old_basis / accounts[0].balance, rel=0.001
+        )
+
+    def test_cash_cd_unaffected_by_drag(self):
+        """Cash/CD accounts don't get growth or drag."""
+        accounts = [
+            Account(
+                id="cash",
+                name="Cash",
+                balance=50000,
+                type=AccountType.CASH_CD,
+                owner=Owner.JOINT,
+            ),
+        ]
+        apply_growth(accounts, 0.07)
+        assert accounts[0].balance == 50000
+
+    def test_high_stock_pct_less_drag(self):
+        """100% stock brokerage has less drag than 0% stock."""
+        all_stock = Account(
+            id="s",
+            name="S",
+            balance=100000,
+            type=AccountType.BROKERAGE,
+            owner=Owner.JOINT,
+            stock_pct=100,
+        )
+        all_bond = Account(
+            id="b",
+            name="B",
+            balance=100000,
+            type=AccountType.BROKERAGE,
+            owner=Owner.JOINT,
+            stock_pct=0,
+        )
+        apply_growth([all_stock], 0.07)
+        apply_growth([all_bond], 0.07)
+        assert all_stock.balance > all_bond.balance
+
+    def test_tax_drag_override_used_when_set(self):
+        """tax_drag_override bypasses the stock_pct formula."""
+        override_drag = 0.008
+        accounts = [
+            Account(
+                id="b1",
+                name="B1",
+                balance=100000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=0.40,
+                stock_pct=100,
+                tax_drag_override=override_drag,
+            ),
+        ]
+        apply_growth(accounts, 0.07)
+        expected = 100000 * (1 + 0.07 - override_drag)
+        assert accounts[0].balance == pytest.approx(expected, rel=0.001)
+
+    def test_tax_drag_override_none_uses_formula(self):
+        """tax_drag_override=None falls back to stock_pct formula."""
+        accounts = [
+            Account(
+                id="b1",
+                name="B1",
+                balance=100000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                stock_pct=100,
+                tax_drag_override=None,
+            ),
+        ]
+        apply_growth(accounts, 0.07)
+        expected = 100000 * (1 + 0.07 - calculate_tax_drag(100))
+        assert accounts[0].balance == pytest.approx(expected, rel=0.001)

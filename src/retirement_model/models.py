@@ -12,6 +12,10 @@ from retirement_model.constants import (
     DEFAULT_STATE_TAX_RATE,
 )
 
+# Tax drag constants for brokerage accounts
+STOCK_TAX_DRAG = 0.0022  # ~1.5% dividend yield × 15% qualified rate
+BOND_TAX_DRAG = 0.010  # ~4% yield × 25% ordinary rate
+
 # 401(k) and IRA contribution limits (2025)
 LIMIT_401K_UNDER_50 = 23500
 LIMIT_401K_CATCHUP_50 = 31000  # includes $7,500 catch-up
@@ -67,50 +71,99 @@ _IRA_TYPES = frozenset(
 )
 
 ACCOUNT_TYPE_DEFAULTS: dict[AccountType, dict[str, float | bool]] = {
-    AccountType.BROKERAGE: {"cost_basis_ratio": 0.40, "editable": True, "default_available_age": 0},
-    AccountType.CASH_CD: {"cost_basis_ratio": 1.00, "editable": False, "default_available_age": 0},
+    AccountType.BROKERAGE: {
+        "cost_basis_ratio": 0.40,
+        "editable": True,
+        "default_available_age": 0,
+        "default_stock_pct": 60,
+    },
+    AccountType.CASH_CD: {
+        "cost_basis_ratio": 1.00,
+        "editable": False,
+        "default_available_age": 0,
+        "default_stock_pct": 0,
+    },
     AccountType.ROTH_IRA: {
         "cost_basis_ratio": 1.00,
         "editable": False,
         "default_available_age": 60,
+        "default_stock_pct": 80,
     },
     AccountType.ROTH_401K: {
         "cost_basis_ratio": 1.00,
         "editable": False,
         "default_available_age": 60,
+        "default_stock_pct": 80,
     },
     AccountType.ROTH_CONVERSION: {
         "cost_basis_ratio": 1.00,
         "editable": False,
         "default_available_age": 60,
+        "default_stock_pct": 80,
     },
     AccountType.TRADITIONAL_401K: {
         "cost_basis_ratio": 0.00,
         "editable": False,
         "default_available_age": 60,
+        "default_stock_pct": 60,
     },
     AccountType.TRADITIONAL_403B: {
         "cost_basis_ratio": 0.00,
         "editable": False,
         "default_available_age": 60,
+        "default_stock_pct": 60,
     },
     AccountType.TRADITIONAL_457B: {
         "cost_basis_ratio": 0.00,
         "editable": False,
         "default_available_age": 60,
+        "default_stock_pct": 60,
     },
-    AccountType.IRA: {"cost_basis_ratio": 0.00, "editable": False, "default_available_age": 60},
-    AccountType.SEP_IRA: {"cost_basis_ratio": 0.00, "editable": False, "default_available_age": 60},
+    AccountType.IRA: {
+        "cost_basis_ratio": 0.00,
+        "editable": False,
+        "default_available_age": 60,
+        "default_stock_pct": 60,
+    },
+    AccountType.SEP_IRA: {
+        "cost_basis_ratio": 0.00,
+        "editable": False,
+        "default_available_age": 60,
+        "default_stock_pct": 60,
+    },
     AccountType.SIMPLE_IRA: {
         "cost_basis_ratio": 0.00,
         "editable": False,
         "default_available_age": 60,
+        "default_stock_pct": 60,
     },
 }
 
 
 def tax_category(account_type: AccountType) -> TaxCategory:
     return TAX_CATEGORY_MAP[account_type]
+
+
+class WithdrawalCategory(str, Enum):
+    CASH = "cash"
+    BROKERAGE = "brokerage"
+    PRETAX = "pretax"
+    ROTH = "roth"
+
+
+DEFAULT_WITHDRAWAL_ORDER = [
+    WithdrawalCategory.CASH,
+    WithdrawalCategory.BROKERAGE,
+    WithdrawalCategory.PRETAX,
+    WithdrawalCategory.ROTH,
+]
+
+WITHDRAWAL_TO_TAX: dict[WithdrawalCategory, TaxCategory] = {
+    WithdrawalCategory.CASH: TaxCategory.CASH,
+    WithdrawalCategory.BROKERAGE: TaxCategory.BROKERAGE,
+    WithdrawalCategory.PRETAX: TaxCategory.PRETAX,
+    WithdrawalCategory.ROTH: TaxCategory.ROTH,
+}
 
 
 def is_conversion_eligible(account_type: AccountType) -> bool:
@@ -183,6 +236,8 @@ class Account(BaseModel):
     owner: Owner
     cost_basis_ratio: float = Field(default=0.0, ge=0, le=1.0)
     available_at_age: int = Field(default=0, ge=0)
+    stock_pct: float | None = Field(default=None, ge=0, le=100)
+    tax_drag_override: float | None = Field(default=None, ge=0, le=0.1)
 
     @field_validator("balance", mode="before")
     @classmethod
@@ -294,6 +349,16 @@ class SimulationConfig(BaseModel):
 
     retirement_age: int | None = Field(default=None, ge=0, le=120)
     excess_income_routing: ExcessIncomeRouting = ExcessIncomeRouting.BROKERAGE
+    withdrawal_order: list[WithdrawalCategory] = Field(
+        default_factory=lambda: list(DEFAULT_WITHDRAWAL_ORDER)
+    )
+
+    @field_validator("withdrawal_order")
+    @classmethod
+    def validate_withdrawal_order(cls, v: list[WithdrawalCategory]) -> list[WithdrawalCategory]:
+        if sorted(v) != sorted(DEFAULT_WITHDRAWAL_ORDER):
+            raise ValueError("withdrawal_order must contain exactly: cash, brokerage, pretax, roth")
+        return v
 
     vary_tax_regimes: bool = Field(default=False)
 

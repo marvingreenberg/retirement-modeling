@@ -2,7 +2,16 @@
 
 from dataclasses import dataclass
 
-from retirement_model.models import Account, AccountType, Owner, TaxCategory, tax_category
+from retirement_model.models import (
+    ACCOUNT_TYPE_DEFAULTS,
+    BOND_TAX_DRAG,
+    STOCK_TAX_DRAG,
+    Account,
+    AccountType,
+    Owner,
+    TaxCategory,
+    tax_category,
+)
 
 
 @dataclass
@@ -119,8 +128,6 @@ def deposit_to_account(
             acc.balance += amount
             return
 
-    from retirement_model.models import ACCOUNT_TYPE_DEFAULTS
-
     defaults = ACCOUNT_TYPE_DEFAULTS.get(account_type, {})
     new_account = Account(
         id=f"new_{account_type.value}",
@@ -133,10 +140,21 @@ def deposit_to_account(
     accounts.append(new_account)
 
 
+def calculate_tax_drag(stock_pct: float) -> float:
+    """Compute annual tax drag for a brokerage account based on stock/bond allocation.
+
+    Stocks generate ~1.5% dividend yield taxed at ~15% (qualified).
+    Bonds generate ~4% yield taxed at ~25% (ordinary income).
+    """
+    s = stock_pct / 100.0
+    return s * STOCK_TAX_DRAG + (1 - s) * BOND_TAX_DRAG
+
+
 def apply_growth(accounts: list[Account], rate: float) -> float:
     """Apply investment growth to all accounts and return total balance.
 
     Cash/CD accounts skip growth (they don't earn equity-like returns).
+    Brokerage accounts suffer tax drag that reduces effective growth rate.
     Brokerage cost_basis_ratio is recalculated after growth — growth adds gains,
     diluting the basis proportion.
     """
@@ -146,7 +164,17 @@ def apply_growth(accounts: list[Account], rate: float) -> float:
             is_brokerage = tax_category(acc.type) == TaxCategory.BROKERAGE
             if is_brokerage:
                 old_basis = acc.balance * acc.cost_basis_ratio
-            acc.balance *= 1 + rate
+                if acc.tax_drag_override is not None:
+                    drag = acc.tax_drag_override
+                else:
+                    spct = acc.stock_pct
+                    if spct is None:
+                        spct = ACCOUNT_TYPE_DEFAULTS[acc.type]["default_stock_pct"]
+                    drag = calculate_tax_drag(float(spct))
+                effective_rate = rate - drag
+                acc.balance *= 1 + effective_rate
+            else:
+                acc.balance *= 1 + rate
             acc.balance = round(acc.balance, 2)
             if is_brokerage and acc.balance > 0:
                 acc.cost_basis_ratio = old_basis / acc.balance
