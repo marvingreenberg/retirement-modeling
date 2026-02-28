@@ -1,9 +1,10 @@
 <script lang="ts">
-   import type { Account, AccountType } from '$lib/types';
+   import type { Account, AccountType, Owner } from '$lib/types';
    import {
       ACCOUNT_TYPE_DEFAULTS,
       ACCOUNT_TYPE_LABELS,
       EDITOR_ACCOUNT_TYPES,
+      INDIVIDUAL_ONLY_TYPES,
    } from '$lib/types';
    import { parseOFX, type ParsedAccount } from '$lib/ofxParser';
    import { parseCSV } from '$lib/csvParser';
@@ -13,7 +14,7 @@
    } from '$lib/assetClassification';
    import { Upload, X, FileCheck, AlertCircle } from 'lucide-svelte';
 
-   import { portfolio } from '$lib/stores';
+   import { portfolio, profile } from '$lib/stores';
 
    let { accounts = $bindable() }: { accounts: Account[] } = $props();
 
@@ -22,7 +23,10 @@
    let parsedAccounts = $state<ParsedAccount[]>([]);
    let summaries = $state<PortfolioSummary[]>([]);
    let accountTypes = $state<(AccountType | '')[]>([]);
+   let accountOwners = $state<Owner[]>([]);
    let accountNames = $state<string[]>([]);
+
+   let hasSpouse = $derived(!!$profile.spouseName?.trim());
 
    let sourceFiles = $state<string[]>([]);
    let loading = $state(false);
@@ -99,6 +103,7 @@
             summarizePortfolio(a.holdings, a.cash_balance),
          );
          accountTypes = allParsed.map(() => '');
+         accountOwners = allParsed.map(() => 'primary');
          accountNames = allParsed.map((a, idx) => {
             const broker = a.broker !== 'unknown' ? a.broker + ' ' : '';
             const file = allFiles[idx] ? ' - ' + allFiles[idx] : '';
@@ -120,7 +125,7 @@
             name: accountNames[i],
             balance: Math.round(parsed.total_value),
             type: acctType,
-            owner: 'primary' as const,
+            owner: accountOwners[i],
             cost_basis_ratio:
                ACCOUNT_TYPE_DEFAULTS[acctType]?.cost_basis_ratio ?? 0.0,
             available_at_age:
@@ -165,6 +170,7 @@
       parsedAccounts = [];
       sourceFiles = [];
       summaries = [];
+      accountOwners = [];
       error = '';
    }
 
@@ -284,6 +290,16 @@
                            ? 'ring-2 ring-warning-400'
                            : ''}"
                         bind:value={accountTypes[i]}
+                        onchange={() => {
+                           const t = accountTypes[i];
+                           if (
+                              t &&
+                              INDIVIDUAL_ONLY_TYPES.has(t) &&
+                              accountOwners[i] === 'joint'
+                           ) {
+                              accountOwners[i] = 'primary';
+                           }
+                        }}
                      >
                         <option value="" disabled>-- Select type --</option>
                         {#each EDITOR_ACCOUNT_TYPES as t (t)}
@@ -291,9 +307,29 @@
                         {/each}
                      </select>
                   </label>
+                  {#if hasSpouse}
+                     <label
+                        class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400"
+                     >
+                        Owner
+                        <select
+                           class="select w-28"
+                           bind:value={accountOwners[i]}
+                        >
+                           <option value="primary">Primary</option>
+                           <option value="spouse">Spouse</option>
+                           {#if !accountTypes[i] || !INDIVIDUAL_ONLY_TYPES.has(accountTypes[i] as AccountType)}
+                              <option value="joint">Joint</option>
+                           {/if}
+                        </select>
+                     </label>
+                  {/if}
                </div>
 
                {#if summary}
+                  {@const visibleAlloc = summary.allocation.filter(
+                     (a) => a.percent >= 0.02,
+                  )}
                   <div class="text-sm space-y-1">
                      <div class="text-surface-500">
                         {summary.holdingsCount} holdings + {formatMoney(
@@ -310,18 +346,18 @@
                         >
                      </div>
                      <div class="flex flex-wrap gap-2 mt-1">
-                        {#each summary.allocation.slice(0, 5) as entry (entry.label)}
+                        {#each visibleAlloc.slice(0, 5) as entry (entry.label)}
                            <span
                               class="badge preset-outlined-surface-500 text-xs"
                            >
                               {entry.label}: {formatPct(entry.percent)}
                            </span>
                         {/each}
-                        {#if summary.allocation.length > 5}
+                        {#if visibleAlloc.length > 5}
                            <span
                               class="badge preset-outlined-surface-500 text-xs"
                            >
-                              +{summary.allocation.length - 5} more
+                              +{visibleAlloc.length - 5} more
                            </span>
                         {/if}
                      </div>

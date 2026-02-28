@@ -9,6 +9,7 @@ import {
 } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import ImportPortfolio from './ImportPortfolio.svelte';
+import { profile, defaultProfile } from '$lib/stores';
 
 // jsdom doesn't support Blob.prototype.text() — polyfill it
 beforeAll(() => {
@@ -28,10 +29,12 @@ beforeAll(() => {
 const mockHoldings = [
    {
       symbol: 'VTI',
-      units: 100,
-      unit_price: 250,
-      total_value: 25000,
-      security_type: 'STOCK',
+      cusip: '',
+      name: 'Vanguard Total Stock Market',
+      quantity: 100,
+      price: 250,
+      market_value: 25000,
+      security_type: 'Stock' as const,
    },
 ];
 
@@ -73,6 +76,7 @@ describe('ImportPortfolio', () => {
    beforeEach(() => {
       vi.clearAllMocks();
       vi.useFakeTimers();
+      profile.set(structuredClone(defaultProfile));
    });
 
    afterEach(() => {
@@ -203,5 +207,89 @@ describe('ImportPortfolio', () => {
 
       expect(parseCSV).toHaveBeenCalled();
       expect(parseOFX).toHaveBeenCalled();
+   });
+
+   it('shows owner dropdown when spouse is set', async () => {
+      profile.set({ primaryName: 'Pat', spouseName: 'Chris' });
+      render(ImportPortfolio, { accounts: [] });
+      const input = document.querySelector(
+         'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await uploadFiles(input, [
+         new File(['<OFX>data</OFX>'], 'test.ofx', { type: 'text/plain' }),
+      ]);
+
+      expect(screen.getByText('Owner')).toBeInTheDocument();
+      const ownerSelect = screen
+         .getByText('Owner')
+         .closest('label')
+         ?.querySelector('select');
+      expect(ownerSelect).toBeTruthy();
+      const options = Array.from(ownerSelect!.options).map((o) => o.value);
+      expect(options).toContain('primary');
+      expect(options).toContain('spouse');
+      expect(options).toContain('joint');
+   });
+
+   it('does not show owner dropdown when no spouse', async () => {
+      profile.set({ primaryName: 'Pat', spouseName: '' });
+      render(ImportPortfolio, { accounts: [] });
+      const input = document.querySelector(
+         'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await uploadFiles(input, [
+         new File(['<OFX>data</OFX>'], 'test.ofx', { type: 'text/plain' }),
+      ]);
+
+      expect(screen.queryByText('Owner')).not.toBeInTheDocument();
+   });
+
+   it('hides joint option for individual-only account types', async () => {
+      profile.set({ primaryName: 'Pat', spouseName: 'Chris' });
+      render(ImportPortfolio, { accounts: [] });
+      const input = document.querySelector(
+         'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await uploadFiles(input, [
+         new File(['<OFX>data</OFX>'], 'test.ofx', { type: 'text/plain' }),
+      ]);
+
+      // Select an individual-only type (IRA)
+      const typeSelect = screen
+         .getByText('Account Type')
+         .closest('label')
+         ?.querySelector('select');
+      expect(typeSelect).toBeTruthy();
+      await fireEvent.change(typeSelect!, { target: { value: 'ira' } });
+
+      const ownerSelect = screen
+         .getByText('Owner')
+         .closest('label')
+         ?.querySelector('select');
+      const options = Array.from(ownerSelect!.options).map((o) => o.value);
+      expect(options).toContain('primary');
+      expect(options).toContain('spouse');
+      expect(options).not.toContain('joint');
+   });
+
+   it('omits allocation badges below 2%', async () => {
+      // The mock OFX returns VTI holding (50%) + cash (50%)
+      // Both are >= 2% so both should show
+      render(ImportPortfolio, { accounts: [] });
+      const input = document.querySelector(
+         'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await uploadFiles(input, [
+         new File(['<OFX>data</OFX>'], 'test.ofx', { type: 'text/plain' }),
+      ]);
+
+      // US Equity badge should appear (VTI = 50%)
+      expect(screen.getByText(/US Equity: 50.0%/)).toBeInTheDocument();
+      // Cash badge should appear (50%)
+      expect(screen.getByText(/Cash: 50.0%/)).toBeInTheDocument();
    });
 });
