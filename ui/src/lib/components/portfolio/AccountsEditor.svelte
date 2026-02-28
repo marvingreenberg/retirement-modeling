@@ -14,7 +14,9 @@
    } from '$lib/types';
    import { validationErrors, formTouched } from '$lib/stores';
    import InfoPopover from '$lib/components/InfoPopover.svelte';
-   import { ShieldCheck, Sprout, TrendingUp, Banknote } from 'lucide-svelte';
+   import { ShieldCheck, Sprout, TrendingUp, Banknote, RotateCcw } from 'lucide-svelte';
+   import { estimateTaxDrag } from '$lib/taxDrag';
+   import TaxDragCalculator from './TaxDragCalculator.svelte';
 
    let {
       accounts = $bindable(),
@@ -72,6 +74,7 @@
       const defaults = ACCOUNT_TYPE_DEFAULTS[newType];
       account.cost_basis_ratio = defaults.cost_basis_ratio;
       account.available_at_age = defaults.default_available_age;
+      account.stock_pct = undefined;
       if (INDIVIDUAL_ONLY_TYPES.has(newType) && account.owner === 'joint') {
          account.owner = 'primary';
       }
@@ -111,6 +114,13 @@
             ><span class="flex items-center gap-1"
                >Basis, as % <InfoPopover
                   text="The portion of the account that represents original contributions (not gains). Affects capital gains tax on brokerage withdrawals."
+               /></span
+            ></span
+         >
+         <span class="w-20"
+            ><span class="flex items-center gap-1"
+               >Stocks % <InfoPopover
+                  text="Percentage of equities vs bonds. Affects tax drag on brokerage accounts — stocks have ~0.22%/yr drag, bonds ~1.0%/yr."
                /></span
             ></span
          >
@@ -204,6 +214,57 @@
             aria-label="Basis, as %"
             disabled={!isCostBasisEditable(account.type)}
          />
+         <input
+            type="number"
+            class="input w-20 no-spinner"
+            value={account.stock_pct ??
+               ACCOUNT_TYPE_DEFAULTS[account.type].default_stock_pct}
+            onfocus={(e) => e.currentTarget.select()}
+            onchange={(e) => {
+               const pct = Math.max(
+                  0,
+                  Math.min(100, Math.round(Number(e.currentTarget.value) || 0)),
+               );
+               accounts[i] = { ...account, stock_pct: pct };
+               accounts = [...accounts];
+               e.currentTarget.value = String(pct);
+            }}
+            min="0"
+            max="100"
+            step="5"
+            aria-label="Stocks %"
+         />
+         {#if TAX_CATEGORY_MAP[account.type] === 'brokerage'}
+            <span
+               class="text-xs text-surface-500 dark:text-surface-400 whitespace-nowrap flex items-center gap-0.5"
+            >
+               {#if account.tax_drag_override != null}
+                  {(account.tax_drag_override * 100).toFixed(2)}% drag
+                  <button
+                     class="inline-flex items-center justify-center w-4 h-4 text-surface-400 hover:text-surface-600 dark:hover:text-surface-300"
+                     onclick={() => {
+                        accounts[i] = { ...account, tax_drag_override: undefined };
+                        accounts = [...accounts];
+                     }}
+                     aria-label="Reset to estimate"
+                     type="button"
+                  >
+                     <RotateCcw size={12} />
+                  </button>
+               {:else}
+                  ~{(estimateTaxDrag(account.stock_pct ?? ACCOUNT_TYPE_DEFAULTS[account.type].default_stock_pct) * 100).toFixed(2)}% drag
+                  <TaxDragCalculator
+                     balance={account.balance}
+                     stateTaxRate={config?.tax_rate_state ?? 0.05}
+                     federalBrackets={config?.tax_brackets_federal ?? []}
+                     onapply={(drag) => {
+                        accounts[i] = { ...account, tax_drag_override: drag };
+                        accounts = [...accounts];
+                     }}
+                  />
+               {/if}
+            </span>
+         {/if}
          {#if config}
             <div class="w-24">
                <input

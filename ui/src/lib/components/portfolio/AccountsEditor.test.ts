@@ -179,4 +179,61 @@ describe('AccountsEditor', () => {
       expect(screen.getByText('Avail. Age')).toBeInTheDocument();
       expect(screen.getByLabelText('Avail. Age')).toBeInTheDocument();
    });
+
+   it('renders stock_pct column with header', () => {
+      render(AccountsEditor, {
+         accounts: [makeAccount({ type: 'brokerage', stock_pct: 70 })],
+      });
+      expect(screen.getByLabelText('Stocks %')).toBeInTheDocument();
+      expect(screen.getByLabelText('Stocks %')).toHaveValue(70);
+   });
+
+   it('shows default stock_pct when account has no stock_pct', () => {
+      render(AccountsEditor, {
+         accounts: [makeAccount({ type: 'brokerage' })],
+      });
+      // Default for brokerage is 60
+      expect(screen.getByLabelText('Stocks %')).toHaveValue(60);
+   });
+
+   it('shows estimated drag for brokerage accounts', () => {
+      render(AccountsEditor, {
+         accounts: [makeAccount({ type: 'brokerage', stock_pct: 60 })],
+      });
+      expect(screen.getByText(/~.*% drag/)).toBeInTheDocument();
+   });
+
+   it('does not show drag for non-brokerage accounts', () => {
+      render(AccountsEditor, {
+         accounts: [makeAccount({ type: 'ira' })],
+      });
+      expect(screen.queryByText(/drag/)).not.toBeInTheDocument();
+   });
+
+   it('shows override drag without tilde when tax_drag_override set', () => {
+      render(AccountsEditor, {
+         accounts: [
+            makeAccount({
+               type: 'brokerage',
+               tax_drag_override: 0.006,
+            }),
+         ],
+      });
+      expect(screen.getByText('0.60% drag')).toBeInTheDocument();
+      expect(screen.queryByText(/~/)).not.toBeInTheDocument();
+   });
+
+   it('shows reset button when tax_drag_override is set', () => {
+      render(AccountsEditor, {
+         accounts: [
+            makeAccount({
+               type: 'brokerage',
+               tax_drag_override: 0.006,
+            }),
+         ],
+      });
+      expect(
+         screen.getByRole('button', { name: 'Reset to estimate' }),
+      ).toBeInTheDocument();
+   });
 });
