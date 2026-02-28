@@ -70,6 +70,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             },
             retirement_age: 65,
             excess_income_routing: 'brokerage',
+            withdrawal_order: ['cash', 'brokerage', 'pretax', 'roth'],
          },
          accounts: [
             {
@@ -176,6 +177,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             },
             retirement_age: null,
             excess_income_routing: 'brokerage',
+            withdrawal_order: ['cash', 'brokerage', 'pretax', 'roth'],
          },
          accounts: [
             {
@@ -204,6 +206,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
                owner: 'primary',
                cost_basis_ratio: 0.4,
                available_at_age: 0,
+               stock_pct: 70,
             },
          ],
       },
@@ -270,6 +273,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             },
             retirement_age: null,
             excess_income_routing: 'brokerage',
+            withdrawal_order: ['cash', 'brokerage', 'pretax', 'roth'],
          },
          accounts: [
             {

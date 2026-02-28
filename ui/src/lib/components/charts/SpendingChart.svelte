@@ -33,43 +33,75 @@
       const areaStyle = {
          borderWidth: 1.5,
          pointRadius: 0,
-         pointStyle: 'rectRounded' as const,
          fill: true,
          yAxisID: 'y',
-         order: 2,
+         stack: 'spending',
       };
-      const balanceDatasets = [
-         {
-            label: 'Pre-tax',
-            data: years.map((y) => y.pretax_balance),
-            borderColor: '#dc2626',
-            backgroundColor: 'rgba(220,38,38,0.55)',
-            ...areaStyle,
-         },
-         {
-            label: 'Roth Conv Acct',
-            data: years.map((y) => y.roth_conversion_balance ?? 0),
-            borderColor: '#7c3aed',
-            backgroundColor: 'rgba(124,58,237,0.3)',
-            ...areaStyle,
-         },
-         {
-            label: 'Roth',
-            data: years.map((y) => y.roth_balance),
-            borderColor: '#16a34a',
-            backgroundColor: 'rgba(22,163,74,0.3)',
-            ...areaStyle,
-         },
-         {
-            label: 'Brokerage',
-            data: years.map((y) => y.brokerage_balance),
-            borderColor: '#ca8a04',
-            backgroundColor: 'rgba(202,138,4,0.3)',
-            ...areaStyle,
-         },
-      ];
 
-      const datasets = balanceDatasets.filter((ds) => hasNonZero(ds.data));
+      const taxData = years.map((y) =>
+         Math.max(0, y.total_tax - y.conversion_tax),
+      );
+      const convTaxData = years.map((y) => y.conversion_tax);
+      const cashFlowData = years.map((y) => {
+         const gross =
+            y.total_income +
+            y.rmd +
+            y.pretax_withdrawal +
+            y.roth_withdrawal +
+            y.brokerage_withdrawal -
+            (y.conversion_tax_from_brokerage ?? 0);
+         const spendingTax = y.total_tax - y.conversion_tax;
+         return gross - Math.max(0, spendingTax);
+      });
+      const budgetPlusTax = years.map(
+         (y) => y.spending_target + Math.max(0, y.total_tax - y.conversion_tax),
+      );
+
+      // Stacked areas drawn top-to-bottom (highest order draws first as background).
+      // Cash Flow is the largest area drawn first, then conv tax, then taxes on top.
+      const stackedDatasets = [
+         {
+            label: 'Cash Flow',
+            data: cashFlowData,
+            borderColor: '#0e7490',
+            backgroundColor: '#cffafe',
+            order: 3,
+            ...areaStyle,
+         },
+         {
+            label: 'Conversion Tax',
+            data: convTaxData,
+            borderColor: '#c2410c',
+            backgroundColor: '#fed7aa',
+            order: 2,
+            ...areaStyle,
+         },
+         {
+            label: 'Est. Taxes',
+            data: taxData,
+            borderColor: '#404040',
+            backgroundColor: '#d4d4d4',
+            order: 1,
+            ...areaStyle,
+         },
+      ].filter((ds) => hasNonZero(ds.data));
+
+      const lineDatasets = [
+         {
+            label: 'Budget + Taxes',
+            data: budgetPlusTax,
+            borderColor: '#6366f1',
+            borderDash: [6, 3],
+            borderWidth: 2,
+            pointRadius: 0,
+            pointStyle: 'line' as const,
+            fill: false,
+            yAxisID: 'y',
+            order: 0,
+         },
+      ].filter((ds) => hasNonZero(ds.data));
+
+      const datasets = [...stackedDatasets, ...lineDatasets];
 
       // Retirement marker annotation
       const retirementYear =
@@ -143,27 +175,16 @@
                      },
                      label: (ctx) =>
                         `${ctx.dataset.label}: $${Math.round(ctx.parsed.y ?? 0).toLocaleString()}`,
-                     footer: (items) => {
-                        if (items.length === 0) return '';
-                        const total = items.reduce(
-                           (sum, item) => sum + (item.parsed.y ?? 0),
-                           0,
-                        );
-                        return `Total Balance: $${Math.round(total).toLocaleString()}`;
-                     },
                   },
                },
                legend: {
-                  labels: {
-                     usePointStyle: true,
-                  },
+                  labels: { usePointStyle: true },
                },
             },
             scales: {
                x: { stacked: true },
                y: {
                   stacked: true,
-                  position: 'left',
                   ticks: {
                      callback: (v) => `$${(Number(v) / 1000).toFixed(0)}K`,
                   },

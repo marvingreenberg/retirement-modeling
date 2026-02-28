@@ -1,9 +1,21 @@
 <script lang="ts">
-   import type { YearResult, AccountWithdrawal } from '$lib/types';
+   import type {
+      YearResult,
+      AccountWithdrawal,
+      SpendingStrategy,
+   } from '$lib/types';
    import { currency } from '$lib/format';
    import { ClipboardList } from 'lucide-svelte';
 
-   let { years }: { years: YearResult[] } = $props();
+   let {
+      years,
+      spendingStrategy = 'fixed_dollar',
+      withdrawalRate = 0.04,
+   }: {
+      years: YearResult[];
+      spendingStrategy?: SpendingStrategy;
+      withdrawalRate?: number;
+   } = $props();
 
    let planYears = $derived(years.slice(0, 2));
 
@@ -19,6 +31,36 @@
       purpose: string,
    ): number {
       return byPurpose(details, purpose).reduce((sum, d) => sum + d.amount, 0);
+   }
+
+   function strategyLabel(yr: YearResult): string {
+      const hasConvTax = yr.conversion_tax > 0;
+      const taxSuffix = hasConvTax ? ' + conv tax' : '';
+      if (spendingStrategy === 'fixed_dollar') {
+         return `Fixed Cash Flow + tax${taxSuffix}`;
+      }
+      if (spendingStrategy === 'percent_of_portfolio') {
+         const rate = Math.round(withdrawalRate * 1000) / 10;
+         const totalWD =
+            yr.pretax_withdrawal + yr.roth_withdrawal + yr.brokerage_withdrawal;
+         return `${rate}% \u2192 ${currency(totalWD)} (target ${currency(yr.spending_target)})`;
+      }
+      if (spendingStrategy === 'rmd_based') {
+         const totalWD =
+            yr.pretax_withdrawal + yr.roth_withdrawal + yr.brokerage_withdrawal;
+         return `RMD \u2192 ${currency(totalWD)} (target ${currency(yr.spending_target)})`;
+      }
+      if (spendingStrategy === 'guardrails') {
+         const totalWD =
+            yr.pretax_withdrawal + yr.roth_withdrawal + yr.brokerage_withdrawal;
+         return `Guardrails \u2192 ${currency(totalWD)} (target ${currency(yr.spending_target)})`;
+      }
+      return '';
+   }
+
+   function netCashFlow(yr: YearResult): number {
+      const totalWD = totalForPurpose(yr.withdrawal_details, 'spending');
+      return yr.total_income + totalWD + yr.rmd - yr.total_tax;
    }
 </script>
 
@@ -36,6 +78,14 @@
             <div class="font-medium text-surface-900 dark:text-surface-100">
                {yr.year} &middot; Age {yr.age_primary}
             </div>
+
+            {#if strategyLabel(yr)}
+               <div
+                  class="text-xs text-surface-500 dark:text-surface-400 italic"
+               >
+                  {strategyLabel(yr)}
+               </div>
+            {/if}
 
             <div class="text-sm space-y-1">
                <div class="flex justify-between">
@@ -147,6 +197,14 @@
                      <span>Taxes</span>
                      <span>{currency(yr.total_tax)}</span>
                   </div>
+                  {#if yr.income_tax > 0 && (yr.irmaa_cost > 0 || yr.conversion_tax > 0)}
+                     <div
+                        class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
+                     >
+                        <span>Income Tax</span>
+                        <span>{currency(yr.income_tax)}</span>
+                     </div>
+                  {/if}
                   {#if yr.irmaa_cost > 0}
                      <div
                         class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
@@ -164,6 +222,22 @@
                      </div>
                   {/if}
                </div>
+
+               {#if true}
+                  {@const ncf = netCashFlow(yr)}
+                  <div
+                     class="pt-1 border-t border-surface-200 dark:border-surface-600"
+                  >
+                     <div class="flex justify-between font-medium">
+                        <span>Net Cash Flow</span>
+                        <span
+                           class={ncf < yr.spending_target
+                              ? 'text-error-600 dark:text-error-400'
+                              : ''}>{currency(ncf)}</span
+                        >
+                     </div>
+                  </div>
+               {/if}
             </div>
          </div>
       {/each}

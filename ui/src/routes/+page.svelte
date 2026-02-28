@@ -63,9 +63,10 @@
          | 'spendingStrategy'
          | 'conversionStrategy'
          | 'taxRateState'
+         | 'withdrawalOrder'
       >,
    ): string {
-      return `${s.runType}|${s.inflationRate}|${s.growthRate}|${s.spendingStrategy}|${s.conversionStrategy}|${s.taxRateState}`;
+      return `${s.runType}|${s.inflationRate}|${s.growthRate}|${s.spendingStrategy}|${s.conversionStrategy}|${s.taxRateState}|${s.withdrawalOrder ?? ''}`;
    }
 
    function addSnapshot(snap: ComparisonSnapshot) {
@@ -86,6 +87,9 @@
          spendingStrategy: spendingLabel(),
          conversionStrategy: conversionLabels[c.strategy_target],
          taxRateState: c.tax_rate_state,
+         withdrawalOrder: (c.withdrawal_order ?? [])
+            .map((w: string) => w[0])
+            .join('-'),
       };
    }
 

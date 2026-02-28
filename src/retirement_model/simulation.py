@@ -15,6 +15,7 @@ from retirement_model.models import (
     LIMIT_IRA_CATCHUP_50,
     LIMIT_IRA_UNDER_50,
     ROTH_IRA_MAGI_PHASEOUT_MFJ,
+    WITHDRAWAL_TO_TAX,
     Account,
     AccountType,
     AccountWithdrawal,
@@ -28,6 +29,7 @@ from retirement_model.models import (
     SimulationResult,
     SpendingStrategy,
     TaxCategory,
+    WithdrawalCategory,
     YearResult,
     is_conversion_eligible,
 )
@@ -406,58 +408,65 @@ def run_simulation(
         conversion_tax_from_brokerage = 0.0
         brokerage_gains_tax = 0.0
 
-        # Spending logic: brokerage/cash first, then roth, then pretax
+        # Spending withdrawals in configurable order
         if remaining_spend > 0:
             agi_headroom = max(0, conversion_ceiling - current_agi) if conversion_ceiling > 0 else 0
 
-            if conversion_ceiling == 0:
-                max_safe_brokerage = remaining_spend
-            else:
-                max_safe_brokerage = agi_headroom / 0.75 if agi_headroom > 0 else 0
+            for cat in cfg.withdrawal_order:
+                if remaining_spend <= 1.0:
+                    break
 
-            amount_from_brokerage = min(remaining_spend, max_safe_brokerage)
-
-            # Withdraw from cash first (no tax impact), then brokerage
-            if amount_from_brokerage > 0:
-                cash_result = withdraw_from_accounts(
-                    amount_from_brokerage, accounts, TaxCategory.CASH, age_map
-                )
-                brokerage_withdrawn += cash_result.amount_withdrawn
-                withdrawal_details.extend(_collect_details(cash_result, "spending", account_names))
-                remaining_from_brokerage = amount_from_brokerage - cash_result.amount_withdrawn
-
-                if remaining_from_brokerage > 1.0:
+                if cat == WithdrawalCategory.CASH:
                     result = withdraw_from_accounts(
-                        remaining_from_brokerage, accounts, TaxCategory.BROKERAGE, age_map
+                        remaining_spend, accounts, TaxCategory.CASH, age_map
                     )
                     brokerage_withdrawn += result.amount_withdrawn
                     withdrawal_details.extend(_collect_details(result, "spending", account_names))
+                    remaining_spend -= result.amount_withdrawn
 
-                    gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
-                    brokerage_gains_tax += calculate_capital_gains_tax(
-                        gains, current_agi, adj_capgains_brackets
+                elif cat == WithdrawalCategory.BROKERAGE:
+                    if conversion_ceiling == 0:
+                        max_safe = remaining_spend
+                    else:
+                        max_safe = agi_headroom / 0.75 if agi_headroom > 0 else 0
+                    amount = min(remaining_spend, max_safe)
+                    if amount > 1.0:
+                        result = withdraw_from_accounts(
+                            amount, accounts, TaxCategory.BROKERAGE, age_map
+                        )
+                        brokerage_withdrawn += result.amount_withdrawn
+                        withdrawal_details.extend(
+                            _collect_details(result, "spending", account_names)
+                        )
+                        gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
+                        brokerage_gains_tax += calculate_capital_gains_tax(
+                            gains, current_agi, adj_capgains_brackets
+                        )
+                        current_agi += gains
+                        agi_headroom = (
+                            max(0, conversion_ceiling - current_agi)
+                            if conversion_ceiling > 0
+                            else 0
+                        )
+                        remaining_spend -= result.amount_withdrawn
+
+                elif cat == WithdrawalCategory.ROTH:
+                    result = withdraw_from_accounts(
+                        remaining_spend, accounts, TaxCategory.ROTH, age_map
                     )
-                    current_agi += gains
+                    roth_withdrawn += result.amount_withdrawn
+                    withdrawal_details.extend(_collect_details(result, "spending", account_names))
+                    remaining_spend -= result.amount_withdrawn
 
-                remaining_spend -= brokerage_withdrawn
-
-            # Use Roth if still needed (doesn't affect AGI)
-            if remaining_spend > 1.0:
-                result = withdraw_from_accounts(
-                    remaining_spend, accounts, TaxCategory.ROTH, age_map
-                )
-                roth_withdrawn += result.amount_withdrawn
-                withdrawal_details.extend(_collect_details(result, "spending", account_names))
-                remaining_spend -= result.amount_withdrawn
-
-            # Use pre-tax as last resort
-            if remaining_spend > 1.0:
-                gross_need = remaining_spend / (1 - est_tax_rate)
-                result = withdraw_from_accounts(gross_need, accounts, TaxCategory.PRETAX, age_map)
-                voluntary_pretax += result.amount_withdrawn
-                withdrawal_details.extend(_collect_details(result, "spending", account_names))
-                current_agi += result.amount_withdrawn
-                remaining_spend = 0
+                elif cat == WithdrawalCategory.PRETAX:
+                    gross_need = remaining_spend / (1 - est_tax_rate)
+                    result = withdraw_from_accounts(
+                        gross_need, accounts, TaxCategory.PRETAX, age_map
+                    )
+                    voluntary_pretax += result.amount_withdrawn
+                    withdrawal_details.extend(_collect_details(result, "spending", account_names))
+                    current_agi += result.amount_withdrawn
+                    remaining_spend = 0
 
         # Roth conversion logic (from IRA-eligible accounts, any age)
         if conversion_ceiling > 0:

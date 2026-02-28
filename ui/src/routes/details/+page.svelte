@@ -1,5 +1,5 @@
 <script lang="ts">
-   import { simulationResults, profile } from '$lib/stores';
+   import { simulationResults, profile, portfolio } from '$lib/stores';
    import { currency } from '$lib/format';
    import { TableProperties, TrendingUp, Download } from 'lucide-svelte';
    import WithdrawalPlan from '$lib/components/WithdrawalPlan.svelte';
@@ -59,7 +59,11 @@
          )}
          {@const years =
             depletionIdx >= 0 ? allYears.slice(0, depletionIdx + 1) : allYears}
-         <WithdrawalPlan {years} />
+         <WithdrawalPlan
+            {years}
+            spendingStrategy={$portfolio.config.spending_strategy}
+            withdrawalRate={$portfolio.config.withdrawal_rate}
+         />
          <div class="card bg-surface-100 dark:bg-surface-800 p-4">
             <div class="flex items-center justify-between mb-3">
                <h3

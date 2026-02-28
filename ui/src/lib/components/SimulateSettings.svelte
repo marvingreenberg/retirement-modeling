@@ -6,6 +6,7 @@
       markFormTouched,
    } from '$lib/stores';
    import InfoPopover from './InfoPopover.svelte';
+   import WithdrawalOrderEditor from './settings/WithdrawalOrderEditor.svelte';
 
    let inflError = $derived(
       $formTouched ? ($validationErrors['config.inflation_rate'] ?? '') : '',
@@ -342,6 +343,11 @@
                </label>
             </div>
          {/if}
+         <WithdrawalOrderEditor
+            bind:order={$portfolio.config.withdrawal_order}
+            accounts={$portfolio.accounts}
+            conversionStrategy={$portfolio.config.strategy_target}
+         />
       </div>
    {/if}
 </div>

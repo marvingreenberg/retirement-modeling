@@ -17,15 +17,25 @@ beforeAll(() => {
 });
 
 // Mock parsers
+const mockHoldings = [
+   {
+      symbol: 'VTI',
+      units: 100,
+      unit_price: 250,
+      total_value: 25000,
+      security_type: 'STOCK',
+   },
+];
+
 vi.mock('$lib/ofxParser', () => ({
    parseOFX: vi.fn(() => [
       {
          account_id: 'OFX123',
          broker: 'Vanguard',
          account_type: null,
-         holdings: [],
+         holdings: mockHoldings,
          total_value: 50000,
-         cash_balance: 50000,
+         cash_balance: 25000,
          as_of_date: null,
       },
    ]),
@@ -125,6 +135,27 @@ describe('ImportPortfolio', () => {
       });
       expect(screen.getByText('Import Results')).toBeInTheDocument();
       expect(screen.getByText(/CSV456/)).toBeInTheDocument();
+   });
+
+   it('shows stock allocation in import summary when holdings exist', async () => {
+      render(ImportPortfolio, { accounts: [] });
+      const input = document.querySelector(
+         'input[type="file"]',
+      ) as HTMLInputElement;
+
+      const ofxFile = new File(['<OFX>data</OFX>'], 'portfolio.ofx', {
+         type: 'text/plain',
+      });
+
+      await uploadFiles(input, [ofxFile]);
+
+      await vi.waitFor(() => {
+         expect(screen.getByText('Import Results')).toBeInTheDocument();
+      });
+
+      // Summary should show stock/bond allocation from holdings
+      expect(screen.getByText(/Stocks:/)).toBeInTheDocument();
+      expect(screen.getByText(/Bonds:/)).toBeInTheDocument();
    });
 
    it('routes CSV files to parseCSV and OFX/QFX to parseOFX', async () => {

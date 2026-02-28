@@ -35,6 +35,7 @@ const mockPortfolio: Portfolio = {
       ss_auto: null,
       retirement_age: null,
       excess_income_routing: 'brokerage',
+      withdrawal_order: ['cash', 'brokerage', 'pretax', 'roth'],
    },
    accounts: [
       {

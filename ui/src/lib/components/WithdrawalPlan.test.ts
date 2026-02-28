@@ -156,4 +156,73 @@ describe('WithdrawalPlan', () => {
       });
       expect(screen.getByText('Income Surplus')).toBeTruthy();
    });
+
+   it('shows strategy label for fixed_dollar', () => {
+      const yr = makeYear({ conversion_tax: 0 });
+      render(WithdrawalPlan, {
+         props: { years: [yr], spendingStrategy: 'fixed_dollar' },
+      });
+      expect(screen.getByText('Fixed Cash Flow + tax')).toBeInTheDocument();
+   });
+
+   it('shows strategy label with conv tax suffix', () => {
+      const yr = makeYear({ conversion_tax: 5000 });
+      render(WithdrawalPlan, {
+         props: { years: [yr], spendingStrategy: 'fixed_dollar' },
+      });
+      expect(
+         screen.getByText('Fixed Cash Flow + tax + conv tax'),
+      ).toBeInTheDocument();
+   });
+
+   it('shows strategy label for percent_of_portfolio', () => {
+      const yr = makeYear({
+         pretax_withdrawal: 30000,
+         roth_withdrawal: 10000,
+         brokerage_withdrawal: 10000,
+         spending_target: 80000,
+      });
+      render(WithdrawalPlan, {
+         props: {
+            years: [yr],
+            spendingStrategy: 'percent_of_portfolio',
+            withdrawalRate: 0.04,
+         },
+      });
+      expect(screen.getByText(/4%/)).toBeInTheDocument();
+      expect(screen.getByText(/\$50,000/)).toBeInTheDocument();
+   });
+
+   it('shows income tax breakdown when IRMAA or conv tax present', () => {
+      const yr = makeYear({
+         total_tax: 18000,
+         income_tax: 12000,
+         irmaa_cost: 2400,
+         conversion_tax: 3600,
+      });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(screen.getByText('Income Tax')).toBeInTheDocument();
+      expect(screen.getByText('IRMAA Surcharge')).toBeInTheDocument();
+      expect(screen.getByText('Conversion Tax')).toBeInTheDocument();
+   });
+
+   it('shows net cash flow', () => {
+      const yr = makeYear({
+         total_income: 30000,
+         total_tax: 12000,
+         rmd: 0,
+         withdrawal_details: [
+            {
+               account_id: 'brok',
+               account_name: 'Brokerage',
+               amount: 50000,
+               purpose: 'spending',
+            },
+         ],
+      });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(screen.getByText('Net Cash Flow')).toBeInTheDocument();
+      // net = 30000 + 50000 + 0 - 12000 = 68000
+      expect(screen.getByText('$68,000')).toBeInTheDocument();
+   });
 });

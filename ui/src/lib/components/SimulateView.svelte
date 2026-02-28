@@ -1,11 +1,14 @@
 <script lang="ts">
    import { currency, pct } from '$lib/format';
    import BalanceChart from './charts/BalanceChart.svelte';
+   import SpendingChart from './charts/SpendingChart.svelte';
    import FanChart from './charts/FanChart.svelte';
+   import { buildChartEvents } from '$lib/chartEvents';
    import type {
       SimulationResponse,
       MonteCarloResponse,
       SimulationConfig,
+      ChartEvent,
    } from '$lib/types';
    import { BarChart3, TrendingUp, ShieldCheck } from 'lucide-svelte';
 
@@ -23,7 +26,10 @@
       config?: SimulationConfig | null;
    } = $props();
 
-   let activeTab = $state<'single' | 'monte_carlo'>('single');
+   let activeTab = $state<'single' | 'spending' | 'monte_carlo'>('single');
+   let chartEvents: ChartEvent[] = $derived(
+      config ? buildChartEvents(config) : [],
+   );
 </script>
 
 <div class="space-y-4">
@@ -45,6 +51,15 @@
          onclick={() => (activeTab = 'single')}
       >
          Simulation
+      </button>
+      <button
+         class="px-4 py-2 text-sm font-medium transition-colors {activeTab ===
+         'spending'
+            ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500'
+            : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'}"
+         onclick={() => (activeTab = 'spending')}
+      >
+         Spending
       </button>
       <button
          class="px-4 py-2 text-sm font-medium transition-colors {activeTab ===
@@ -137,6 +152,7 @@
             retirementAge={config?.retirement_age}
             startAge={config?.current_age_primary ?? 0}
             startYear={config?.start_year ?? 0}
+            events={chartEvents}
          />
 
          <div class="flex items-center gap-4">
@@ -146,6 +162,26 @@
                >View year-by-year details &rarr;</a
             >
          </div>
+      {:else}
+         <div class="flex flex-col items-center justify-center py-16 gap-3">
+            <div
+               class="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"
+            ></div>
+            <span class="text-surface-500">Running simulation...</span>
+         </div>
+      {/if}
+   {/if}
+
+   <!-- Spending tab -->
+   {#if activeTab === 'spending'}
+      {#if singleResult}
+         <SpendingChart
+            years={singleResult.result.years}
+            retirementAge={config?.retirement_age}
+            startAge={config?.current_age_primary ?? 0}
+            startYear={config?.start_year ?? 0}
+            events={chartEvents}
+         />
       {:else}
          <div class="flex flex-col items-center justify-center py-16 gap-3">
             <div

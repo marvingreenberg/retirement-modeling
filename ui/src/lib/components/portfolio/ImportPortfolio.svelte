@@ -79,6 +79,7 @@
       const nextId = accounts.length + 1;
       const newAccounts: Account[] = parsedAccounts.map((parsed, i) => {
          const acctType = accountTypes[i] as AccountType;
+         const summary = summaries[i];
          return {
             id: `import_${nextId + i}`,
             name: accountNames[i],
@@ -89,6 +90,10 @@
                ACCOUNT_TYPE_DEFAULTS[acctType]?.cost_basis_ratio ?? 0.0,
             available_at_age:
                ACCOUNT_TYPE_DEFAULTS[acctType]?.default_available_age ?? 0,
+            stock_pct:
+               summary?.holdingsCount > 0
+                  ? Math.round(summary.stockPercent * 100)
+                  : undefined,
          };
       });
       accounts = [...accounts, ...newAccounts];

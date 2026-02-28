@@ -13,6 +13,7 @@ from retirement_model.models import (
     Portfolio,
     SimulationConfig,
     SocialSecurityConfig,
+    WithdrawalCategory,
     WithdrawalStrategy,
 )
 from retirement_model.simulation import (
@@ -1014,3 +1015,195 @@ class TestRetirementAge:
             ),
         )
         assert config.retirement_age is None
+
+
+class TestWithdrawalOrder:
+    """Configurable withdrawal order changes which accounts are tapped first."""
+
+    def test_default_order(self, sample_config: SimulationConfig):
+        assert sample_config.withdrawal_order == [
+            WithdrawalCategory.CASH,
+            WithdrawalCategory.BROKERAGE,
+            WithdrawalCategory.PRETAX,
+            WithdrawalCategory.ROTH,
+        ]
+
+    def test_custom_order_accepted(self, sample_config: SimulationConfig):
+        sample_config.withdrawal_order = [
+            WithdrawalCategory.ROTH,
+            WithdrawalCategory.PRETAX,
+            WithdrawalCategory.BROKERAGE,
+            WithdrawalCategory.CASH,
+        ]
+        assert sample_config.withdrawal_order[0] == WithdrawalCategory.ROTH
+
+    def test_invalid_order_rejected(self):
+        with pytest.raises(Exception):
+            SimulationConfig(
+                current_age_primary=65,
+                current_age_spouse=62,
+                simulation_years=10,
+                start_year=2026,
+                annual_spend_net=80000,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+                withdrawal_order=[WithdrawalCategory.CASH, WithdrawalCategory.BROKERAGE],
+            )
+
+    def test_duplicate_categories_rejected(self):
+        with pytest.raises(Exception):
+            SimulationConfig(
+                current_age_primary=65,
+                current_age_spouse=62,
+                simulation_years=10,
+                start_year=2026,
+                annual_spend_net=80000,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+                withdrawal_order=[
+                    WithdrawalCategory.CASH,
+                    WithdrawalCategory.CASH,
+                    WithdrawalCategory.PRETAX,
+                    WithdrawalCategory.ROTH,
+                ],
+            )
+
+    def test_pretax_first_drains_pretax_before_brokerage(self):
+        """When pretax is ordered before brokerage, pretax depletes first."""
+        accounts = [
+            Account(
+                id="b",
+                name="Brokerage",
+                balance=500000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.PRIMARY,
+                cost_basis_ratio=0.5,
+            ),
+            Account(id="p", name="IRA", balance=500000, type=AccountType.IRA, owner=Owner.PRIMARY),
+        ]
+        base_config = SimulationConfig(
+            current_age_primary=65,
+            current_age_spouse=62,
+            simulation_years=5,
+            start_year=2026,
+            annual_spend_net=80000,
+            investment_growth_rate=0.0,
+            inflation_rate=0.0,
+            strategy_target=WithdrawalStrategy.STANDARD,
+            social_security=SocialSecurityConfig(
+                primary_benefit=0,
+                primary_start_age=70,
+                spouse_benefit=0,
+                spouse_start_age=70,
+            ),
+        )
+        # Pretax first
+        base_config.withdrawal_order = [
+            WithdrawalCategory.CASH,
+            WithdrawalCategory.PRETAX,
+            WithdrawalCategory.BROKERAGE,
+            WithdrawalCategory.ROTH,
+        ]
+        r_pretax_first = run_simulation(Portfolio(config=base_config, accounts=accounts))
+        # Brokerage first (default-ish)
+        base_config.withdrawal_order = [
+            WithdrawalCategory.CASH,
+            WithdrawalCategory.BROKERAGE,
+            WithdrawalCategory.PRETAX,
+            WithdrawalCategory.ROTH,
+        ]
+        accounts2 = [
+            Account(
+                id="b",
+                name="Brokerage",
+                balance=500000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.PRIMARY,
+                cost_basis_ratio=0.5,
+            ),
+            Account(id="p", name="IRA", balance=500000, type=AccountType.IRA, owner=Owner.PRIMARY),
+        ]
+        r_brok_first = run_simulation(Portfolio(config=base_config, accounts=accounts2))
+
+        # With pretax-first, pretax should deplete faster
+        pretax_first_ira_bal = r_pretax_first.years[-1].pretax_balance
+        brok_first_ira_bal = r_brok_first.years[-1].pretax_balance
+        assert pretax_first_ira_bal < brok_first_ira_bal
+
+    def test_order_changes_results(self, sample_portfolio: Portfolio):
+        """Different withdrawal orders produce different final balances."""
+        r_default = run_simulation(sample_portfolio)
+
+        import copy
+
+        alt = copy.deepcopy(sample_portfolio)
+        alt.config.withdrawal_order = [
+            WithdrawalCategory.ROTH,
+            WithdrawalCategory.PRETAX,
+            WithdrawalCategory.BROKERAGE,
+            WithdrawalCategory.CASH,
+        ]
+        r_alt = run_simulation(alt)
+        assert r_default.years[-1].total_balance != r_alt.years[-1].total_balance
+
+
+class TestTaxDragIntegration:
+    """Tax drag reduces brokerage growth relative to IRA over a full simulation."""
+
+    def test_brokerage_heavy_ends_lower(self, sample_portfolio: Portfolio):
+        """A brokerage-heavy split ends with less than an IRA-heavy split."""
+        import copy
+
+        # Brokerage-heavy: 400k brokerage, 100k IRA
+        brk_heavy = copy.deepcopy(sample_portfolio)
+        brk_heavy.accounts = [
+            Account(
+                id="brk",
+                name="Brk",
+                balance=400000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=0.5,
+                stock_pct=60,
+            ),
+            Account(
+                id="ira",
+                name="IRA",
+                balance=100000,
+                type=AccountType.IRA,
+                owner=Owner.PRIMARY,
+            ),
+        ]
+
+        # IRA-heavy: 100k brokerage, 400k IRA
+        ira_heavy = copy.deepcopy(sample_portfolio)
+        ira_heavy.accounts = [
+            Account(
+                id="brk",
+                name="Brk",
+                balance=100000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=0.5,
+                stock_pct=60,
+            ),
+            Account(
+                id="ira",
+                name="IRA",
+                balance=400000,
+                type=AccountType.IRA,
+                owner=Owner.PRIMARY,
+            ),
+        ]
+
+        r_brk = run_simulation(brk_heavy)
+        r_ira = run_simulation(ira_heavy)
+        assert r_brk.years[-1].total_balance < r_ira.years[-1].total_balance

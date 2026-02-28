@@ -9,6 +9,10 @@ vi.mock(
    () => import('$lib/test-helpers/MockChart.svelte'),
 );
 vi.mock(
+   '$lib/components/charts/SpendingChart.svelte',
+   () => import('$lib/test-helpers/MockChart.svelte'),
+);
+vi.mock(
    '$lib/components/charts/FanChart.svelte',
    () => import('$lib/test-helpers/MockChart.svelte'),
 );
@@ -82,7 +86,7 @@ describe('SimulateView (tabbed results)', () => {
       comparisonSnapshots.set([]);
    });
 
-   it('renders tab bar with Simulation and Monte Carlo tabs', () => {
+   it('renders tab bar with Simulation, Spending, and Monte Carlo tabs', () => {
       render(SimulateView, {
          singleResult: mockSingleResult,
          mcResult: null,
@@ -90,6 +94,7 @@ describe('SimulateView (tabbed results)', () => {
          error: '',
       });
       expect(screen.getByText('Simulation')).toBeInTheDocument();
+      expect(screen.getByText('Spending')).toBeInTheDocument();
       expect(screen.getByText('Monte Carlo')).toBeInTheDocument();
    });
 
@@ -266,6 +271,18 @@ describe('SimulateView (tabbed results)', () => {
       expect(screen.getByText('Initial Spending')).toBeInTheDocument();
       expect(screen.getByText(/\$10,000\/mo/)).toBeInTheDocument();
       expect(screen.getByText(/\$120,000\/yr/)).toBeInTheDocument();
+   });
+
+   it('shows spending chart on Spending tab', async () => {
+      render(SimulateView, {
+         singleResult: mockSingleResult,
+         mcResult: null,
+         mcLoading: false,
+         error: '',
+      });
+      const spendingTab = screen.getByText('Spending');
+      await fireEvent.click(spendingTab);
+      expect(screen.getByTestId('mock-chart')).toBeInTheDocument();
    });
 
    it('does not show initial spending when field is absent', () => {
