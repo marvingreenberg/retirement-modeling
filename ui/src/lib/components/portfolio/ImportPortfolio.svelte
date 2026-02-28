@@ -227,7 +227,10 @@
                      class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400"
                   >
                      Account Type
-                     <select class="select w-36" bind:value={accountTypes[i]}>
+                     <select
+                        class="select w-36 {accountTypes[i] === '' ? 'ring-2 ring-warning-400' : ''}"
+                        bind:value={accountTypes[i]}
+                     >
                         <option value="" disabled>-- Select type --</option>
                         {#each EDITOR_ACCOUNT_TYPES as t (t)}
                            <option value={t}>{ACCOUNT_TYPE_LABELS[t]}</option>
@@ -275,15 +278,21 @@
 
          <div class="flex gap-3 justify-end pt-2">
             <button class="btn preset-tonal" onclick={cancel}>Cancel</button>
-            <button
-               class="btn preset-filled"
-               onclick={confirmImport}
-               disabled={!allTypesSet}
-            >
-               Add {parsedAccounts.length} Account{parsedAccounts.length > 1
-                  ? 's'
+            <span
+               title={!allTypesSet
+                  ? 'Select an account type for each account'
                   : ''}
-            </button>
+            >
+               <button
+                  class="btn preset-filled"
+                  onclick={confirmImport}
+                  disabled={!allTypesSet}
+               >
+                  Add {parsedAccounts.length} Account{parsedAccounts.length > 1
+                     ? 's'
+                     : ''}
+               </button>
+            </span>
          </div>
       </div>
    </div>
