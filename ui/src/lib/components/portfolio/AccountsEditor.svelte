@@ -14,7 +14,13 @@
    } from '$lib/types';
    import { validationErrors, formTouched } from '$lib/stores';
    import InfoPopover from '$lib/components/InfoPopover.svelte';
-   import { ShieldCheck, Sprout, TrendingUp, Banknote, RotateCcw } from 'lucide-svelte';
+   import {
+      ShieldCheck,
+      Sprout,
+      TrendingUp,
+      Banknote,
+      RotateCcw,
+   } from 'lucide-svelte';
    import { estimateTaxDrag } from '$lib/taxDrag';
    import TaxDragCalculator from './TaxDragCalculator.svelte';
 
@@ -243,7 +249,10 @@
                   <button
                      class="inline-flex items-center justify-center w-4 h-4 text-surface-400 hover:text-surface-600 dark:hover:text-surface-300"
                      onclick={() => {
-                        accounts[i] = { ...account, tax_drag_override: undefined };
+                        accounts[i] = {
+                           ...account,
+                           tax_drag_override: undefined,
+                        };
                         accounts = [...accounts];
                      }}
                      aria-label="Reset to estimate"
@@ -252,7 +261,13 @@
                      <RotateCcw size={12} />
                   </button>
                {:else}
-                  ~{(estimateTaxDrag(account.stock_pct ?? ACCOUNT_TYPE_DEFAULTS[account.type].default_stock_pct) * 100).toFixed(2)}% drag
+                  ~{(
+                     estimateTaxDrag(
+                        account.stock_pct ??
+                           ACCOUNT_TYPE_DEFAULTS[account.type]
+                              .default_stock_pct,
+                     ) * 100
+                  ).toFixed(2)}% drag
                   <TaxDragCalculator
                      balance={account.balance}
                      stateTaxRate={config?.tax_rate_state ?? 0.05}

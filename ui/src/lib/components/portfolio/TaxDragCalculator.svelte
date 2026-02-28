@@ -119,7 +119,9 @@
             <div>Balance: {formatMoney(balance)}</div>
             {#if totalDividends > 0 || totalInterest > 0}
                <div>
-                  Tax: {formatMoney(computedTax)} / {formatMoney(balance)} = {(computedDrag * 100).toFixed(2)}%
+                  Tax: {formatMoney(computedTax)} / {formatMoney(balance)} = {(
+                     computedDrag * 100
+                  ).toFixed(2)}%
                </div>
             {/if}
          </div>

@@ -102,9 +102,7 @@ describe('recommendWithdrawalOrder', () => {
    });
 
    it('uses tax_drag_override when set on brokerage account', () => {
-      const accounts = [
-         makeAccount({ id: 'brk', tax_drag_override: 0.001 }),
-      ];
+      const accounts = [makeAccount({ id: 'brk', tax_drag_override: 0.001 })];
       // Override of 0.1% is low drag → should recommend IRA-first
       const result = recommendWithdrawalOrder(accounts, 'standard');
       expect(result.recommended[1]).toBe('pretax');
