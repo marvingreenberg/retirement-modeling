@@ -1,9 +1,11 @@
 .PHONY: help check-tools setup build test e2e clean lint lint-api lint-ui \
-       format format-api format-ui dev deploy build-image \
+       format format-api format-ui dev deploy deploy-version build-image \
        setup-api setup-ui build-api build-ui test-api test-ui \
        run-api run-cli run-ui dev docker-run
 
 VERSION := $(shell git describe --tags --always 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+MAJOR_VERSION := $(shell echo $(VERSION) | cut -d. -f1)
+IS_STABLE := $(shell echo $(VERSION) | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$$' && echo true || echo false)
 
 PKG_NAME := retirement-model
 ACTIVATE := if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi
@@ -33,7 +35,8 @@ help:
 	@echo "  dev        - Start API + UI dev servers, open browser, Ctrl-C stops both"
 	@echo "  build-image- Build Docker image locally via buildx"
 	@echo "  docker-run - Build (via buildx) and run Docker image on port 8000"
-	@echo "  deploy     - Build, push (via buildx), and deploy to GCP Cloud Run"
+	@echo "  deploy     - Build, push, deploy to Cloud Run (+ version service if stable)"
+	@echo "  deploy-version - Deploy only the major-version Cloud Run service"
 	@echo "  e2e        - Run E2E tests (starts backend, builds UI, runs Playwright)"
 	@echo "  clean      - Remove all build artifacts and generated files"
 	@echo "  lint       - Run all linters (API + UI)"
@@ -84,25 +87,40 @@ dev:
 docker-run: build-image
 	docker run --rm -p 8000:8000 $(GH_IMAGE):$(VERSION)
 
+STABLE_TAGS := $(if $(filter true,$(IS_STABLE)),-t $(GH_IMAGE):latest -t $(GCP_IMAGE):latest -t $(GH_IMAGE):v$(MAJOR_VERSION) -t $(GCP_IMAGE):v$(MAJOR_VERSION))
+
 build-image:
 	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
 	docker buildx build --load --progress plain --build-arg VERSION=$(VERSION) \
-	  -t $(GH_IMAGE):$(VERSION) -t $(GH_IMAGE):latest \
-	  -t $(GCP_IMAGE):$(VERSION) -t $(GCP_IMAGE):latest .
+	  -t $(GH_IMAGE):$(VERSION) \
+	  -t $(GCP_IMAGE):$(VERSION) $(STABLE_TAGS) .
 
-deploy: build-image
-	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
-	docker buildx build --push --progress plain --build-arg VERSION=$(VERSION) \
-	  -t $(GH_IMAGE):$(VERSION) -t $(GH_IMAGE):latest \
-	  -t $(GCP_IMAGE):$(VERSION) -t $(GCP_IMAGE):latest . && \
-	  gcloud run deploy $(SERVICE_NAME) \
+DEPLOY_CMD = gcloud run deploy $(1) \
 	    --image=$(GCP_IMAGE):$(VERSION) \
 	    --platform=managed \
 	    --allow-unauthenticated \
 	    --port=8000 --memory=512Mi --cpu=1 \
 	    --min-instances=0 --max-instances=3 \
-	    --set-env-vars="PYTHONUNBUFFERED=1" && \
+	    --set-env-vars="PYTHONUNBUFFERED=1"
+
+deploy: build-image
+	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
+	docker buildx build --push --progress plain --build-arg VERSION=$(VERSION) \
+	  -t $(GH_IMAGE):$(VERSION) \
+	  -t $(GCP_IMAGE):$(VERSION) $(STABLE_TAGS) . && \
+	  $(call DEPLOY_CMD,$(SERVICE_NAME)) && \
 	  echo "Deployed: $$(gcloud run services describe $(SERVICE_NAME) --format='value(status.url)')"
+	@if [ "$(IS_STABLE)" = "true" ]; then \
+	  echo "Deploying major-version service $(SERVICE_NAME)-v$(MAJOR_VERSION)..."; \
+	  $(call DEPLOY_CMD,$(SERVICE_NAME)-v$(MAJOR_VERSION)) && \
+	  echo "Deployed: $$(gcloud run services describe $(SERVICE_NAME)-v$(MAJOR_VERSION) --format='value(status.url)')"; \
+	fi
+
+deploy-version:
+	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
+	@[ "$(IS_STABLE)" = "true" ] || { echo "Error: VERSION=$(VERSION) is not a stable release; skipping version deploy"; exit 1; }
+	$(call DEPLOY_CMD,$(SERVICE_NAME)-v$(MAJOR_VERSION))
+	@echo "Deployed: $$(gcloud run services describe $(SERVICE_NAME)-v$(MAJOR_VERSION) --format='value(status.url)')"
 
 e2e:
 	@cleanup() { kill 0 2>/dev/null; wait 2>/dev/null; }; \
