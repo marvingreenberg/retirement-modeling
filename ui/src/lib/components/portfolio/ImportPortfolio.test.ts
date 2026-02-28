@@ -1,4 +1,12 @@
-import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
+import {
+   describe,
+   it,
+   expect,
+   vi,
+   beforeAll,
+   beforeEach,
+   afterEach,
+} from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import ImportPortfolio from './ImportPortfolio.svelte';
 
@@ -57,13 +65,18 @@ vi.mock('$lib/csvParser', () => ({
 async function uploadFiles(input: HTMLInputElement, files: File[]) {
    Object.defineProperty(input, 'files', { value: files, configurable: true });
    await fireEvent.change(input);
-   // Let async file.text() promises resolve and Svelte re-render
-   await new Promise((r) => setTimeout(r, 100));
+   // Advance past file.text() microtasks and the 1-second minimum spinner delay
+   await vi.advanceTimersByTimeAsync(1100);
 }
 
 describe('ImportPortfolio', () => {
    beforeEach(() => {
       vi.clearAllMocks();
+      vi.useFakeTimers();
+   });
+
+   afterEach(() => {
+      vi.useRealTimers();
    });
 
    it('renders Import Accounts button', () => {
@@ -99,14 +112,13 @@ describe('ImportPortfolio', () => {
 
       await uploadFiles(input, [ofxFile, csvFile]);
 
-      await vi.waitFor(() => {
-         expect(screen.getByText('Import Results')).toBeInTheDocument();
-      });
-
+      expect(screen.getByText('Import Results')).toBeInTheDocument();
       expect(parseOFX).toHaveBeenCalled();
       expect(parseCSV).toHaveBeenCalled();
       expect(screen.getByText(/OFX123/)).toBeInTheDocument();
       expect(screen.getByText(/CSV456/)).toBeInTheDocument();
+      expect(screen.getByText(/portfolio\.ofx/)).toBeInTheDocument();
+      expect(screen.getByText(/holdings\.csv/)).toBeInTheDocument();
       expect(screen.getByText('Add 2 Accounts')).toBeInTheDocument();
    });
 
@@ -128,11 +140,7 @@ describe('ImportPortfolio', () => {
 
       await uploadFiles(input, [badFile, goodFile]);
 
-      await vi.waitFor(() => {
-         expect(
-            screen.getByText(/Could not load: bad.ofx/),
-         ).toBeInTheDocument();
-      });
+      expect(screen.getByText(/Could not load: bad.ofx/)).toBeInTheDocument();
       expect(screen.getByText('Import Results')).toBeInTheDocument();
       expect(screen.getByText(/CSV456/)).toBeInTheDocument();
    });
@@ -149,13 +157,34 @@ describe('ImportPortfolio', () => {
 
       await uploadFiles(input, [ofxFile]);
 
-      await vi.waitFor(() => {
-         expect(screen.getByText('Import Results')).toBeInTheDocument();
-      });
-
+      expect(screen.getByText('Import Results')).toBeInTheDocument();
       // Summary should show stock/bond allocation from holdings
       expect(screen.getByText(/Stocks:/)).toBeInTheDocument();
       expect(screen.getByText(/Bonds:/)).toBeInTheDocument();
+   });
+
+   it('shows spinner during import processing', async () => {
+      render(ImportPortfolio, { accounts: [] });
+      const input = document.querySelector(
+         'input[type="file"]',
+      ) as HTMLInputElement;
+      const ofxFile = new File(['<OFX>data</OFX>'], 'portfolio.ofx', {
+         type: 'text/plain',
+      });
+
+      Object.defineProperty(input, 'files', {
+         value: [ofxFile],
+         configurable: true,
+      });
+      await fireEvent.change(input);
+      // Advance just enough for file.text() but not past the 1-second delay
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(screen.getByText('Importing...')).toBeInTheDocument();
+
+      // Advance past the minimum delay
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(screen.queryByText('Importing...')).not.toBeInTheDocument();
    });
 
    it('routes CSV files to parseCSV and OFX/QFX to parseOFX', async () => {
@@ -172,9 +201,7 @@ describe('ImportPortfolio', () => {
 
       await uploadFiles(input, [csvFile, qfxFile]);
 
-      await vi.waitFor(() => {
-         expect(parseCSV).toHaveBeenCalled();
-         expect(parseOFX).toHaveBeenCalled();
-      });
+      expect(parseCSV).toHaveBeenCalled();
+      expect(parseOFX).toHaveBeenCalled();
    });
 });

@@ -24,7 +24,30 @@
    let accountTypes = $state<(AccountType | '')[]>([]);
    let accountNames = $state<string[]>([]);
 
+   let sourceFiles = $state<string[]>([]);
+   let loading = $state(false);
+   let spinnerChar = $state('|');
+   let spinnerInterval: ReturnType<typeof setInterval> | undefined;
    let fileInput: HTMLInputElement | undefined = $state();
+
+   function startSpinner() {
+      const chars = ['|', '/', '-', '\\'];
+      let idx = 0;
+      loading = true;
+      spinnerChar = chars[0];
+      spinnerInterval = setInterval(() => {
+         idx = (idx + 1) % chars.length;
+         spinnerChar = chars[idx];
+      }, 150);
+   }
+
+   function stopSpinner() {
+      loading = false;
+      if (spinnerInterval) {
+         clearInterval(spinnerInterval);
+         spinnerInterval = undefined;
+      }
+   }
 
    function openFilePicker() {
       fileInput?.click();
@@ -42,18 +65,28 @@
       if (!files || files.length === 0) return;
 
       error = '';
+      startSpinner();
+      const minDelay = new Promise((r) => setTimeout(r, 1000));
+
       const allParsed: ParsedAccount[] = [];
+      const allFiles: string[] = [];
       const errors: string[] = [];
 
       for (const file of Array.from(files)) {
          try {
             const text = await file.text();
             const parsed = parseByExtension(text, file.name);
-            allParsed.push(...parsed);
+            for (const p of parsed) {
+               allParsed.push(p);
+               allFiles.push(file.name);
+            }
          } catch {
             errors.push(file.name);
          }
       }
+
+      await minDelay;
+      stopSpinner();
 
       if (errors.length > 0) {
          error = `Could not load: ${errors.join(', ')}. Files may not be supported OFX/QFX/CSV exports.`;
@@ -61,14 +94,16 @@
 
       if (allParsed.length > 0) {
          parsedAccounts = allParsed;
+         sourceFiles = allFiles;
          summaries = allParsed.map((a) =>
             summarizePortfolio(a.holdings, a.cash_balance),
          );
          accountTypes = allParsed.map(() => '');
-         accountNames = allParsed.map(
-            (a) =>
-               `${a.broker !== 'unknown' ? a.broker + ' ' : ''}${a.account_id}`,
-         );
+         accountNames = allParsed.map((a, idx) => {
+            const broker = a.broker !== 'unknown' ? a.broker + ' ' : '';
+            const file = allFiles[idx] ? ' - ' + allFiles[idx] : '';
+            return `${broker}${a.account_id}${file}`;
+         });
          showModal = true;
       }
 
@@ -128,6 +163,7 @@
    function cancel() {
       showModal = false;
       parsedAccounts = [];
+      sourceFiles = [];
       summaries = [];
       error = '';
    }
@@ -158,10 +194,23 @@
    onchange={handleFile}
 />
 
-<button class="btn preset-tonal self-start" onclick={openFilePicker}>
+<button
+   class="btn preset-tonal self-start"
+   onclick={openFilePicker}
+   disabled={loading}
+>
    <Upload size={16} />
    Import Accounts
 </button>
+
+{#if loading}
+   <div
+      class="flex items-center gap-2 text-surface-600 dark:text-surface-400 text-sm mt-2"
+   >
+      <span class="font-mono w-3 text-center">{spinnerChar}</span>
+      Importing...
+   </div>
+{/if}
 
 {#if error}
    <div
@@ -201,6 +250,9 @@
                <div class="flex items-center justify-between">
                   <span class="text-sm text-surface-500">
                      {parsed.broker !== 'unknown' ? parsed.broker : ''} Account {parsed.account_id}
+                     {#if sourceFiles[i]}
+                        <span class="text-xs ml-1">— {sourceFiles[i]}</span>
+                     {/if}
                      {#if parsed.as_of_date}
                         <span class="text-xs ml-2"
                            >as of {parsed.as_of_date}</span
@@ -228,7 +280,9 @@
                   >
                      Account Type
                      <select
-                        class="select w-36 {accountTypes[i] === '' ? 'ring-2 ring-warning-400' : ''}"
+                        class="select w-36 {accountTypes[i] === ''
+                           ? 'ring-2 ring-warning-400'
+                           : ''}"
                         bind:value={accountTypes[i]}
                      >
                         <option value="" disabled>-- Select type --</option>

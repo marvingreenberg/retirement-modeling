@@ -68,17 +68,16 @@ describe('AccountsEditor', () => {
       expect(screen.getByLabelText('Name')).toHaveValue('Roth IRA');
    });
 
-   it('disables remove button when only one account', () => {
+   it('allows removing the last account', () => {
       render(AccountsEditor, { accounts: [makeAccount()] });
-      expect(screen.getByRole('button', { name: '✕' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: '✕' })).not.toBeDisabled();
    });
 
-   it('enables remove buttons with multiple accounts', () => {
-      const accounts = [makeAccount(), makeAccount({ id: 'account_2' })];
+   it('removes last account leaving empty state', async () => {
+      const accounts = [makeAccount()];
       render(AccountsEditor, { accounts });
-      screen.getAllByRole('button', { name: '✕' }).forEach((btn) => {
-         expect(btn).not.toBeDisabled();
-      });
+      await fireEvent.click(screen.getByRole('button', { name: '✕' }));
+      expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
    });
 
    it('shows balance error styling when form touched and validation fails', () => {

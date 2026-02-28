@@ -316,8 +316,7 @@
          {/if}
          <button
             class="btn preset-outlined btn-sm"
-            onclick={() => removeAccount(i)}
-            disabled={accounts.length <= 1}>✕</button
+            onclick={() => removeAccount(i)}>✕</button
          >
       </div>
    {/each}
