@@ -42,6 +42,13 @@ export const excessIncomeRoutingSchema = z.enum([
    'roth_ira_first',
 ]);
 
+export const withdrawalCategorySchema = z.enum([
+   'cash',
+   'brokerage',
+   'pretax',
+   'roth',
+]);
+
 export const guardrailsConfigSchema = z.object({
    initial_withdrawal_rate: z.number().min(0.01).max(0.15).default(0.05),
    floor_percent: z.number().min(0.5).max(1.0).default(0.8),
@@ -57,6 +64,8 @@ export const accountSchema = z.object({
    owner: ownerSchema,
    cost_basis_ratio: z.number().min(0).max(1).default(0.0),
    available_at_age: z.number().int().min(0).default(0),
+   stock_pct: z.number().min(0).max(100).optional(),
+   tax_drag_override: z.number().min(0).max(0.1).optional(),
 });
 
 export const socialSecuritySchema = z.object({
@@ -130,6 +139,10 @@ export const simulationConfigSchema = z
       ss_auto: ssAutoConfigSchema.nullable().default(null),
       retirement_age: z.number().int().min(0).max(120).nullable().default(null),
       excess_income_routing: excessIncomeRoutingSchema.default('brokerage'),
+      withdrawal_order: z
+         .array(withdrawalCategorySchema)
+         .length(4)
+         .default(['cash', 'brokerage', 'pretax', 'roth']),
    })
    .strip();
 

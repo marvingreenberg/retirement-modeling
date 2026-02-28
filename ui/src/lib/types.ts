@@ -53,58 +53,74 @@ export const ACCOUNT_TYPE_DEFAULTS: Record<
       cost_basis_ratio: number;
       editable: boolean;
       default_available_age: number;
+      default_stock_pct: number;
    }
 > = {
    brokerage: {
       cost_basis_ratio: 0.4,
       editable: true,
       default_available_age: 0,
+      default_stock_pct: 60,
    },
    cash_cd: {
       cost_basis_ratio: 1.0,
       editable: false,
       default_available_age: 0,
+      default_stock_pct: 0,
    },
    roth_ira: {
       cost_basis_ratio: 1.0,
       editable: false,
       default_available_age: 60,
+      default_stock_pct: 80,
    },
    roth_401k: {
       cost_basis_ratio: 1.0,
       editable: false,
       default_available_age: 60,
+      default_stock_pct: 80,
    },
    roth_conversion: {
       cost_basis_ratio: 1.0,
       editable: false,
       default_available_age: 60,
+      default_stock_pct: 80,
    },
    '401k': {
       cost_basis_ratio: 0.0,
       editable: false,
       default_available_age: 60,
+      default_stock_pct: 60,
    },
    '403b': {
       cost_basis_ratio: 0.0,
       editable: false,
       default_available_age: 60,
+      default_stock_pct: 60,
    },
    '457b': {
       cost_basis_ratio: 0.0,
       editable: false,
       default_available_age: 60,
+      default_stock_pct: 60,
    },
-   ira: { cost_basis_ratio: 0.0, editable: false, default_available_age: 60 },
+   ira: {
+      cost_basis_ratio: 0.0,
+      editable: false,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
    sep_ira: {
       cost_basis_ratio: 0.0,
       editable: false,
       default_available_age: 60,
+      default_stock_pct: 60,
    },
    simple_ira: {
       cost_basis_ratio: 0.0,
       editable: false,
       default_available_age: 60,
+      default_stock_pct: 60,
    },
 };
 
@@ -179,6 +195,8 @@ export interface Account {
    owner: Owner;
    cost_basis_ratio?: number;
    available_at_age?: number;
+   stock_pct?: number;
+   tax_drag_override?: number;
 }
 
 export interface SocialSecurityConfig {
@@ -246,6 +264,7 @@ export interface SimulationConfig {
    ss_auto: SSAutoConfig | null;
    retirement_age: number | null;
    excess_income_routing: ExcessIncomeRouting;
+   withdrawal_order: WithdrawalCategory[];
 }
 
 export interface Portfolio {
@@ -378,4 +397,28 @@ export interface ComparisonSnapshot {
    totalIrmaa: number;
    totalRothConversions: number;
    successRate?: number;
+   withdrawalOrder?: string;
+}
+
+export type WithdrawalCategory = 'cash' | 'brokerage' | 'pretax' | 'roth';
+
+export const WITHDRAWAL_CATEGORY_LABELS: Record<WithdrawalCategory, string> = {
+   cash: 'Cash/CD',
+   brokerage: 'Brokerage',
+   pretax: 'IRA/401K',
+   roth: 'Roth IRA',
+};
+
+export const DEFAULT_WITHDRAWAL_ORDER: WithdrawalCategory[] = [
+   'cash',
+   'brokerage',
+   'pretax',
+   'roth',
+];
+
+export interface ChartEvent {
+   year: number;
+   label: string;
+   tooltip: string;
+   type: 'start' | 'end';
 }

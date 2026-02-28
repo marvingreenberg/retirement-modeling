@@ -129,6 +129,61 @@ describe('accountSchema', () => {
       const result = accountSchema.safeParse({ ...validAccount, name: '' });
       expect(result.success).toBe(false);
    });
+
+   it('accepts stock_pct within range', () => {
+      expect(
+         accountSchema.safeParse({ ...validAccount, stock_pct: 70 }).success,
+      ).toBe(true);
+      expect(
+         accountSchema.safeParse({ ...validAccount, stock_pct: 0 }).success,
+      ).toBe(true);
+      expect(
+         accountSchema.safeParse({ ...validAccount, stock_pct: 100 }).success,
+      ).toBe(true);
+   });
+
+   it('rejects stock_pct out of range', () => {
+      expect(
+         accountSchema.safeParse({ ...validAccount, stock_pct: -1 }).success,
+      ).toBe(false);
+      expect(
+         accountSchema.safeParse({ ...validAccount, stock_pct: 101 }).success,
+      ).toBe(false);
+   });
+
+   it('accepts account without stock_pct (optional)', () => {
+      const { stock_pct: _, ...noStockPct } = {
+         ...validAccount,
+         stock_pct: 60,
+      };
+      expect(accountSchema.safeParse(noStockPct).success).toBe(true);
+   });
+
+   it('accepts tax_drag_override within range', () => {
+      expect(
+         accountSchema.safeParse({ ...validAccount, tax_drag_override: 0.005 })
+            .success,
+      ).toBe(true);
+      expect(
+         accountSchema.safeParse({ ...validAccount, tax_drag_override: 0 })
+            .success,
+      ).toBe(true);
+   });
+
+   it('rejects tax_drag_override out of range', () => {
+      expect(
+         accountSchema.safeParse({ ...validAccount, tax_drag_override: -0.01 })
+            .success,
+      ).toBe(false);
+      expect(
+         accountSchema.safeParse({ ...validAccount, tax_drag_override: 0.2 })
+            .success,
+      ).toBe(false);
+   });
+
+   it('accepts account without tax_drag_override (optional)', () => {
+      expect(accountSchema.safeParse(validAccount).success).toBe(true);
+   });
 });
 
 describe('socialSecuritySchema', () => {
