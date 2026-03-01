@@ -202,3 +202,33 @@ File import supports multi-select (`multiple` attribute) with file type filterin
 ## Allow Roth Conversions After RMD Age
 
 Removed `age_primary < cfg.rmd_start_age` restriction on Roth conversions in simulation.py. Conversions now work at any age — take RMD first, then convert within AGI headroom. Removed disabled state and warning text from conversion strategy dropdown in SimulateSettings. Two new tests in `TestPostRmdConversions` class.
+
+---
+
+## 104. Configurable Withdrawal Order
+
+Withdrawal order is now configurable via drag-to-reorder UI in WithdrawalOrderEditor. Default order: Cash/CD, Brokerage, IRA/401K, Roth IRA. Order is stored in portfolio config and used by the simulation withdrawal logic.
+
+---
+
+## 100. Spending Chart Refactor
+
+Spending line chart moved to a dedicated "Spending" tab (third tab after Simulation and Monte Carlo). Displays stacked areas for cash flow, conversion tax, and estimated taxes, with a dashed "Budget + Taxes" line overlay. "Available" label changed to "Cash Flow".
+
+---
+
+## 101. Stacked Spending Chart with Conversion Taxes
+
+SpendingChart implements stacked areas (bottom: taxes, middle: conversion tax, top: cash flow) with a Budget+Taxes dashed line on top. Conversion tax layer only appears when conversions occur.
+
+---
+
+## 102. Chart Event Indicators
+
+Chart annotations for income streams (SS start/end, pensions) and planned expenses rendered as vertical markers with tooltips. `chartEvents.ts` builds event data, consumed by both BalanceChart and SpendingChart via Chart.js annotation plugin.
+
+---
+
+## 103. Withdrawal Plan Display Enhancements
+
+WithdrawalPlan shows spending target, income breakdown by stream, RMD by account, spending withdrawals by account, Roth conversions, taxes (income tax, IRMAA, conversion tax), and net cash flow with shortfall indication. Strategy labels show target vs actual (e.g., "4.0% → $83K (target $105K)").
