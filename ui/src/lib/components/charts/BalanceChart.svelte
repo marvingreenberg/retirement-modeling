@@ -1,8 +1,9 @@
 <script lang="ts">
-   import { onMount } from 'svelte';
+   import { onMount, untrack } from 'svelte';
    import { Chart, registerables } from 'chart.js';
    import annotationPlugin from 'chartjs-plugin-annotation';
    import type { YearResult, ChartEvent } from '$lib/types';
+   import ChartEventOverlay from './ChartEventOverlay.svelte';
 
    let {
       years,
@@ -18,7 +19,7 @@
       events?: ChartEvent[];
    } = $props();
    let canvas: HTMLCanvasElement;
-   let chart: Chart | undefined;
+   let chart: Chart | undefined = $state();
 
    Chart.register(...registerables, annotationPlugin);
 
@@ -104,27 +105,6 @@
               }
             : {};
 
-      // Event markers
-      for (let i = 0; i < events.length; i++) {
-         const ev = events[i];
-         const idx = years.findIndex((y) => y.year === ev.year);
-         if (idx < 0) continue;
-         annotations[`event_${i}`] = {
-            type: 'label',
-            xValue: idx,
-            yAdjust: -10 - (i % 3) * 14,
-            position: { y: 'start' },
-            content: ev.label,
-            font: { size: 9 },
-            color: ev.type === 'end' ? '#dc2626' : '#166534',
-            backgroundColor:
-               ev.type === 'end'
-                  ? 'rgba(220,38,38,0.08)'
-                  : 'rgba(22,101,52,0.08)',
-            padding: 2,
-         };
-      }
-
       chart = new Chart(canvas, {
          type: 'line',
          data: { labels, datasets },
@@ -176,10 +156,16 @@
    onMount(() => buildChart());
 
    $effect(() => {
-      if (canvas && years) buildChart();
+      if (canvas && years) untrack(() => buildChart());
    });
 </script>
 
 <div class="relative w-full max-h-[400px]">
    <canvas bind:this={canvas}></canvas>
+   <ChartEventOverlay
+      {chart}
+      {events}
+      {years}
+      getYValue={(idx) => years[idx]?.total_balance ?? 0}
+   />
 </div>

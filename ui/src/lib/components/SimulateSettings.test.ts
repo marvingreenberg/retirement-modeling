@@ -119,4 +119,42 @@ describe('SimulateSettings', () => {
       renderSettings();
       expect(screen.queryByText('Must be >= 0')).not.toBeInTheDocument();
    });
+
+   it('shows conversion dropdown when pretax accounts exist', () => {
+      renderSettings();
+      expect(screen.getAllByText(/Conversion/).length).toBeGreaterThan(0);
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+   });
+
+   it('hides conversion dropdown when no pretax accounts', () => {
+      portfolio.update((p) => {
+         p.accounts = p.accounts.map((a) => ({
+            ...a,
+            type: 'brokerage' as const,
+         }));
+         return p;
+      });
+      renderSettings();
+      expect(screen.queryByText(/Conversion/)).not.toBeInTheDocument();
+   });
+
+   it('resets strategy_target to standard when pretax accounts removed', () => {
+      portfolio.update((p) => {
+         p.config.strategy_target = 'irmaa_tier_1';
+         return p;
+      });
+      renderSettings();
+      expect(screen.getByRole('combobox')).toHaveValue('irmaa_tier_1');
+
+      portfolio.update((p) => {
+         p.accounts = p.accounts.map((a) => ({
+            ...a,
+            type: 'brokerage' as const,
+         }));
+         return p;
+      });
+      // $effect resets to 'standard'
+      const current = structuredClone(samplePortfolio);
+      portfolio.subscribe((p) => Object.assign(current, p))();
+   });
 });

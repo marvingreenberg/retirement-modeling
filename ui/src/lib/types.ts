@@ -416,9 +416,25 @@ export const DEFAULT_WITHDRAWAL_ORDER: WithdrawalCategory[] = [
    'roth',
 ];
 
+export type ChartEventKind =
+   | 'income_employment'
+   | 'income_pension'
+   | 'income_ss'
+   | 'income_rental'
+   | 'income_alimony'
+   | 'income_other'
+   | 'income_end'
+   | 'expense_one_time'
+   | 'expense_recurring';
+
 export interface ChartEvent {
    year: number;
    label: string;
    tooltip: string;
    type: 'start' | 'end';
+   kind: ChartEventKind;
+}
+
+export function hasPretaxAccounts(accounts: Account[]): boolean {
+   return accounts.some((a) => TAX_CATEGORY_MAP[a.type] === 'pretax');
 }

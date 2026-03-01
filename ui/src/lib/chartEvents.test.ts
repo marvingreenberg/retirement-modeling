@@ -62,6 +62,7 @@ describe('buildChartEvents', () => {
       expect(events[0].year).toBe(2028);
       expect(events[0].label).toBe('Pension $30K');
       expect(events[0].type).toBe('start');
+      expect(events[0].kind).toBe('income_pension');
    });
 
    it('creates start and end events for income stream with end_age', () => {
@@ -85,9 +86,11 @@ describe('buildChartEvents', () => {
       expect(events).toHaveLength(2);
       expect(events[0].type).toBe('start');
       expect(events[0].year).toBe(2026);
+      expect(events[0].kind).toBe('income_employment');
       expect(events[1].type).toBe('end');
       expect(events[1].year).toBe(2031);
       expect(events[1].label).toBe('Job ends');
+      expect(events[1].kind).toBe('income_end');
    });
 
    it('uses spouse age for spouse-owned income', () => {
@@ -109,6 +112,7 @@ describe('buildChartEvents', () => {
       });
       const events = buildChartEvents(config);
       expect(events[0].year).toBe(2029);
+      expect(events[0].kind).toBe('income_pension');
    });
 
    it('creates event for one-time planned expense', () => {
@@ -127,6 +131,7 @@ describe('buildChartEvents', () => {
       expect(events).toHaveLength(1);
       expect(events[0].year).toBe(2030);
       expect(events[0].label).toBe('Home Reno $50K');
+      expect(events[0].kind).toBe('expense_one_time');
    });
 
    it('creates event for recurring planned expense', () => {
@@ -146,6 +151,7 @@ describe('buildChartEvents', () => {
       expect(events).toHaveLength(1);
       expect(events[0].year).toBe(2040);
       expect(events[0].label).toBe('Nursing Home $100K');
+      expect(events[0].kind).toBe('expense_recurring');
    });
 
    it('sorts events by year', () => {

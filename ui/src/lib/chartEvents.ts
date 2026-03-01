@@ -1,4 +1,4 @@
-import type { SimulationConfig, ChartEvent } from '$lib/types';
+import type { SimulationConfig, ChartEvent, ChartEventKind } from '$lib/types';
 
 function formatAmount(amount: number): string {
    return amount >= 1000
@@ -20,6 +20,7 @@ export function buildChartEvents(config: SimulationConfig): ChartEvent[] {
          label: `${stream.name} ${amt}`,
          tooltip: `${stream.name} ${amt}/yr begins`,
          type: 'start',
+         kind: `income_${stream.kind}` as ChartEventKind,
       });
       if (stream.end_age != null) {
          const endYear = config.start_year + (stream.end_age - ownerAge);
@@ -28,6 +29,7 @@ export function buildChartEvents(config: SimulationConfig): ChartEvent[] {
             label: `${stream.name} ends`,
             tooltip: `${stream.name} ${amt}/yr ends`,
             type: 'end',
+            kind: 'income_end',
          });
       }
    }
@@ -40,6 +42,7 @@ export function buildChartEvents(config: SimulationConfig): ChartEvent[] {
             label: `${expense.name} ${amt}`,
             tooltip: `${expense.name} ${amt} (one-time)`,
             type: 'start',
+            kind: 'expense_one_time',
          });
       } else if (expense.expense_type === 'recurring' && expense.start_year) {
          events.push({
@@ -47,6 +50,7 @@ export function buildChartEvents(config: SimulationConfig): ChartEvent[] {
             label: `${expense.name} ${amt}`,
             tooltip: `${expense.name} ${amt}/yr starts`,
             type: 'start',
+            kind: 'expense_recurring',
          });
       }
    }

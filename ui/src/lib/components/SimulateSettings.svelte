@@ -5,6 +5,7 @@
       formTouched,
       markFormTouched,
    } from '$lib/stores';
+   import { hasPretaxAccounts } from '$lib/types';
    import InfoPopover from './InfoPopover.svelte';
    import WithdrawalOrderEditor from './settings/WithdrawalOrderEditor.svelte';
 
@@ -73,6 +74,14 @@
       }
       return 'RMD-Based';
    }
+
+   let showConversion = $derived(hasPretaxAccounts($portfolio.accounts));
+
+   $effect(() => {
+      if (!showConversion && $portfolio.config.strategy_target !== 'standard') {
+         $portfolio.config.strategy_target = 'standard';
+      }
+   });
 
    let strategyOpen = $state(false);
 
@@ -152,24 +161,26 @@
                >{growthError}</span
             >{/if}
       </label>
-      <label
-         class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
-      >
-         <span class="flex items-center gap-1"
-            >Conversion <InfoPopover
-               text="Controls Roth conversion aggressiveness. No Conversion skips conversions. Other strategies convert pre-tax to Roth up to a tax bracket or IRMAA threshold to reduce future taxes."
-            /></span
+      {#if showConversion}
+         <label
+            class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
          >
-         <select
-            class="select w-40 text-sm"
-            bind:value={$portfolio.config.strategy_target}
-         >
-            <option value="standard">No Conversion</option>
-            <option value="irmaa_tier_1">IRMAA Tier 1</option>
-            <option value="22_percent_bracket">22% Bracket</option>
-            <option value="24_percent_bracket">24% Bracket</option>
-         </select>
-      </label>
+            <span class="flex items-center gap-1"
+               >Conversion <InfoPopover
+                  text="Controls Roth conversion aggressiveness. No Conversion skips conversions. Other strategies convert pre-tax to Roth up to a tax bracket or IRMAA threshold to reduce future taxes."
+               /></span
+            >
+            <select
+               class="select w-40 text-sm"
+               bind:value={$portfolio.config.strategy_target}
+            >
+               <option value="standard">No Conversion</option>
+               <option value="irmaa_tier_1">IRMAA Tier 1</option>
+               <option value="22_percent_bracket">22% Bracket</option>
+               <option value="24_percent_bracket">24% Bracket</option>
+            </select>
+         </label>
+      {/if}
    </div>
 
    <!-- Withdrawal Strategy: collapsible -->

@@ -16,7 +16,7 @@
    import ImportPortfolio from './ImportPortfolio.svelte';
    import IncomeEditor from './IncomeEditor.svelte';
    import SpendingEditor from './SpendingEditor.svelte';
-   import { currency } from '$lib/format';
+   import { currency, compactCurrency } from '$lib/format';
    import { Landmark, Briefcase, Wallet, AlertTriangle } from 'lucide-svelte';
 
    let accountsOpen = $state(false);
@@ -42,12 +42,6 @@
    let totalBalance = $derived(
       $portfolio.accounts.reduce((sum, a) => sum + a.balance, 0),
    );
-
-   function compactCurrency(v: number): string {
-      if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
-      if (v >= 1_000) return `$${Math.round(v / 1_000)}K`;
-      return `$${v}`;
-   }
 
    let incomeSummary = $derived.by(() => {
       const parts: string[] = [];

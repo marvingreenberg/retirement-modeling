@@ -3,6 +3,7 @@
    import InfoPopover from '$lib/components/InfoPopover.svelte';
    import { Shuffle } from 'lucide-svelte';
 
+   let showIrmaa = $derived($portfolio.config.strategy_target !== 'standard');
    let showRandomizeConfirm = $state(false);
 
    function toPct(v: number): number {
@@ -51,22 +52,24 @@
       />
    </label>
 
-   <label
-      class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
-   >
-      <span class="flex items-center gap-1"
-         >IRMAA Limit ($) <InfoPopover
-            text="Income threshold above which Medicare Part B/D premiums increase. Roth conversions that push income above this trigger surcharges."
-         /></span
+   {#if showIrmaa}
+      <label
+         class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
       >
-      <input
-         type="number"
-         class="input text-sm"
-         bind:value={$portfolio.config.irmaa_limit_tier_1}
-         min="0"
-         step="1000"
-      />
-   </label>
+         <span class="flex items-center gap-1"
+            >IRMAA Limit ($) <InfoPopover
+               text="Income threshold above which Medicare Part B/D premiums increase. Roth conversions that push income above this trigger surcharges."
+            /></span
+         >
+         <input
+            type="number"
+            class="input text-sm"
+            bind:value={$portfolio.config.irmaa_limit_tier_1}
+            min="0"
+            step="1000"
+         />
+      </label>
+   {/if}
 
    <label
       class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"

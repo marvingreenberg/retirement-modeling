@@ -1,6 +1,7 @@
 <script lang="ts">
    import {
       WITHDRAWAL_CATEGORY_LABELS,
+      TAX_CATEGORY_MAP,
       type Account,
       type ConversionStrategy,
       type WithdrawalCategory,
@@ -17,6 +18,26 @@
       accounts?: Account[];
       conversionStrategy?: ConversionStrategy;
    } = $props();
+
+   let activeCategories = $derived.by(() => {
+      if (!accounts || accounts.length === 0) return null;
+      return new Set(accounts.map((a) => TAX_CATEGORY_MAP[a.type]));
+   });
+
+   let displayOrder = $derived(
+      activeCategories ? order.filter((c) => activeCategories.has(c)) : order,
+   );
+
+   $effect(() => {
+      if (!activeCategories) return;
+      const filtered = order.filter((c) => activeCategories.has(c));
+      const inactive = order.filter((c) => !activeCategories.has(c));
+      const newCats = [...activeCategories].filter((c) => !order.includes(c));
+      const updated = [...filtered, ...newCats, ...inactive];
+      if (JSON.stringify(updated) !== JSON.stringify(order)) {
+         order = updated;
+      }
+   });
 
    let dragIdx = $state<number | null>(null);
 
@@ -36,10 +57,14 @@
    function handleDrop(targetIdx: number, e: DragEvent) {
       e.preventDefault();
       if (dragIdx == null || dragIdx === targetIdx) return;
-      const newOrder = [...order];
-      const [moved] = newOrder.splice(dragIdx, 1);
-      newOrder.splice(targetIdx, 0, moved);
-      order = newOrder;
+      const displayed = [...displayOrder];
+      const [moved] = displayed.splice(dragIdx, 1);
+      displayed.splice(targetIdx, 0, moved);
+      // Preserve any inactive categories in their original positions aren't shown
+      const inactive = order.filter(
+         (c) => !activeCategories || !activeCategories.has(c),
+      );
+      order = [...displayed, ...inactive];
       dragIdx = null;
    }
 
@@ -74,7 +99,7 @@
       />
    </span>
    <div class="flex gap-1 items-center">
-      {#each order as cat, i (cat)}
+      {#each displayOrder as cat, i (cat)}
          {#if i > 0}
             <span class="text-surface-400 text-xs select-none">→</span>
          {/if}

@@ -63,13 +63,16 @@ Keep the Makefile lint/format targets up to date as the project evolves.
 - ESLint is configured with warnings (not errors) for pre-existing patterns like `no-explicit-any`, `require-each-key`, `no-navigation-without-resolve` (off — project uses adapter-static)
 - New code should not introduce new warnings; fix or suppress with inline comments if justified
 
+### Responding to Warnings
+
+When a linter, type-checker, compiler, or any tool produces a warning, do not apply a mechanical fix. Trace the full consequences of the proposed change — what reads the value, what writes it, what triggers re-execution. A warning identifies a real concern, but the "obvious" fix may create a worse problem (infinite loops, race conditions, subtle breakage) if applied without understanding the surrounding data flow. Think through second-order effects before changing code to silence a warning.
+
 ### Testing
 
 **Backend**: `python -m pytest tests/ -x -q` (currently ~353 tests, 95% coverage)
 **Frontend unit**: `cd ui && npx vitest run` (currently ~227 tests across 24 test files)
 **Frontend E2E**: `cd ui && npx playwright test` (currently ~30 tests)
 **Svelte type check**: `cd ui && npx svelte-check --tsconfig ./tsconfig.json`
-  - Known pre-existing error in `vite.config.ts` about `process` — ignore this
 
 ### Docker
 - Single multi-stage Dockerfile: Node builds SvelteKit → Python copies static + installs backend

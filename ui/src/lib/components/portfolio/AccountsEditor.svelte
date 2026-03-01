@@ -13,6 +13,8 @@
       TAX_CATEGORY_MAP,
    } from '$lib/types';
    import { validationErrors, formTouched } from '$lib/stores';
+   import { SvelteSet } from 'svelte/reactivity';
+   import { compactCurrency } from '$lib/format';
    import InfoPopover from '$lib/components/InfoPopover.svelte';
    import {
       ShieldCheck,
@@ -20,6 +22,8 @@
       TrendingUp,
       Banknote,
       RotateCcw,
+      Pencil,
+      Check,
    } from 'lucide-svelte';
    import { estimateTaxDrag } from '$lib/taxDrag';
    import TaxDragCalculator from './TaxDragCalculator.svelte';
@@ -31,6 +35,17 @@
       accounts: Account[];
       config?: SimulationConfig;
    } = $props();
+
+   let expandedIds = new SvelteSet<string>();
+
+   function toggleExpand(id: string) {
+      if (expandedIds.has(id)) expandedIds.delete(id);
+      else expandedIds.add(id);
+   }
+
+   function isExpanded(id: string): boolean {
+      return expandedIds.has(id);
+   }
 
    function ageToYear(age: number, owner: string): number {
       if (!config) return age;
@@ -56,10 +71,11 @@
       const num = nextId++;
       const type: AccountType = 'brokerage';
       const defaults = ACCOUNT_TYPE_DEFAULTS[type];
+      const id = `account_${num}`;
       accounts = [
          ...accounts,
          {
-            id: `account_${num}`,
+            id,
             name: `Account ${num}`,
             balance: 0,
             type,
@@ -68,10 +84,13 @@
             available_at_age: defaults.default_available_age,
          },
       ];
+      expandedIds.add(id);
    }
 
    function removeAccount(index: number) {
+      const id = accounts[index].id;
       accounts = accounts.filter((_, i) => i !== index);
+      expandedIds.delete(id);
    }
 
    function handleTypeChange(i: number, newType: AccountType) {
@@ -93,6 +112,16 @@
       return Object.keys($validationErrors).some((k) => k.startsWith(path));
    }
 
+   $effect(() => {
+      if (!$formTouched) return;
+      const errKeys = Object.keys($validationErrors);
+      for (let i = 0; i < accounts.length; i++) {
+         if (errKeys.some((k) => k.startsWith(`accounts.${i}.`))) {
+            expandedIds.add(accounts[i].id);
+         }
+      }
+   });
+
    function isCostBasisEditable(type: AccountType): boolean {
       return ACCOUNT_TYPE_DEFAULTS[type]?.editable ?? false;
    }
@@ -104,221 +133,323 @@
       if (cat === 'cash') return 'cash';
       return 'brokerage';
    }
+
+   function stockPct(account: Account): number | null {
+      if (account.stock_pct != null) return account.stock_pct;
+      return null;
+   }
+
+   function pieStyle(account: Account): string {
+      const pct = stockPct(account);
+      if (pct == null) return 'background: #9ca3af';
+      return `background: conic-gradient(#22c55e ${pct}%, #60a5fa ${pct}%)`;
+   }
+
+   function pieTooltip(account: Account): string {
+      const pct = stockPct(account);
+      if (pct == null) return 'Allocation unknown';
+      return `${pct}% stocks, ${100 - pct}% bonds`;
+   }
 </script>
 
 <div class="flex flex-col gap-1.5">
-   {#if accounts.length > 0}
-      <div
-         class="flex gap-2 items-end px-2 text-xs font-medium text-surface-500 dark:text-surface-400"
-      >
-         <span class="w-5"></span>
-         <span class="w-44">Name</span>
-         <span class="w-36">Type</span>
-         <span class="w-30">Balance</span>
-         <span class="w-30">Owner</span>
-         <span class="w-24"
-            ><span class="flex items-center gap-1"
-               >Basis, as % <InfoPopover
-                  text="The portion of the account that represents original contributions (not gains). Affects capital gains tax on brokerage withdrawals."
-               /></span
-            ></span
-         >
-         <span class="w-20"
-            ><span class="flex items-center gap-1"
-               >Stocks % <InfoPopover
-                  text="Percentage of equities vs bonds. Affects tax drag on brokerage accounts — stocks have ~0.22%/yr drag, bonds ~1.0%/yr."
-               /></span
-            ></span
-         >
-         <span class="w-24">{config ? 'Avail. Year' : 'Avail. Age'}</span>
-      </div>
-   {/if}
-   {#each accounts as account, i (i)}
-      {@const balanceError = hasError(`accounts.${i}.balance`)}
+   {#each accounts as account, i (account.id)}
+      {@const expanded = isExpanded(account.id)}
       {@const iconType = typeIcon(account.type)}
-      <div
-         class="flex gap-2 items-center p-2 bg-surface-100 dark:bg-surface-800 rounded flex-wrap"
-      >
-         <div class="w-5 flex items-center justify-center">
-            {#if iconType === 'pretax'}
-               <ShieldCheck size={18} class="text-blue-500" />
-            {:else if iconType === 'roth'}
-               <Sprout size={18} class="text-green-500" />
-            {:else if iconType === 'cash'}
-               <Banknote size={18} class="text-slate-500" />
-            {:else}
-               <TrendingUp size={18} class="text-amber-500" />
-            {/if}
-         </div>
-         <input
-            type="text"
-            class="input w-44"
-            bind:value={accounts[i].name}
-            onfocus={(e) => e.currentTarget.select()}
-            placeholder="Account name"
-            aria-label="Name"
-         />
-         <select
-            class="select w-36"
-            value={account.type}
-            aria-label="Type"
-            onchange={(e) =>
-               handleTypeChange(
-                  i,
-                  (e.target as HTMLSelectElement).value as AccountType,
-               )}
+      {@const balanceError = hasError(`accounts.${i}.balance`)}
+      {#if expanded}
+         <!-- Expanded card -->
+         <div
+            class="border border-surface-300 dark:border-surface-600 rounded p-3 bg-surface-50 dark:bg-surface-800 space-y-2"
          >
-            {#each EDITOR_ACCOUNT_TYPES as t (t)}
-               <option value={t}>{ACCOUNT_TYPE_LABELS[t]}</option>
-            {/each}
-         </select>
-         <input
-            type="number"
-            class="input w-30 no-spinner {balanceError
-               ? 'ring-2 ring-error-500 border-error-500'
-               : ''}"
-            bind:value={accounts[i].balance}
-            onfocus={(e) => e.currentTarget.select()}
-            min="0"
-            step="1000"
-            aria-label="Balance"
-         />
-         <select
-            class="select w-30"
-            value={account.owner}
-            aria-label="Owner"
-            onchange={(e) => {
-               accounts[i] = {
-                  ...account,
-                  owner: (e.target as HTMLSelectElement).value as Owner,
-               };
-               accounts = [...accounts];
-            }}
-         >
-            <option value="primary">Primary</option>
-            <option value="spouse">Spouse</option>
-            {#if !INDIVIDUAL_ONLY_TYPES.has(account.type)}
-               <option value="joint">Joint</option>
-            {/if}
-         </select>
-         <input
-            type="number"
-            class="input w-24 no-spinner"
-            value={Math.round((account.cost_basis_ratio ?? 0) * 100)}
-            onfocus={(e) => e.currentTarget.select()}
-            onchange={(e) => {
-               const pct = Math.max(
-                  0,
-                  Math.min(100, Number(e.currentTarget.value) || 0),
-               );
-               account.cost_basis_ratio = pct / 100;
-               e.currentTarget.value = String(pct);
-            }}
-            min="0"
-            max="100"
-            step="1"
-            aria-label="Basis, as %"
-            disabled={!isCostBasisEditable(account.type)}
-         />
-         <input
-            type="number"
-            class="input w-20 no-spinner"
-            value={account.stock_pct ??
-               ACCOUNT_TYPE_DEFAULTS[account.type].default_stock_pct}
-            onfocus={(e) => e.currentTarget.select()}
-            onchange={(e) => {
-               const pct = Math.max(
-                  0,
-                  Math.min(100, Math.round(Number(e.currentTarget.value) || 0)),
-               );
-               accounts[i] = { ...account, stock_pct: pct };
-               accounts = [...accounts];
-               e.currentTarget.value = String(pct);
-            }}
-            min="0"
-            max="100"
-            step="5"
-            aria-label="Stocks %"
-         />
-         {#if TAX_CATEGORY_MAP[account.type] === 'brokerage'}
-            <span
-               class="text-xs text-surface-500 dark:text-surface-400 whitespace-nowrap flex items-center gap-0.5"
-            >
-               {#if account.tax_drag_override != null}
-                  {(account.tax_drag_override * 100).toFixed(2)}% drag
-                  <button
-                     class="inline-flex items-center justify-center w-4 h-4 text-surface-400 hover:text-surface-600 dark:hover:text-surface-300"
-                     onclick={() => {
+            <div class="flex gap-2 items-center">
+               <div class="w-5 flex items-center justify-center">
+                  {#if iconType === 'pretax'}
+                     <ShieldCheck size={18} class="text-blue-500" />
+                  {:else if iconType === 'roth'}
+                     <Sprout size={18} class="text-green-500" />
+                  {:else if iconType === 'cash'}
+                     <Banknote size={18} class="text-slate-500" />
+                  {:else}
+                     <TrendingUp size={18} class="text-amber-500" />
+                  {/if}
+               </div>
+               <input
+                  type="text"
+                  class="input flex-1"
+                  bind:value={accounts[i].name}
+                  onfocus={(e) => e.currentTarget.select()}
+                  placeholder="Account name"
+                  aria-label="Name"
+               />
+               <button
+                  class="btn preset-tonal btn-sm"
+                  onclick={() => toggleExpand(account.id)}
+                  aria-label="Done editing"
+               >
+                  <Check size={14} />
+                  Done
+               </button>
+               <button
+                  class="btn preset-outlined btn-sm"
+                  onclick={() => removeAccount(i)}
+                  aria-label="Delete account"
+               >
+                  ✕
+               </button>
+            </div>
+            <div class="flex gap-4 flex-wrap items-end pl-7">
+               <label
+                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+               >
+                  Type
+                  <select
+                     class="select w-36"
+                     value={account.type}
+                     aria-label="Type"
+                     onchange={(e) =>
+                        handleTypeChange(
+                           i,
+                           (e.target as HTMLSelectElement).value as AccountType,
+                        )}
+                  >
+                     {#each EDITOR_ACCOUNT_TYPES as t (t)}
+                        <option value={t}>{ACCOUNT_TYPE_LABELS[t]}</option>
+                     {/each}
+                  </select>
+               </label>
+               <label
+                  class="flex flex-col gap-0.5 text-xs font-medium {balanceError
+                     ? 'text-error-600 dark:text-error-400'
+                     : 'text-surface-600 dark:text-surface-400'}"
+               >
+                  Balance
+                  <input
+                     type="number"
+                     class="input w-30 no-spinner {balanceError
+                        ? 'ring-2 ring-error-500 border-error-500'
+                        : ''}"
+                     bind:value={accounts[i].balance}
+                     onfocus={(e) => e.currentTarget.select()}
+                     min="0"
+                     step="1000"
+                     aria-label="Balance"
+                  />
+               </label>
+               <label
+                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+               >
+                  Owner
+                  <select
+                     class="select w-30"
+                     value={account.owner}
+                     aria-label="Owner"
+                     onchange={(e) => {
                         accounts[i] = {
                            ...account,
-                           tax_drag_override: undefined,
+                           owner: (e.target as HTMLSelectElement)
+                              .value as Owner,
                         };
                         accounts = [...accounts];
                      }}
-                     aria-label="Reset to estimate"
-                     type="button"
                   >
-                     <RotateCcw size={12} />
-                  </button>
-               {:else}
-                  ~{(
-                     estimateTaxDrag(
-                        account.stock_pct ??
-                           ACCOUNT_TYPE_DEFAULTS[account.type]
-                              .default_stock_pct,
-                     ) * 100
-                  ).toFixed(2)}% drag
-                  <TaxDragCalculator
-                     balance={account.balance}
-                     stateTaxRate={config?.tax_rate_state ?? 0.05}
-                     federalBrackets={config?.tax_brackets_federal ?? []}
-                     onapply={(drag) => {
-                        accounts[i] = { ...account, tax_drag_override: drag };
-                        accounts = [...accounts];
+                     <option value="primary">Primary</option>
+                     <option value="spouse">Spouse</option>
+                     {#if !INDIVIDUAL_ONLY_TYPES.has(account.type)}
+                        <option value="joint">Joint</option>
+                     {/if}
+                  </select>
+               </label>
+               <div
+                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+               >
+                  <span class="flex items-center gap-1"
+                     >Basis % <InfoPopover
+                        text="The portion of the account that represents original contributions (not gains). Affects capital gains tax on brokerage withdrawals."
+                     /></span
+                  >
+                  <input
+                     type="number"
+                     class="input w-24 no-spinner"
+                     value={Math.round((account.cost_basis_ratio ?? 0) * 100)}
+                     onfocus={(e) => e.currentTarget.select()}
+                     onchange={(e) => {
+                        const pct = Math.max(
+                           0,
+                           Math.min(100, Number(e.currentTarget.value) || 0),
+                        );
+                        account.cost_basis_ratio = pct / 100;
+                        e.currentTarget.value = String(pct);
                      }}
+                     min="0"
+                     max="100"
+                     step="1"
+                     aria-label="Basis, as %"
+                     disabled={!isCostBasisEditable(account.type)}
                   />
-               {/if}
-            </span>
-         {/if}
-         {#if config}
-            <div class="w-24">
-               <input
-                  type="number"
-                  class="input w-full no-spinner"
-                  value={account.available_at_age
-                     ? ageToYear(account.available_at_age, account.owner)
-                     : ''}
-                  onfocus={(e) => e.currentTarget.select()}
-                  onchange={(e) => {
-                     const v = e.currentTarget.value;
-                     account.available_at_age = v
-                        ? yearToAge(Number(v), account.owner)
-                        : 0;
-                  }}
-                  placeholder={String(config.start_year)}
-                  aria-label="Avail. Year"
-               />
-               {#if (account.available_at_age ?? 0) > 0}
-                  <span class="text-xs text-surface-400"
-                     >(age {account.available_at_age})</span
+               </div>
+               <div
+                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+               >
+                  <span class="flex items-center gap-1"
+                     >Stocks % <InfoPopover
+                        text="Percentage of equities vs bonds. Affects tax drag on brokerage accounts."
+                     /></span
                   >
+                  <input
+                     type="number"
+                     class="input w-20 no-spinner"
+                     value={account.stock_pct ??
+                        ACCOUNT_TYPE_DEFAULTS[account.type].default_stock_pct}
+                     onfocus={(e) => e.currentTarget.select()}
+                     onchange={(e) => {
+                        const pct = Math.max(
+                           0,
+                           Math.min(
+                              100,
+                              Math.round(Number(e.currentTarget.value) || 0),
+                           ),
+                        );
+                        accounts[i] = { ...account, stock_pct: pct };
+                        accounts = [...accounts];
+                        e.currentTarget.value = String(pct);
+                     }}
+                     min="0"
+                     max="100"
+                     step="5"
+                     aria-label="Stocks %"
+                  />
+               </div>
+               {#if TAX_CATEGORY_MAP[account.type] === 'brokerage'}
+                  <span
+                     class="text-xs text-surface-500 dark:text-surface-400 whitespace-nowrap flex items-center gap-0.5 self-end pb-1.5"
+                  >
+                     {#if account.tax_drag_override != null}
+                        {(account.tax_drag_override * 100).toFixed(2)}% drag
+                        <button
+                           class="inline-flex items-center justify-center w-4 h-4 text-surface-400 hover:text-surface-600 dark:hover:text-surface-300"
+                           onclick={() => {
+                              accounts[i] = {
+                                 ...account,
+                                 tax_drag_override: undefined,
+                              };
+                              accounts = [...accounts];
+                           }}
+                           aria-label="Reset to estimate"
+                           type="button"
+                        >
+                           <RotateCcw size={12} />
+                        </button>
+                     {:else}
+                        ~{(
+                           estimateTaxDrag(
+                              account.stock_pct ??
+                                 ACCOUNT_TYPE_DEFAULTS[account.type]
+                                    .default_stock_pct,
+                           ) * 100
+                        ).toFixed(2)}% drag
+                        <TaxDragCalculator
+                           balance={account.balance}
+                           stateTaxRate={config?.tax_rate_state ?? 0.05}
+                           federalBrackets={config?.tax_brackets_federal ?? []}
+                           onapply={(drag) => {
+                              accounts[i] = {
+                                 ...account,
+                                 tax_drag_override: drag,
+                              };
+                              accounts = [...accounts];
+                           }}
+                        />
+                     {/if}
+                  </span>
+               {/if}
+               {#if config}
+                  <label
+                     class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+                  >
+                     Avail. Year
+                     <div class="w-24">
+                        <input
+                           type="number"
+                           class="input w-full no-spinner"
+                           value={account.available_at_age
+                              ? ageToYear(
+                                   account.available_at_age,
+                                   account.owner,
+                                )
+                              : ''}
+                           onfocus={(e) => e.currentTarget.select()}
+                           onchange={(e) => {
+                              const v = e.currentTarget.value;
+                              account.available_at_age = v
+                                 ? yearToAge(Number(v), account.owner)
+                                 : 0;
+                           }}
+                           placeholder={String(config.start_year)}
+                           aria-label="Avail. Year"
+                        />
+                        {#if (account.available_at_age ?? 0) > 0}
+                           <span class="text-xs text-surface-400"
+                              >(age {account.available_at_age})</span
+                           >
+                        {/if}
+                     </div>
+                  </label>
+               {:else}
+                  <label
+                     class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+                  >
+                     Avail. Age
+                     <input
+                        type="number"
+                        class="input w-20 no-spinner"
+                        bind:value={accounts[i].available_at_age}
+                        onfocus={(e) => e.currentTarget.select()}
+                        min="0"
+                        aria-label="Avail. Age"
+                     />
+                  </label>
                {/if}
             </div>
-         {:else}
-            <input
-               type="number"
-               class="input w-20 no-spinner"
-               bind:value={accounts[i].available_at_age}
-               onfocus={(e) => e.currentTarget.select()}
-               min="0"
-               aria-label="Avail. Age"
-            />
-         {/if}
+         </div>
+      {:else}
+         <!-- Compact row -->
          <button
-            class="btn preset-outlined btn-sm"
-            onclick={() => removeAccount(i)}>✕</button
+            class="flex gap-2 items-center p-2 bg-surface-100 dark:bg-surface-800 rounded w-full text-left hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors cursor-pointer"
+            onclick={() => toggleExpand(account.id)}
+            aria-label="Edit {account.name}"
          >
-      </div>
+            <div class="w-5 flex items-center justify-center flex-shrink-0">
+               {#if iconType === 'pretax'}
+                  <ShieldCheck size={18} class="text-blue-500" />
+               {:else if iconType === 'roth'}
+                  <Sprout size={18} class="text-green-500" />
+               {:else if iconType === 'cash'}
+                  <Banknote size={18} class="text-slate-500" />
+               {:else}
+                  <TrendingUp size={18} class="text-amber-500" />
+               {/if}
+            </div>
+            <span class="flex-1 truncate font-medium text-sm"
+               >{account.name}</span
+            >
+            <span
+               class="text-xs text-surface-500 dark:text-surface-400 flex-shrink-0"
+               >{ACCOUNT_TYPE_LABELS[account.type]}</span
+            >
+            <span class="text-sm font-medium tabular-nums flex-shrink-0"
+               >{compactCurrency(account.balance)}</span
+            >
+            <div
+               class="w-5 h-5 rounded-full flex-shrink-0"
+               style={pieStyle(account)}
+               title={pieTooltip(account)}
+               role="img"
+               aria-label={pieTooltip(account)}
+            ></div>
+            <Pencil size={14} class="text-surface-400 flex-shrink-0" />
+         </button>
+      {/if}
    {/each}
    <button class="btn preset-tonal self-start" onclick={addAccount}
       >+ Add Account</button

@@ -182,7 +182,6 @@ describe('Settings Page', () => {
          await fireEvent.click(screen.getByText('Advanced Settings'));
          expect(screen.getByText('State/Local Tax %')).toBeInTheDocument();
          expect(screen.getByText(/RMD Age/)).toBeInTheDocument();
-         expect(screen.getByText(/IRMAA Limit/)).toBeInTheDocument();
          expect(screen.getByText(/MC Iterations/)).toBeInTheDocument();
       });
 
