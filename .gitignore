@@ -3,6 +3,7 @@
 # Various
 .docs/
 .accounts/
+.worktrees/
 ui/test-results/
 # Python
 __pycache__/
