@@ -152,8 +152,8 @@ describe('Wealthier Couple scenario', () => {
    const scenario = sampleScenarios['Wealthier Couple'];
 
    it('has named primary and spouse', () => {
-      expect(scenario.profile.primaryName).toBe('Sue');
-      expect(scenario.profile.spouseName).toBe('Steve');
+      expect(scenario.profile.primaryName).toBe('Alex');
+      expect(scenario.profile.spouseName).toBe('Sam');
    });
 
    it('has accounts for both spouses', () => {
