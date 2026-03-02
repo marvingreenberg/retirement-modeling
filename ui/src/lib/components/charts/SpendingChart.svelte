@@ -52,11 +52,10 @@
          (y) => y.spending_target + Math.max(0, y.total_tax - y.conversion_tax),
       );
 
-      // Stacked areas drawn top-to-bottom (highest order draws first as background).
-      // Cash Flow is the largest area drawn first, then conv tax, then taxes on top.
+      // Stacked areas: Spending at base, then conv tax, then income taxes on top.
       const stackedDatasets = [
          {
-            label: 'Cash Flow',
+            label: 'Spending',
             data: cashFlowData,
             borderColor: '#0e7490',
             backgroundColor: '#cffafe',
@@ -140,6 +139,7 @@
             plugins: {
                annotation: { annotations },
                tooltip: {
+                  filter: (item) => Math.round(item.parsed.y ?? 0) >= 100,
                   callbacks: {
                      title: (items) => {
                         const idx = items[0]?.dataIndex;
