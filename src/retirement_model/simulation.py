@@ -466,7 +466,8 @@ def run_simulation(
                     voluntary_pretax += result.amount_withdrawn
                     withdrawal_details.extend(_collect_details(result, "spending", account_names))
                     current_agi += result.amount_withdrawn
-                    remaining_spend = 0
+                    net_from_pretax = result.amount_withdrawn * (1 - est_tax_rate)
+                    remaining_spend = max(0, remaining_spend - net_from_pretax)
 
         # Roth conversion logic (from IRA-eligible accounts, any age)
         if conversion_ceiling > 0:

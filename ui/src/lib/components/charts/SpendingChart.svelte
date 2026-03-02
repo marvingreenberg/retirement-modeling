@@ -6,15 +6,7 @@
    import ChartEventOverlay from './ChartEventOverlay.svelte';
 
    function cashFlowForYear(y: YearResult): number {
-      const gross =
-         y.total_income +
-         y.rmd +
-         y.pretax_withdrawal +
-         y.roth_withdrawal +
-         y.brokerage_withdrawal -
-         (y.conversion_tax_from_brokerage ?? 0);
-      const spendingTax = y.total_tax - y.conversion_tax;
-      return gross - Math.max(0, spendingTax);
+      return y.spending_target + y.surplus;
    }
 
    let {

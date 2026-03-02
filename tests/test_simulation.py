@@ -5,6 +5,7 @@ import pytest
 from retirement_model.models import (
     Account,
     AccountType,
+    ConversionStrategy,
     ExcessIncomeRouting,
     IncomeKind,
     IncomeStream,
@@ -1162,13 +1163,16 @@ class TestTaxDragIntegration:
         """A brokerage-heavy split ends with less than an IRA-heavy split."""
         import copy
 
-        # Brokerage-heavy: 400k brokerage, 100k IRA
+        # Use no-conversion strategy to isolate tax drag effect
+        sample_portfolio.config.strategy_target = ConversionStrategy.STANDARD
+
+        # Brokerage-heavy: 2M brokerage, 500k IRA (large enough to not deplete)
         brk_heavy = copy.deepcopy(sample_portfolio)
         brk_heavy.accounts = [
             Account(
                 id="brk",
                 name="Brk",
-                balance=400000,
+                balance=2_000_000,
                 type=AccountType.BROKERAGE,
                 owner=Owner.JOINT,
                 cost_basis_ratio=0.5,
@@ -1177,19 +1181,19 @@ class TestTaxDragIntegration:
             Account(
                 id="ira",
                 name="IRA",
-                balance=100000,
+                balance=500_000,
                 type=AccountType.IRA,
                 owner=Owner.PRIMARY,
             ),
         ]
 
-        # IRA-heavy: 100k brokerage, 400k IRA
+        # IRA-heavy: 500k brokerage, 2M IRA
         ira_heavy = copy.deepcopy(sample_portfolio)
         ira_heavy.accounts = [
             Account(
                 id="brk",
                 name="Brk",
-                balance=100000,
+                balance=500_000,
                 type=AccountType.BROKERAGE,
                 owner=Owner.JOINT,
                 cost_basis_ratio=0.5,
@@ -1198,7 +1202,7 @@ class TestTaxDragIntegration:
             Account(
                 id="ira",
                 name="IRA",
-                balance=400000,
+                balance=2_000_000,
                 type=AccountType.IRA,
                 owner=Owner.PRIMARY,
             ),

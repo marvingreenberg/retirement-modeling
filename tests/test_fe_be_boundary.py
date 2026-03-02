@@ -256,8 +256,8 @@ class TestSocialSecurityAffectsResults:
         }
         r_legacy = _simulate(client, base_portfolio)
         r_auto = _simulate(client, with_auto)
-        # ss_auto generates adjusted benefits; different from legacy fixed amounts
-        assert r_legacy["summary"]["final_balance"] != r_auto["summary"]["final_balance"]
+        # ss_auto generates adjusted benefits; taxes differ from legacy fixed amounts
+        assert r_legacy["summary"]["total_taxes_paid"] != r_auto["summary"]["total_taxes_paid"]
 
 
 class TestIncomeStreamsAffectResults:
