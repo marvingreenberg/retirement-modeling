@@ -180,10 +180,6 @@ SPENDING_FIELD_USAGE: dict[SpendingStrategy, dict[str, list[str]]] = {
         "uses_fields": ["guardrails_config"],
         "ignores_fields": ["annual_spend_net", "withdrawal_rate"],
     },
-    SpendingStrategy.RMD_BASED: {
-        "uses_fields": [],
-        "ignores_fields": ["annual_spend_net", "withdrawal_rate", "guardrails_config"],
-    },
 }
 
 
@@ -199,8 +195,6 @@ def _get_spending_description(strategy: SpendingStrategy) -> str:
             return "Withdraw fixed percentage of current portfolio value"
         case SpendingStrategy.GUARDRAILS:
             return "Guyton-Klinger: adjust spending when withdrawal rate crosses thresholds"
-        case SpendingStrategy.RMD_BASED:
-            return "Withdraw based on RMD percentages from IRS tables"
 
 
 @router.post("/simulate", response_model=SimulationResponse)

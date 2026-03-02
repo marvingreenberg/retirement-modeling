@@ -191,7 +191,6 @@ class SpendingStrategy(str, Enum):
     FIXED_DOLLAR = "fixed_dollar"
     PERCENT_OF_PORTFOLIO = "percent_of_portfolio"
     GUARDRAILS = "guardrails"
-    RMD_BASED = "rmd_based"
 
 
 class IncomeKind(str, Enum):

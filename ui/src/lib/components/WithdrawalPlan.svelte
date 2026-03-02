@@ -45,11 +45,6 @@
             yr.pretax_withdrawal + yr.roth_withdrawal + yr.brokerage_withdrawal;
          return `${rate}% \u2192 ${currency(totalWD)} (target ${currency(yr.spending_target)})`;
       }
-      if (spendingStrategy === 'rmd_based') {
-         const totalWD =
-            yr.pretax_withdrawal + yr.roth_withdrawal + yr.brokerage_withdrawal;
-         return `RMD \u2192 ${currency(totalWD)} (target ${currency(yr.spending_target)})`;
-      }
       if (spendingStrategy === 'guardrails') {
          const totalWD =
             yr.pretax_withdrawal + yr.roth_withdrawal + yr.brokerage_withdrawal;

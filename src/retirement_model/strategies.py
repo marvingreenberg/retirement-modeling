@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 
-from retirement_model.constants import RMD_DIVISOR_TABLE
 from retirement_model.models import GuardrailsConfig, SpendingStrategy
 
 
@@ -14,16 +13,6 @@ class SpendingState:
     current_spending: float
     initial_balance: float
     guardrails_config: GuardrailsConfig | None = None
-
-
-def calculate_rmd_withdrawal_rate(age: int) -> float:
-    """Get the RMD withdrawal rate for a given age based on IRS tables."""
-    if age < 72:
-        return 0.0
-    divisor = RMD_DIVISOR_TABLE.get(age, 5.0)
-    if age > 120:
-        divisor = 2.0
-    return 1.0 / divisor
 
 
 def calculate_spending_target(
@@ -49,9 +38,6 @@ def calculate_spending_target(
 
         case SpendingStrategy.GUARDRAILS:
             return _guardrails_spending(year_idx, total_balance, inflation_rate, state)
-
-        case SpendingStrategy.RMD_BASED:
-            return _rmd_based_spending(age_primary, total_balance, state)
 
 
 def _fixed_dollar_spending(
@@ -110,25 +96,6 @@ def _guardrails_spending(
     else:
         spending = base_spending
 
-    state.current_spending = spending
-    return spending, state
-
-
-def _rmd_based_spending(
-    age_primary: int, total_balance: float, state: SpendingState
-) -> tuple[float, SpendingState]:
-    """
-    Withdraw based on RMD percentages applied to entire portfolio.
-
-    Uses the IRS Uniform Lifetime Table divisors as withdrawal rates.
-    Before RMD age, uses a conservative rate.
-    """
-    if age_primary < 72:
-        rate = 1.0 / 30.0
-    else:
-        rate = calculate_rmd_withdrawal_rate(age_primary)
-
-    spending = total_balance * rate
     state.current_spending = spending
     return spending, state
 

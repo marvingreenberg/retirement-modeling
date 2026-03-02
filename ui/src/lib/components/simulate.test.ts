@@ -30,7 +30,6 @@ describe('Snapshot name generation', () => {
          fixed_dollar: 'Fixed Dollar',
          percent_of_portfolio: '% of Portfolio',
          guardrails: 'Guardrails',
-         rmd_based: 'RMD-Based',
       };
       const conversionLabels: Record<string, string> = {
          standard: 'No Conversion',
