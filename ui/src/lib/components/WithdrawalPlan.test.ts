@@ -272,8 +272,8 @@ describe('WithdrawalPlan', () => {
          ],
       });
       render(WithdrawalPlan, { props: { years: [yr] } });
-      // Total withdrawals = 50000 + 8000 = 58000
-      expect(screen.getByText('$58,000')).toBeInTheDocument();
+      // Total withdrawals = 50000 + 8000 = 58000 (header + merged detail line)
+      expect(screen.getAllByText('$58,000').length).toBeGreaterThanOrEqual(1);
    });
 
    it('shows tax withdrawal accounts in Withdrawals section', () => {

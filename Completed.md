@@ -232,3 +232,21 @@ Chart annotations for income streams (SS start/end, pensions) and planned expens
 ## 103. Withdrawal Plan Display Enhancements
 
 WithdrawalPlan shows spending target, income breakdown by stream, RMD by account, spending withdrawals by account, Roth conversions, taxes (income tax, IRMAA, conversion tax), and net cash flow with shortfall indication. Strategy labels show target vs actual (e.g., "4.0% → $83K (target $105K)").
+
+---
+
+## Tax Drag Display & Calculator
+
+Per-account tax drag annotation in AccountsEditor showing estimated drag from stock/bond allocation formula. TaxDragCalculator popover lets users compute actual drag from 1099 data. Non-brokerage accounts excluded. Drag values stored per-account and used in simulation growth calculations.
+
+---
+
+## Explicit Tax Withdrawals
+
+Simulation now explicitly withdraws from accounts to pay income tax and IRMAA shortfalls, tracked in `withdrawal_details` with purpose `'tax'`. Conversion tax payments from brokerage also tracked. WithdrawalPlan Sources/Uses display uses real per-account withdrawal data instead of synthetic balancing. Balance equation: `Income + non-conversion withdrawals = spending + total_tax + surplus`.
+
+---
+
+## Remove RMD-Based Spending Strategy
+
+Removed `RMD_BASED` variant from `SpendingStrategy` enum and all references across backend (models, strategies, api, cli, output), frontend (types, schema, help, dropdowns, withdrawal plan), and tests. Mandatory RMD withdrawals from pretax accounts unchanged.

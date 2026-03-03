@@ -39,6 +39,21 @@
       return byPurpose(details, purpose).reduce((sum, d) => sum + d.amount, 0);
    }
 
+   function mergeByAccount(
+      entries: AccountWithdrawal[],
+   ): { account_id: string; account_name: string; amount: number }[] {
+      const map = new Map<
+         string,
+         { account_id: string; account_name: string; amount: number }
+      >();
+      for (const d of entries) {
+         const existing = map.get(d.account_id);
+         if (existing) existing.amount += d.amount;
+         else map.set(d.account_id, { ...d });
+      }
+      return [...map.values()];
+   }
+
    function ownerOf(accountId: string): string {
       return accounts.find((a) => a.id === accountId)?.owner ?? 'primary';
    }
@@ -124,15 +139,12 @@
       {#each planYears as yr (yr.year)}
          {@const rmdItems = rmdByPerson(yr.withdrawal_details)}
          {@const hasRmd = rmdItems.length > 0}
-         {@const spendingWDs = byPurpose(yr.withdrawal_details, 'spending')}
+         {@const cashWDs = mergeByAccount((yr.withdrawal_details ?? []).filter((d) => d.purpose === 'spending' || d.purpose === 'tax'))}
          {@const hasIncome = (yr.income_details ?? []).length > 0}
          {@const expenses = activeExpenses(yr)}
          {@const hasExpenses = yr.planned_expense > 0}
          {@const baseSpending = yr.spending_target - yr.planned_expense}
-         {@const taxWDs = byPurpose(yr.withdrawal_details, 'tax')}
-         {@const totalWithdrawals =
-            totalForPurpose(yr.withdrawal_details, 'spending') +
-            totalForPurpose(yr.withdrawal_details, 'tax')}
+         {@const totalWithdrawals = cashWDs.reduce((s, d) => s + d.amount, 0)}
          {@const hasWithdrawals = totalWithdrawals > 0}
          <div
             class="rounded-lg bg-surface-50 dark:bg-surface-700 p-3 space-y-2"
@@ -208,7 +220,7 @@
                         >
                         <span>{currency(totalWithdrawals)}</span>
                      </div>
-                     {#each [...spendingWDs, ...taxWDs] as d (d.account_name + d.purpose)}
+                     {#each cashWDs as d (d.account_id)}
                         <div
                            class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                         >
