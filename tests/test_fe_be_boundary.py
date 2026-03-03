@@ -122,14 +122,6 @@ class TestSpendingChangesAffectSimulation:
         assert guardrails["summary"]["spending_strategy"] == "guardrails"
         assert base["summary"]["final_balance"] != guardrails["summary"]["final_balance"]
 
-    def test_spending_strategy_rmd_based(self, client, base_portfolio):
-        rmd = _set_config(base_portfolio, "spending_strategy", "rmd_based")
-        rmd["config"]["current_age_primary"] = 74
-        rmd["config"]["simulation_years"] = 20
-        result = _simulate(client, rmd)
-        assert result["summary"]["spending_strategy"] == "rmd_based"
-        assert result["summary"]["final_balance"] >= 0
-
     def test_withdrawal_rate_changes_percent_strategy(self, client, base_portfolio):
         low = copy.deepcopy(base_portfolio)
         low["config"]["spending_strategy"] = "percent_of_portfolio"

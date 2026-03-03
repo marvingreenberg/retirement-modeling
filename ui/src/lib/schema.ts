@@ -24,7 +24,6 @@ export const spendingStrategySchema = z.enum([
    'fixed_dollar',
    'percent_of_portfolio',
    'guardrails',
-   'rmd_based',
 ]);
 
 export const incomeKindSchema = z.enum([

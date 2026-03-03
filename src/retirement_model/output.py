@@ -40,8 +40,6 @@ def get_spending_strategy_description(strategy: SpendingStrategy) -> str:
             return "Percent of Portfolio"
         case SpendingStrategy.GUARDRAILS:
             return "Guardrails (Guyton-Klinger)"
-        case SpendingStrategy.RMD_BASED:
-            return "RMD-Based"
         case _:
             return str(strategy.value)
 

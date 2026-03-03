@@ -5,27 +5,9 @@ import pytest
 from retirement_model.models import GuardrailsConfig, SpendingStrategy
 from retirement_model.strategies import (
     SpendingState,
-    calculate_rmd_withdrawal_rate,
     calculate_spending_target,
     create_initial_state,
 )
-
-
-class TestCalculateRmdWithdrawalRate:
-    def test_before_rmd_age(self):
-        assert calculate_rmd_withdrawal_rate(70) == 0.0
-
-    def test_at_age_72(self):
-        rate = calculate_rmd_withdrawal_rate(72)
-        assert rate == pytest.approx(1 / 27.4, rel=0.01)
-
-    def test_at_age_80(self):
-        rate = calculate_rmd_withdrawal_rate(80)
-        assert rate == pytest.approx(1 / 20.2, rel=0.01)
-
-    def test_very_old(self):
-        rate = calculate_rmd_withdrawal_rate(125)
-        assert rate == pytest.approx(0.5, rel=0.01)
 
 
 class TestCreateInitialState:
@@ -193,35 +175,6 @@ class TestGuardrailsSpending:
         )
         # Should increase by 10%
         assert spending > 103000
-
-
-class TestRmdBasedSpending:
-    def test_before_rmd_age(self):
-        state = create_initial_state(100000, 2000000)
-        spending, _ = calculate_spending_target(
-            SpendingStrategy.RMD_BASED, 0, 2000000, 65, 0.03, state
-        )
-        # Uses conservative rate of 1/30
-        assert spending == pytest.approx(2000000 / 30, rel=0.01)
-
-    def test_at_rmd_age(self):
-        state = create_initial_state(100000, 2000000)
-        spending, _ = calculate_spending_target(
-            SpendingStrategy.RMD_BASED, 0, 2000000, 75, 0.03, state
-        )
-        # Uses RMD divisor of 24.6 for age 75
-        assert spending == pytest.approx(2000000 / 24.6, rel=0.01)
-
-    def test_increases_with_age(self):
-        state = create_initial_state(100000, 2000000)
-        spending_75, _ = calculate_spending_target(
-            SpendingStrategy.RMD_BASED, 0, 2000000, 75, 0.03, state
-        )
-        spending_85, _ = calculate_spending_target(
-            SpendingStrategy.RMD_BASED, 0, 2000000, 85, 0.03, state
-        )
-        # Spending should increase with age (lower divisor)
-        assert spending_85 > spending_75
 
 
 class TestSpendingState:

@@ -30,8 +30,7 @@ export const helpTopics: HelpTopic[] = [
 <h4 class="font-semibold">Guardrails (Guyton-Klinger)</h4>
 <p>Starts with an initial withdrawal rate applied to the portfolio balance, then adjusts spending up or down when the current withdrawal rate drifts beyond configurable floor/ceiling bands (default ±20% of the initial rate). Adjustments are ±10% of current spending. This provides more stability than pure percent-of-portfolio while still responding to market conditions.</p>
 
-<h4 class="font-semibold">RMD-Based</h4>
-<p>Withdraws based on IRS Required Minimum Distribution divisor tables, applied to the full portfolio (not just pre-tax accounts). Before age 72, uses a conservative 1/30 rate (~3.3%). After 72, uses the IRS Uniform Lifetime Table divisors which increase the withdrawal rate with age. You mathematically cannot outlive your money with this strategy, but income varies significantly.</p>`,
+`,
    },
    {
       id: 'ss-benefit',

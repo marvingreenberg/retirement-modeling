@@ -158,8 +158,7 @@ export type ConversionStrategy =
 export type SpendingStrategy =
    | 'fixed_dollar'
    | 'percent_of_portfolio'
-   | 'guardrails'
-   | 'rmd_based';
+   | 'guardrails';
 
 export type IncomeKind =
    | 'employment'

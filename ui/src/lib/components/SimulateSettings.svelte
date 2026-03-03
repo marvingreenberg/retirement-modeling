@@ -245,7 +245,6 @@
                      <option value="percent_of_portfolio">% of Portfolio</option
                      >
                      <option value="guardrails">Guardrails</option>
-                     <option value="rmd_based">RMD-Based</option>
                   </select>
                </label>
                <label
@@ -285,7 +284,6 @@
                      <option value="percent_of_portfolio">% of Portfolio</option
                      >
                      <option value="guardrails">Guardrails</option>
-                     <option value="rmd_based">RMD-Based</option>
                   </select>
                </label>
                <label
@@ -379,7 +377,6 @@
                      <option value="percent_of_portfolio">% of Portfolio</option
                      >
                      <option value="guardrails">Guardrails</option>
-                     <option value="rmd_based">RMD-Based</option>
                   </select>
                </label>
             </div>

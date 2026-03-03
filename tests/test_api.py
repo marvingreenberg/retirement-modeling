@@ -106,7 +106,6 @@ class TestStrategiesEndpoint:
         assert by_value["fixed_dollar"]["uses_fields"] == ["annual_spend_net"]
         assert by_value["percent_of_portfolio"]["uses_fields"] == ["withdrawal_rate"]
         assert by_value["guardrails"]["uses_fields"] == ["guardrails_config"]
-        assert by_value["rmd_based"]["uses_fields"] == []
 
 
 class TestSimulateEndpoint:

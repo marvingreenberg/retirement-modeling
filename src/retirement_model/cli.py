@@ -216,8 +216,6 @@ def strategies() -> None:
                 desc = "Withdraw fixed percentage of current portfolio value"
             case SpendingStrategy.GUARDRAILS:
                 desc = "Guyton-Klinger: adjust spending when withdrawal rate crosses thresholds"
-            case SpendingStrategy.RMD_BASED:
-                desc = "Withdraw based on RMD percentages from IRS tables"
         click.echo(f"  {spend_strat.value}")
         click.echo(f"    {desc}")
         click.echo()
