@@ -56,7 +56,7 @@
       const convTaxData = years.map((y) => y.conversion_tax);
       const surplusData = years.map((y) => y.surplus);
 
-      // Bottom to top: spending, expenses, surplus, then taxes on top
+      // Bottom to top: spending, expenses, income tax, conv tax, IRMAA, surplus
       const stackedDatasets = [
          {
             label: 'Spending',
@@ -75,19 +75,11 @@
             ...areaStyle,
          },
          {
-            label: 'Surplus \u2192 Reinvested',
-            data: surplusData,
-            borderColor: '#15803d',
-            backgroundColor: '#bbf7d0',
-            order: 4,
-            ...areaStyle,
-         },
-         {
             label: 'Income Tax',
             data: incomeTaxData,
             borderColor: '#404040',
             backgroundColor: '#a3a3a3',
-            order: 3,
+            order: 4,
             ...areaStyle,
          },
          {
@@ -95,7 +87,7 @@
             data: convTaxData,
             borderColor: '#c2410c',
             backgroundColor: '#fed7aa',
-            order: 2,
+            order: 3,
             ...areaStyle,
          },
          {
@@ -103,6 +95,14 @@
             data: irmaaData,
             borderColor: '#b45309',
             backgroundColor: '#fde68a',
+            order: 2,
+            ...areaStyle,
+         },
+         {
+            label: 'Surplus \u2192 Reinvested',
+            data: surplusData,
+            borderColor: '#15803d',
+            backgroundColor: '#bbf7d0',
             order: 1,
             ...areaStyle,
          },
@@ -125,7 +125,8 @@
            ]
          : [];
 
-      const datasets = [...stackedDatasets, ...lineDatasets];
+      // Line first for legend ordering (Desired Spending at top of key)
+      const datasets = [...lineDatasets, ...stackedDatasets];
 
       // Retirement marker annotation
       const retirementYear =
