@@ -30,6 +30,20 @@
    let chartEvents: ChartEvent[] = $derived(
       config ? buildChartEvents(config) : [],
    );
+   let desiredSpending: number[] = $derived.by(() => {
+      if (
+         !config ||
+         !singleResult ||
+         config.spending_strategy === 'fixed_dollar'
+      )
+         return [];
+      const base = config.annual_spend_net ?? 0;
+      const inf = config.inflation_rate ?? 0.03;
+      return singleResult.result.years.map((y, i) => {
+         const inflated = base * Math.pow(1 + inf, i);
+         return inflated + y.planned_expense;
+      });
+   });
 </script>
 
 <div class="space-y-4">
@@ -181,6 +195,7 @@
             startAge={config?.current_age_primary ?? 0}
             startYear={config?.start_year ?? 0}
             events={chartEvents}
+            {desiredSpending}
          />
       {:else}
          <div class="flex flex-col items-center justify-center py-16 gap-3">

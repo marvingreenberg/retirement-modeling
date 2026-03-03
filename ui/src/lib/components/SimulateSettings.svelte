@@ -6,6 +6,7 @@
       markFormTouched,
    } from '$lib/stores';
    import { hasPretaxAccounts } from '$lib/types';
+   import { currency } from '$lib/format';
    import InfoPopover from './InfoPopover.svelte';
    import WithdrawalOrderEditor from './settings/WithdrawalOrderEditor.svelte';
 
@@ -74,6 +75,35 @@
       }
       return 'RMD-Based';
    }
+
+   let strategyDiagnostic = $derived.by(() => {
+      const c = $portfolio.config;
+      const s = c.spending_strategy ?? 'fixed_dollar';
+      if (s === 'fixed_dollar') return null;
+      const totalBalance = $portfolio.accounts.reduce(
+         (sum, a) => sum + a.balance,
+         0,
+      );
+      const desired = c.annual_spend_net ?? 0;
+      if (desired <= 0 || totalBalance <= 0) return null;
+      let rate: number;
+      if (s === 'percent_of_portfolio') rate = c.withdrawal_rate ?? 0.04;
+      else if (s === 'guardrails' && c.guardrails_config)
+         rate = c.guardrails_config.initial_withdrawal_rate;
+      else return null;
+      const strategySpend = totalBalance * rate;
+      if (strategySpend > desired * 1.05)
+         return {
+            text: `Rate supports ~${currency(strategySpend)}/yr (above ${currency(desired)} desired)`,
+            warn: false,
+         };
+      if (strategySpend < desired * 0.95)
+         return {
+            text: `Rate only supports ~${currency(strategySpend)}/yr (below ${currency(desired)} desired)`,
+            warn: true,
+         };
+      return null;
+   });
 
    let showConversion = $derived(hasPretaxAccounts($portfolio.accounts));
 
@@ -352,6 +382,15 @@
                      <option value="rmd_based">RMD-Based</option>
                   </select>
                </label>
+            </div>
+         {/if}
+         {#if strategyDiagnostic}
+            <div
+               class="text-xs {strategyDiagnostic.warn
+                  ? 'text-warning-600 dark:text-warning-400'
+                  : 'text-surface-500 dark:text-surface-400'}"
+            >
+               {strategyDiagnostic.text}
             </div>
          {/if}
          <WithdrawalOrderEditor

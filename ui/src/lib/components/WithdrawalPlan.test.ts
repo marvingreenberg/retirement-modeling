@@ -1,7 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import WithdrawalPlan from './WithdrawalPlan.svelte';
 import type { YearResult } from '$lib/types';
+import {
+   portfolio,
+   profile,
+   samplePortfolio,
+   defaultProfile,
+} from '$lib/stores';
 
 function makeYear(overrides: Partial<YearResult> = {}): YearResult {
    return {
@@ -36,23 +42,41 @@ function makeYear(overrides: Partial<YearResult> = {}): YearResult {
 }
 
 describe('WithdrawalPlan', () => {
+   beforeEach(() => {
+      profile.set({ primaryName: 'Alex', spouseName: 'Sam' });
+      portfolio.set(structuredClone(samplePortfolio));
+   });
+
    it('renders heading', () => {
       render(WithdrawalPlan, { props: { years: [makeYear()] } });
       expect(screen.getByText('Withdrawal Plan')).toBeTruthy();
    });
 
-   it('shows year and age', () => {
+   it('shows year and both names with ages', () => {
+      render(WithdrawalPlan, {
+         props: {
+            years: [makeYear({ year: 2027, age_primary: 66, age_spouse: 63 })],
+         },
+      });
+      expect(screen.getByText(/2027/)).toBeTruthy();
+      expect(screen.getByText(/Alex 66/)).toBeTruthy();
+      expect(screen.getByText(/Sam 63/)).toBeTruthy();
+   });
+
+   it('shows single person header when no spouse', () => {
+      profile.set({ primaryName: 'Alex', spouseName: '' });
       render(WithdrawalPlan, {
          props: { years: [makeYear({ year: 2027, age_primary: 66 })] },
       });
-      expect(screen.getByText(/2027/)).toBeTruthy();
-      expect(screen.getByText(/Age 66/)).toBeTruthy();
+      expect(screen.getByText(/Alex 66/)).toBeTruthy();
+      expect(screen.queryByText(/Sam/)).toBeNull();
    });
 
-   it('shows spending target', () => {
+   it('shows spending in uses section', () => {
       render(WithdrawalPlan, {
          props: { years: [makeYear({ spending_target: 100000 })] },
       });
+      expect(screen.getByText('Spending')).toBeTruthy();
       expect(screen.getByText('$100,000')).toBeTruthy();
    });
 
@@ -76,7 +100,7 @@ describe('WithdrawalPlan', () => {
       expect(screen.queryByText(/2028/)).toBeNull();
    });
 
-   it('shows RMD section with per-account details', () => {
+   it('shows RMD section with per-person totals', () => {
       const yr = makeYear({
          rmd: 20000,
          withdrawal_details: [
@@ -90,8 +114,6 @@ describe('WithdrawalPlan', () => {
       });
       render(WithdrawalPlan, { props: { years: [yr] } });
       expect(screen.getByText('RMD')).toBeTruthy();
-      expect(screen.getByText('Primary IRA')).toBeTruthy();
-      // $20,000 appears in both the RMD total and the per-account row
       expect(screen.getAllByText('$20,000').length).toBeGreaterThanOrEqual(1);
    });
 
@@ -111,6 +133,28 @@ describe('WithdrawalPlan', () => {
       expect(screen.getByText('Brokerage')).toBeTruthy();
    });
 
+   it('labels withdrawals as Additional when RMD present', () => {
+      const yr = makeYear({
+         rmd: 10000,
+         withdrawal_details: [
+            {
+               account_id: 'ira1',
+               account_name: 'IRA',
+               amount: 10000,
+               purpose: 'rmd',
+            },
+            {
+               account_id: 'brok',
+               account_name: 'Brokerage',
+               amount: 50000,
+               purpose: 'spending',
+            },
+         ],
+      });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(screen.getByText('Additional Withdrawals')).toBeTruthy();
+   });
+
    it('shows Roth conversion with per-account details', () => {
       const yr = makeYear({
          roth_conversion: 80000,
@@ -128,6 +172,13 @@ describe('WithdrawalPlan', () => {
       expect(screen.getByText('Main IRA')).toBeTruthy();
    });
 
+   it('shows No Roth Conversion when none', () => {
+      render(WithdrawalPlan, {
+         props: { years: [makeYear({ roth_conversion: 0 })] },
+      });
+      expect(screen.getByText('No Roth Conversion')).toBeTruthy();
+   });
+
    it('shows taxes section', () => {
       render(WithdrawalPlan, {
          props: { years: [makeYear({ total_tax: 15000 })] },
@@ -140,47 +191,37 @@ describe('WithdrawalPlan', () => {
       render(WithdrawalPlan, {
          props: { years: [makeYear({ irmaa_cost: 2400 })] },
       });
-      expect(screen.getByText('IRMAA Surcharge')).toBeTruthy();
+      expect(screen.getByText('IRMAA')).toBeTruthy();
    });
 
    it('hides IRMAA when zero', () => {
       render(WithdrawalPlan, {
          props: { years: [makeYear({ irmaa_cost: 0 })] },
       });
-      expect(screen.queryByText('IRMAA Surcharge')).toBeNull();
+      expect(screen.queryByText('IRMAA')).toBeNull();
    });
 
-   it('shows surplus when income exceeds spending', () => {
+   it('shows surplus as reinvested', () => {
       render(WithdrawalPlan, {
          props: { years: [makeYear({ surplus: 5000 })] },
       });
-      expect(screen.getByText('Income Surplus')).toBeTruthy();
+      expect(screen.getByText(/Surplus/)).toBeTruthy();
+      expect(screen.getByText(/Reinvested/)).toBeTruthy();
    });
 
    it('shows strategy label for fixed_dollar', () => {
-      const yr = makeYear({ conversion_tax: 0 });
+      const yr = makeYear({ spending_target: 80000, planned_expense: 0 });
       render(WithdrawalPlan, {
          props: { years: [yr], spendingStrategy: 'fixed_dollar' },
       });
-      expect(screen.getByText('Fixed Cash Flow + tax')).toBeInTheDocument();
+      expect(screen.getByText(/Fixed \$80,000/)).toBeInTheDocument();
    });
 
-   it('shows strategy label with conv tax suffix', () => {
-      const yr = makeYear({ conversion_tax: 5000 });
-      render(WithdrawalPlan, {
-         props: { years: [yr], spendingStrategy: 'fixed_dollar' },
-      });
-      expect(
-         screen.getByText('Fixed Cash Flow + tax + conv tax'),
-      ).toBeInTheDocument();
-   });
-
-   it('shows strategy label for percent_of_portfolio', () => {
+   it('shows strategy label for percent_of_portfolio with desired', () => {
       const yr = makeYear({
-         pretax_withdrawal: 30000,
-         roth_withdrawal: 10000,
-         brokerage_withdrawal: 10000,
          spending_target: 80000,
+         planned_expense: 0,
+         total_balance: 2000000,
       });
       render(WithdrawalPlan, {
          props: {
@@ -190,7 +231,7 @@ describe('WithdrawalPlan', () => {
          },
       });
       expect(screen.getByText(/4%/)).toBeInTheDocument();
-      expect(screen.getByText(/\$50,000/)).toBeInTheDocument();
+      expect(screen.getByText(/desired/)).toBeInTheDocument();
    });
 
    it('shows income tax breakdown when IRMAA or conv tax present', () => {
@@ -202,15 +243,19 @@ describe('WithdrawalPlan', () => {
       });
       render(WithdrawalPlan, { props: { years: [yr] } });
       expect(screen.getByText('Income Tax')).toBeInTheDocument();
-      expect(screen.getByText('IRMAA Surcharge')).toBeInTheDocument();
+      expect(screen.getByText('IRMAA')).toBeInTheDocument();
       expect(screen.getByText('Conversion Tax')).toBeInTheDocument();
    });
 
-   it('shows net cash flow', () => {
+   it('shows italic placeholders for missing sources', () => {
+      const yr = makeYear({ rmd: 0, total_income: 0, withdrawal_details: [] });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(screen.getByText(/No RMD/)).toBeInTheDocument();
+      expect(screen.getByText(/No Income/)).toBeInTheDocument();
+   });
+
+   it('includes tax withdrawals in Withdrawals total', () => {
       const yr = makeYear({
-         total_income: 30000,
-         total_tax: 12000,
-         rmd: 0,
          withdrawal_details: [
             {
                account_id: 'brok',
@@ -218,11 +263,56 @@ describe('WithdrawalPlan', () => {
                amount: 50000,
                purpose: 'spending',
             },
+            {
+               account_id: 'brok',
+               account_name: 'Brokerage',
+               amount: 8000,
+               purpose: 'tax',
+            },
          ],
       });
       render(WithdrawalPlan, { props: { years: [yr] } });
-      expect(screen.getByText('Net Cash Flow')).toBeInTheDocument();
-      // net = 30000 + 50000 + 0 - 12000 = 68000
-      expect(screen.getByText('$68,000')).toBeInTheDocument();
+      // Total withdrawals = 50000 + 8000 = 58000
+      expect(screen.getByText('$58,000')).toBeInTheDocument();
+   });
+
+   it('shows tax withdrawal accounts in Withdrawals section', () => {
+      const yr = makeYear({
+         withdrawal_details: [
+            {
+               account_id: 'roth1',
+               account_name: 'Roth IRA',
+               amount: 30000,
+               purpose: 'spending',
+            },
+            {
+               account_id: 'brok',
+               account_name: 'Brokerage',
+               amount: 5000,
+               purpose: 'tax',
+            },
+         ],
+      });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(screen.getByText('Roth IRA')).toBeInTheDocument();
+      expect(screen.getByText('Brokerage')).toBeInTheDocument();
+   });
+
+   it('shows planned expenses when present', () => {
+      const p = structuredClone(samplePortfolio);
+      p.config.planned_expenses = [
+         {
+            name: 'Kitchen',
+            amount: 25000,
+            expense_type: 'one_time',
+            year: 2026,
+            inflation_adjusted: false,
+         },
+      ];
+      portfolio.set(p);
+      const yr = makeYear({ planned_expense: 25000, spending_target: 105000 });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(screen.getByText('Planned Expenses')).toBeInTheDocument();
+      expect(screen.getByText('Kitchen')).toBeInTheDocument();
    });
 });

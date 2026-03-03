@@ -276,7 +276,7 @@ export interface AccountWithdrawal {
    account_id: string;
    account_name: string;
    amount: number;
-   purpose: 'rmd' | 'spending' | 'conversion';
+   purpose: 'rmd' | 'spending' | 'conversion' | 'tax';
 }
 
 export interface IncomeDetail {

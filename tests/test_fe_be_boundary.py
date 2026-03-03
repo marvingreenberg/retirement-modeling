@@ -228,8 +228,10 @@ class TestSocialSecurityAffectsResults:
 
     def test_higher_ss_benefit(self, client, base_portfolio):
         low_ss = copy.deepcopy(base_portfolio)
+        low_ss["config"]["annual_spend_net"] = 60000
         low_ss["config"]["social_security"]["primary_benefit"] = 20000
         high_ss = copy.deepcopy(base_portfolio)
+        high_ss["config"]["annual_spend_net"] = 60000
         high_ss["config"]["social_security"]["primary_benefit"] = 48000
         r_low = _simulate(client, low_ss)
         r_high = _simulate(client, high_ss)
@@ -237,8 +239,10 @@ class TestSocialSecurityAffectsResults:
 
     def test_earlier_ss_start_age(self, client, base_portfolio):
         early = copy.deepcopy(base_portfolio)
+        early["config"]["annual_spend_net"] = 60000
         early["config"]["social_security"]["primary_start_age"] = 62
         late = copy.deepcopy(base_portfolio)
+        late["config"]["annual_spend_net"] = 60000
         late["config"]["social_security"]["primary_start_age"] = 70
         r_early = _simulate(client, early)
         r_late = _simulate(client, late)
@@ -498,3 +502,41 @@ class TestEdgeCaseInputs:
     def test_invalid_portfolio_returns_error(self, client):
         resp = client.post("/api/v1/simulate", json={"portfolio": {"config": {}, "accounts": []}})
         assert resp.status_code == 422
+
+
+class TestWithdrawalDetailsSumBalance:
+    """Withdrawal details (sources) should roughly balance with uses."""
+
+    def test_sources_approximate_uses(self, client, base_portfolio):
+        """Cash sources ~ cash uses each year.
+
+        Sources: income + non-conversion withdrawals.
+        Uses: spending + total_tax + surplus.
+        """
+        base_portfolio["config"]["annual_spend_net"] = 60000
+        result = _simulate(client, base_portfolio)
+        for yr in result["result"]["years"]:
+            if yr["total_balance"] <= 0:
+                break
+            details = yr.get("withdrawal_details", [])
+            non_conv_withdrawn = sum(d["amount"] for d in details if d["purpose"] != "conversion")
+            total_sources = yr["total_income"] + non_conv_withdrawn
+            total_uses = yr["spending_target"] + yr["total_tax"] + yr["surplus"]
+            gap = abs(total_sources - total_uses)
+            assert (
+                gap < 500
+            ), f"Year {yr['year']}: sources={total_sources}, uses={total_uses}, gap={gap}"
+
+    def test_tax_purpose_withdrawals_exist_when_taxes_positive(self, client, base_portfolio):
+        """Years with positive taxes should have 'tax' purpose withdrawal entries."""
+        result = _simulate(client, base_portfolio)
+        years_with_tax = [yr for yr in result["result"]["years"] if yr["total_tax"] > 1000]
+        assert len(years_with_tax) > 0, "Expected some years with significant taxes"
+        years_with_tax_details = [
+            yr
+            for yr in years_with_tax
+            if any(d["purpose"] == "tax" for d in yr.get("withdrawal_details", []))
+        ]
+        assert (
+            len(years_with_tax_details) > 0
+        ), "Expected tax-purpose withdrawals in years with significant taxes"
