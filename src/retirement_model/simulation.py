@@ -502,6 +502,8 @@ def run_simulation(
                     )
                     brokerage_withdrawn += total_tax_withdrawn
                     conversion_tax_from_brokerage += total_tax_withdrawn
+                    withdrawal_details.extend(_collect_details(tax_from_cash, "tax", account_names))
+                    withdrawal_details.extend(_collect_details(tax_result, "tax", account_names))
 
                     # AGI impact from brokerage gains (cash has no gains)
                     tax_gains = tax_result.amount_withdrawn * (1 - tax_result.average_basis_ratio)
@@ -548,6 +550,49 @@ def run_simulation(
         income_tax = calculate_income_tax(taxable_income, adj_fed_brackets, cfg.tax_rate_state)
         irmaa_cost = calculate_irmaa_cost(current_agi, adj_irmaa_tiers)
         total_tax = income_tax + brokerage_gains_tax + irmaa_cost
+
+        # Withdraw for tax shortfall: actual tax minus amounts already covered.
+        # - Income/RMD/pretax withholding: deducted from cash_in_hand or grossed up
+        # - conversion_tax_from_brokerage: explicitly paid from brokerage during conversions
+        # - brokerage_gains_tax: embedded in basis-ratio accounting
+        estimated_withholding = (
+            ss_taxable + stream_taxable + rmd_withdrawn + voluntary_pretax
+        ) * est_tax_rate + brokerage_gains_tax
+        tax_shortfall = max(
+            0, income_tax + irmaa_cost - estimated_withholding - conversion_tax_from_brokerage
+        )
+        if tax_shortfall > 1.0:
+            for cat in cfg.withdrawal_order:
+                if tax_shortfall <= 1.0:
+                    break
+                if cat == WithdrawalCategory.CASH:
+                    result = withdraw_from_accounts(
+                        tax_shortfall, accounts, TaxCategory.CASH, age_map
+                    )
+                    brokerage_withdrawn += result.amount_withdrawn
+                    withdrawal_details.extend(_collect_details(result, "tax", account_names))
+                    tax_shortfall -= result.amount_withdrawn
+                elif cat == WithdrawalCategory.BROKERAGE:
+                    result = withdraw_from_accounts(
+                        tax_shortfall, accounts, TaxCategory.BROKERAGE, age_map
+                    )
+                    brokerage_withdrawn += result.amount_withdrawn
+                    withdrawal_details.extend(_collect_details(result, "tax", account_names))
+                    tax_shortfall -= result.amount_withdrawn
+                elif cat == WithdrawalCategory.ROTH:
+                    result = withdraw_from_accounts(
+                        tax_shortfall, accounts, TaxCategory.ROTH, age_map
+                    )
+                    roth_withdrawn += result.amount_withdrawn
+                    withdrawal_details.extend(_collect_details(result, "tax", account_names))
+                    tax_shortfall -= result.amount_withdrawn
+                elif cat == WithdrawalCategory.PRETAX:
+                    result = withdraw_from_accounts(
+                        tax_shortfall, accounts, TaxCategory.PRETAX, age_map
+                    )
+                    voluntary_pretax += result.amount_withdrawn
+                    withdrawal_details.extend(_collect_details(result, "tax", account_names))
+                    tax_shortfall -= result.amount_withdrawn
 
         # Apply growth and get balances
         total_balance = apply_growth(accounts, year_return)

@@ -387,7 +387,7 @@ class AccountWithdrawal(BaseModel):
     account_id: str
     account_name: str
     amount: float
-    purpose: str  # "rmd", "spending", "conversion"
+    purpose: str  # "rmd", "spending", "conversion", "tax"
 
 
 class IncomeDetail(BaseModel):

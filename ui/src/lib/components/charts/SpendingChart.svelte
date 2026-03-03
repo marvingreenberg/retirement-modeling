@@ -5,8 +5,8 @@
    import type { YearResult, ChartEvent } from '$lib/types';
    import ChartEventOverlay from './ChartEventOverlay.svelte';
 
-   function cashFlowForYear(y: YearResult): number {
-      return y.spending_target + y.surplus;
+   function totalAvailableForYear(y: YearResult): number {
+      return y.spending_target + y.surplus + y.total_tax + y.irmaa_cost;
    }
 
    let {
@@ -15,12 +15,14 @@
       startAge = 0,
       startYear = 0,
       events = [],
+      desiredSpending = [],
    }: {
       years: YearResult[];
       retirementAge?: number | null;
       startAge?: number;
       startYear?: number;
       events?: ChartEvent[];
+      desiredSpending?: number[];
    } = $props();
    let canvas: HTMLCanvasElement;
    let chart: Chart | undefined = $state();
@@ -43,22 +45,48 @@
          stack: 'spending',
       };
 
-      const taxData = years.map((y) =>
-         Math.max(0, y.total_tax - y.conversion_tax),
+      const baseSpendingData = years.map(
+         (y) => y.spending_target - y.planned_expense,
       );
+      const expenseData = years.map((y) => y.planned_expense);
+      const incomeTaxData = years.map((y) =>
+         Math.max(0, y.total_tax - y.conversion_tax - y.irmaa_cost),
+      );
+      const irmaaData = years.map((y) => y.irmaa_cost);
       const convTaxData = years.map((y) => y.conversion_tax);
-      const cashFlowData = years.map(cashFlowForYear);
-      const budgetPlusTax = years.map(
-         (y) => y.spending_target + Math.max(0, y.total_tax - y.conversion_tax),
-      );
+      const surplusData = years.map((y) => y.surplus);
 
-      // Stacked areas: Spending at base, then conv tax, then income taxes on top.
+      // Bottom to top: spending, expenses, surplus, then taxes on top
       const stackedDatasets = [
          {
             label: 'Spending',
-            data: cashFlowData,
+            data: baseSpendingData,
             borderColor: '#0e7490',
             backgroundColor: '#cffafe',
+            order: 6,
+            ...areaStyle,
+         },
+         {
+            label: 'Planned Expenses',
+            data: expenseData,
+            borderColor: '#0d9488',
+            backgroundColor: '#99f6e4',
+            order: 5,
+            ...areaStyle,
+         },
+         {
+            label: 'Surplus \u2192 Reinvested',
+            data: surplusData,
+            borderColor: '#15803d',
+            backgroundColor: '#bbf7d0',
+            order: 4,
+            ...areaStyle,
+         },
+         {
+            label: 'Income Tax',
+            data: incomeTaxData,
+            borderColor: '#404040',
+            backgroundColor: '#a3a3a3',
             order: 3,
             ...areaStyle,
          },
@@ -71,29 +99,31 @@
             ...areaStyle,
          },
          {
-            label: 'Est. Taxes',
-            data: taxData,
-            borderColor: '#404040',
-            backgroundColor: '#a3a3a3',
+            label: 'IRMAA',
+            data: irmaaData,
+            borderColor: '#b45309',
+            backgroundColor: '#fde68a',
             order: 1,
             ...areaStyle,
          },
       ].filter((ds) => hasNonZero(ds.data));
 
-      const lineDatasets = [
-         {
-            label: 'Budget + Taxes',
-            data: budgetPlusTax,
-            borderColor: '#6366f1',
-            borderDash: [6, 3],
-            borderWidth: 2,
-            pointRadius: 0,
-            pointStyle: 'line' as const,
-            fill: false,
-            yAxisID: 'y',
-            order: 0,
-         },
-      ].filter((ds) => hasNonZero(ds.data));
+      const lineDatasets = hasNonZero(desiredSpending)
+         ? [
+              {
+                 label: 'Desired Spending',
+                 data: desiredSpending,
+                 borderColor: '#6366f1',
+                 borderDash: [6, 3],
+                 borderWidth: 2,
+                 pointRadius: 0,
+                 pointStyle: 'line' as const,
+                 fill: false,
+                 yAxisID: 'y',
+                 order: 0,
+              },
+           ]
+         : [];
 
       const datasets = [...stackedDatasets, ...lineDatasets];
 
@@ -181,6 +211,6 @@
       {chart}
       {events}
       {years}
-      getYValue={(idx) => cashFlowForYear(years[idx] ?? years[0])}
+      getYValue={(idx) => totalAvailableForYear(years[idx] ?? years[0])}
    />
 </div>

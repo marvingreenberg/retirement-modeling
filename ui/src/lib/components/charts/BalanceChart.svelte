@@ -114,6 +114,7 @@
             plugins: {
                annotation: { annotations },
                tooltip: {
+                  filter: (item) => Math.round(item.parsed.y ?? 0) >= 100,
                   callbacks: {
                      title: (items) => {
                         const idx = items[0]?.dataIndex;
