@@ -4,6 +4,8 @@ import copy
 import random
 from dataclasses import dataclass, field
 
+from pydantic import BaseModel
+
 from retirement_model.historical_returns import get_historical_inflation, get_historical_returns
 from retirement_model.models import Portfolio, SimulationResult, SpendingStrategy
 from retirement_model.strategies import calculate_spending_target, create_initial_state
@@ -48,8 +50,7 @@ class MonteCarloResult:
         return depleted_before / self.num_simulations
 
 
-@dataclass
-class YearlyResultPercentiles:
+class YearlyResultPercentiles(BaseModel):
     """Percentile data for each field of YearResult across simulations."""
 
     age: int
@@ -64,13 +65,12 @@ class YearlyResultPercentiles:
     roth_conversion_median: float
 
 
-@dataclass
-class FullMonteCarloResult:
+class FullMonteCarloResult(BaseModel):
     """Results from running full simulation with Monte Carlo variations."""
 
     num_simulations: int
     success_rate: float
-    median_simulation: "SimulationResult"  # The median outcome for display
+    median_simulation: SimulationResult
     yearly_percentiles: list[YearlyResultPercentiles]
     final_balance_p5: float
     final_balance_p95: float

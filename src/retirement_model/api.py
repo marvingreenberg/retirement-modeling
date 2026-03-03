@@ -62,55 +62,6 @@ class SimulationResponse(BaseModel):
     summary: dict[str, Any]
 
 
-class YearlyResultPercentilesResponse(BaseModel):
-    """Percentile data for a single year from full Monte Carlo."""
-
-    age: int
-    balance_p5: float
-    balance_p25: float
-    balance_median: float
-    balance_p75: float
-    balance_p95: float
-    agi_median: float
-    total_tax_median: float
-    roth_conversion_median: float
-
-
-class MonteCarloResponse(BaseModel):
-    """Response from running full Monte Carlo simulation."""
-
-    num_simulations: int
-    success_rate: float
-    median_simulation: SimulationResult
-    yearly_percentiles: list[YearlyResultPercentilesResponse]
-    final_balance_p5: float
-    final_balance_p95: float
-
-    @classmethod
-    def from_result(cls, result: FullMonteCarloResult) -> "MonteCarloResponse":
-        return cls(
-            num_simulations=result.num_simulations,
-            success_rate=result.success_rate,
-            median_simulation=result.median_simulation,
-            yearly_percentiles=[
-                YearlyResultPercentilesResponse(
-                    age=yp.age,
-                    balance_p5=yp.balance_p5,
-                    balance_p25=yp.balance_p25,
-                    balance_median=yp.balance_median,
-                    balance_p75=yp.balance_p75,
-                    balance_p95=yp.balance_p95,
-                    agi_median=yp.agi_median,
-                    total_tax_median=yp.total_tax_median,
-                    roth_conversion_median=yp.roth_conversion_median,
-                )
-                for yp in result.yearly_percentiles
-            ],
-            final_balance_p5=result.final_balance_p5,
-            final_balance_p95=result.final_balance_p95,
-        )
-
-
 # --- Versioned API routes (on the router) ---
 
 
@@ -236,8 +187,8 @@ async def simulate(request: SimulationRequest) -> SimulationResponse:
     return SimulationResponse(result=result, summary=summary)
 
 
-@router.post("/monte-carlo", response_model=MonteCarloResponse)
-async def monte_carlo(request: MonteCarloRequest) -> MonteCarloResponse:
+@router.post("/monte-carlo", response_model=FullMonteCarloResult)
+async def monte_carlo(request: MonteCarloRequest) -> FullMonteCarloResult:
     """Run full Monte Carlo simulation with taxes, RMDs, and conversions."""
     portfolio = request.portfolio.model_copy(deep=True)
 
@@ -256,7 +207,7 @@ async def monte_carlo(request: MonteCarloRequest) -> MonteCarloResponse:
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    return MonteCarloResponse.from_result(result)
+    return result
 
 
 @router.post("/compare")
