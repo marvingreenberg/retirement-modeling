@@ -57,13 +57,14 @@
       const surplusData = years.map((y) => y.surplus);
 
       // Bottom to top: spending, expenses, income tax, conv tax, IRMAA, surplus
+      // order controls legend sorting (lower = listed first) and draw z-order
       const stackedDatasets = [
          {
             label: 'Spending',
             data: baseSpendingData,
             borderColor: '#0e7490',
             backgroundColor: '#cffafe',
-            order: 6,
+            order: 2,
             ...areaStyle,
          },
          {
@@ -71,7 +72,7 @@
             data: expenseData,
             borderColor: '#0d9488',
             backgroundColor: '#99f6e4',
-            order: 5,
+            order: 3,
             ...areaStyle,
          },
          {
@@ -87,7 +88,7 @@
             data: convTaxData,
             borderColor: '#c2410c',
             backgroundColor: '#fed7aa',
-            order: 3,
+            order: 5,
             ...areaStyle,
          },
          {
@@ -95,7 +96,7 @@
             data: irmaaData,
             borderColor: '#b45309',
             backgroundColor: '#fde68a',
-            order: 2,
+            order: 6,
             ...areaStyle,
          },
          {
@@ -103,7 +104,7 @@
             data: surplusData,
             borderColor: '#15803d',
             backgroundColor: '#bbf7d0',
-            order: 1,
+            order: 7,
             ...areaStyle,
          },
       ].filter((ds) => hasNonZero(ds.data));
@@ -120,7 +121,7 @@
                  pointStyle: 'line' as const,
                  fill: false,
                  yAxisID: 'y',
-                 order: 0,
+                 order: 1,
               },
            ]
          : [];
