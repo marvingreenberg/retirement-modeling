@@ -17,7 +17,9 @@
       initAutoSave();
    });
 
-   let src = $derived(avatarSrc($profile.primaryName, $profile.avatarSvg));
+   let src = $derived(
+      avatarSrc(profile.value.primaryName, profile.value.avatarSvg),
+   );
    let imgFailed = $state(false);
    $effect(() => {
       src;
@@ -25,7 +27,7 @@
    });
 
    let displayName = $derived.by(() => {
-      const p = $profile;
+      const p = profile.value;
       if (!p.primaryName) return '';
       if (p.spouseName) return `${p.primaryName} & ${p.spouseName}`;
       return p.primaryName;

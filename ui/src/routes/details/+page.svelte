@@ -8,16 +8,16 @@
 
    let activeTab = $state<'single' | 'monte_carlo'>('single');
    let hasAny = $derived(
-      $simulationResults.singleResult !== null ||
-         $simulationResults.mcResult !== null,
+      simulationResults.value.singleResult !== null ||
+         simulationResults.value.mcResult !== null,
    );
 
    async function downloadReport() {
-      if (!$simulationResults.singleResult) return;
-      const text = generateTextReport($simulationResults.singleResult);
+      if (!simulationResults.value.singleResult) return;
+      const text = generateTextReport(simulationResults.value.singleResult);
       const base = generateFilename(
-         $profile.primaryName,
-         $profile.spouseName,
+         profile.value.primaryName,
+         profile.value.spouseName,
       ).replace(/\.json$/, '');
       await saveTextFile(text, `${base}-Report.txt`);
    }
@@ -52,8 +52,8 @@
    </div>
 
    {#if activeTab === 'single'}
-      {#if $simulationResults.singleResult}
-         {@const allYears = $simulationResults.singleResult.result.years}
+      {#if simulationResults.value.singleResult}
+         {@const allYears = simulationResults.value.singleResult.result.years}
          {@const depletionIdx = allYears.findIndex(
             (yr, i) => yr.total_balance <= 0 && i > 0,
          )}
@@ -61,8 +61,8 @@
             depletionIdx >= 0 ? allYears.slice(0, depletionIdx + 1) : allYears}
          <WithdrawalPlan
             {years}
-            spendingStrategy={$portfolio.config.spending_strategy}
-            withdrawalRate={$portfolio.config.withdrawal_rate}
+            spendingStrategy={portfolio.value.config.spending_strategy}
+            withdrawalRate={portfolio.value.config.withdrawal_rate}
          />
          <div class="card bg-surface-100 dark:bg-surface-800 p-4">
             <div class="flex items-center justify-between mb-3">
@@ -140,8 +140,9 @@
          </p>
       {/if}
    {:else if activeTab === 'monte_carlo'}
-      {#if $simulationResults.mcResult}
-         {@const percentiles = $simulationResults.mcResult.yearly_percentiles}
+      {#if simulationResults.value.mcResult}
+         {@const percentiles =
+            simulationResults.value.mcResult.yearly_percentiles}
          <div class="card bg-surface-100 dark:bg-surface-800 p-4">
             <h3
                class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"

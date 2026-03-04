@@ -22,9 +22,11 @@
    } = $props();
 
    let planYears = $derived(years.slice(0, 2));
-   let accounts = $derived(($portfolio?.accounts ?? []) as Account[]);
-   let hasSpouse = $derived(!!$profile.spouseName?.trim());
-   let annualSpendNet = $derived($portfolio?.config?.annual_spend_net ?? 0);
+   let accounts = $derived((portfolio.value?.accounts ?? []) as Account[]);
+   let hasSpouse = $derived(!!profile.value.spouseName?.trim());
+   let annualSpendNet = $derived(
+      portfolio.value?.config?.annual_spend_net ?? 0,
+   );
 
    function byPurpose(
       details: AccountWithdrawal[] | undefined,
@@ -59,7 +61,9 @@
       if (rmdEntries.length === 0) return [];
       if (!hasSpouse) {
          const total = rmdEntries.reduce((s, d) => s + d.amount, 0);
-         return [{ label: $profile.primaryName || 'Primary', amount: total }];
+         return [
+            { label: profile.value.primaryName || 'Primary', amount: total },
+         ];
       }
       const byOwner: Record<string, number> = {};
       for (const d of rmdEntries) {
@@ -70,12 +74,12 @@
       const result: { label: string; amount: number }[] = [];
       if (byOwner['primary'])
          result.push({
-            label: $profile.primaryName || 'Primary',
+            label: profile.value.primaryName || 'Primary',
             amount: byOwner['primary'],
          });
       if (byOwner['spouse'])
          result.push({
-            label: $profile.spouseName || 'Spouse',
+            label: profile.value.spouseName || 'Spouse',
             amount: byOwner['spouse'],
          });
       return result;
@@ -83,7 +87,7 @@
 
    function activeExpenses(yr: YearResult): { name: string; amount: number }[] {
       const expenses: PlannedExpense[] =
-         $portfolio?.config?.planned_expenses ?? [];
+         portfolio.value?.config?.planned_expenses ?? [];
       return expenses
          .filter((e) => {
             if (e.expense_type === 'one_time') return e.year === yr.year;
@@ -114,9 +118,9 @@
    }
 
    function yearHeader(yr: YearResult): string {
-      const primary = $profile.primaryName || 'Primary';
+      const primary = profile.value.primaryName || 'Primary';
       if (hasSpouse) {
-         const spouse = $profile.spouseName;
+         const spouse = profile.value.spouseName;
          return `${yr.year} \u00b7 ${primary} ${yr.age_primary}, ${spouse} ${yr.age_spouse}`;
       }
       return `${yr.year} \u00b7 ${primary} ${yr.age_primary}`;

@@ -5,15 +5,16 @@ import {
    samplePortfolio,
    validationErrors,
    formTouched,
+   snapshot,
 } from '$lib/stores';
 
 const { default: PortfolioEditor } = await import('./PortfolioEditor.svelte');
 
 describe('PortfolioEditor', () => {
    beforeEach(() => {
-      portfolio.set(structuredClone(samplePortfolio));
-      validationErrors.set({});
-      formTouched.set(false);
+      portfolio.value = structuredClone(samplePortfolio);
+      validationErrors.value = {};
+      formTouched.value = false;
    });
 
    it('shows annual spending label in budget section', () => {
@@ -34,12 +35,11 @@ describe('PortfolioEditor', () => {
    });
 
    it('filters config input errors from validation banner', () => {
-      formTouched.set(true);
-      portfolio.update((p) => {
-         p.config.inflation_rate = -1;
-         p.accounts[0].balance = -1;
-         return p;
-      });
+      formTouched.value = true;
+      const p1 = structuredClone(snapshot(portfolio.value));
+      p1.config.inflation_rate = -1;
+      p1.accounts[0].balance = -1;
+      portfolio.value = p1;
       render(PortfolioEditor);
       // inflation_rate error should be filtered (shown inline in SimulateSettings instead)
       const items = screen.getAllByRole('listitem');
@@ -50,17 +50,14 @@ describe('PortfolioEditor', () => {
    });
 
    it('does not show validation errors when form is not touched', () => {
-      formTouched.set(false);
-      validationErrors.set({ 'accounts.0.balance': 'Balance required' });
+      formTouched.value = false;
+      validationErrors.value = { 'accounts.0.balance': 'Balance required' };
       render(PortfolioEditor);
       expect(screen.queryByText('Balance required')).not.toBeInTheDocument();
    });
 
    it('shows warning when no accounts exist', () => {
-      portfolio.update((p) => {
-         p.accounts = [];
-         return p;
-      });
+      portfolio.value = { ...portfolio.value, accounts: [] };
       render(PortfolioEditor);
       expect(
          screen.getByText(/Add an account to allow simulation/),
@@ -68,10 +65,10 @@ describe('PortfolioEditor', () => {
    });
 
    it('shows warning when budget is zero but accounts exist', () => {
-      portfolio.update((p) => {
-         p.config.annual_spend_net = 0;
-         return p;
-      });
+      portfolio.value = {
+         ...portfolio.value,
+         config: { ...portfolio.value.config, annual_spend_net: 0 },
+      };
       render(PortfolioEditor);
       expect(
          screen.getByText(/Define expected annual spending/),
@@ -89,10 +86,7 @@ describe('PortfolioEditor', () => {
    });
 
    it('shows "No accounts" summary when accounts empty', () => {
-      portfolio.update((p) => {
-         p.accounts = [];
-         return p;
-      });
+      portfolio.value = { ...portfolio.value, accounts: [] };
       render(PortfolioEditor);
       expect(screen.getByText(/No accounts/)).toBeInTheDocument();
    });
@@ -114,12 +108,11 @@ describe('PortfolioEditor', () => {
    });
 
    it('shows "None configured" when no income', () => {
-      portfolio.update((p) => {
-         p.config.social_security.primary_benefit = 0;
-         p.config.ss_auto = null;
-         p.config.income_streams = [];
-         return p;
-      });
+      const p2 = structuredClone(snapshot(portfolio.value));
+      p2.config.social_security.primary_benefit = 0;
+      p2.config.ss_auto = null;
+      p2.config.income_streams = [];
+      portfolio.value = p2;
       render(PortfolioEditor);
       expect(screen.getByText(/None configured/)).toBeInTheDocument();
    });

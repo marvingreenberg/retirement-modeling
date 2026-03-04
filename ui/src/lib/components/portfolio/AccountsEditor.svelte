@@ -109,13 +109,15 @@
    }
 
    function hasError(path: string): boolean {
-      if (!$formTouched) return false;
-      return Object.keys($validationErrors).some((k) => k.startsWith(path));
+      if (!formTouched.value) return false;
+      return Object.keys(validationErrors.value).some((k) =>
+         k.startsWith(path),
+      );
    }
 
    $effect(() => {
-      if (!$formTouched) return;
-      const errKeys = Object.keys($validationErrors);
+      if (!formTouched.value) return;
+      const errKeys = Object.keys(validationErrors.value);
       for (let i = 0; i < accounts.length; i++) {
          if (errKeys.some((k) => k.startsWith(`accounts.${i}.`))) {
             expandedIds.add(accounts[i].id);

@@ -1,5 +1,4 @@
 import { portfolio, profile, numSimulations } from '$lib/stores';
-import { get } from 'svelte/store';
 
 let autoSave = $state(false);
 
@@ -19,9 +18,9 @@ export function toggleAutoSave() {
 
 export function saveToLocalStorage() {
    const data = {
-      portfolio: get(portfolio),
-      profile: get(profile),
-      numSimulations: get(numSimulations),
+      portfolio: portfolio.value,
+      profile: profile.value,
+      numSimulations: numSimulations.value,
    };
    localStorage.setItem('retirement-sim-state', JSON.stringify(data));
 }

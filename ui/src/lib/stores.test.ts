@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { get } from 'svelte/store';
 import {
    samplePortfolio,
    sampleScenarios,
@@ -194,7 +193,7 @@ describe('defaultPortfolio', () => {
 
 describe('simulationResults store', () => {
    it('starts with null results', () => {
-      const state = get(simulationResults);
+      const state = simulationResults.value;
       expect(state.singleResult).toBeNull();
       expect(state.mcResult).toBeNull();
    });
@@ -219,25 +218,25 @@ describe('simulationResults store', () => {
          },
          mcResult: null,
       };
-      simulationResults.set(mockResult);
-      const state = get(simulationResults);
+      simulationResults.value = mockResult;
+      const state = simulationResults.value;
       expect(state.singleResult?.summary.final_balance).toBe(100);
-      simulationResults.set({ singleResult: null, mcResult: null });
+      simulationResults.value = { singleResult: null, mcResult: null };
    });
 });
 
 describe('numSimulations store', () => {
    it('defaults to 1000', () => {
-      expect(get(numSimulations)).toBe(1000);
+      expect(numSimulations.value).toBe(1000);
    });
 });
 
 describe('randomizeForDemo', () => {
    it('scales account balances between 0.3x and 0.7x and rounds to $1000', () => {
-      portfolio.set(structuredClone(samplePortfolio));
-      const original = snapshot(get(portfolio));
+      portfolio.value = structuredClone(samplePortfolio);
+      const original = snapshot(portfolio.value);
       randomizeForDemo();
-      const updated = get(portfolio);
+      const updated = portfolio.value;
 
       for (let i = 0; i < updated.accounts.length; i++) {
          const orig = original.accounts[i].balance;
@@ -253,10 +252,10 @@ describe('randomizeForDemo', () => {
    });
 
    it('replaces profile names with placeholders', () => {
-      profile.set({ primaryName: 'John', spouseName: 'Jane' });
-      portfolio.set(structuredClone(samplePortfolio));
+      profile.value = { primaryName: 'John', spouseName: 'Jane' };
+      portfolio.value = structuredClone(samplePortfolio);
       randomizeForDemo();
-      const p = get(profile);
+      const p = profile.value;
       expect(p.primaryName).toBe('Alex');
       expect(p.spouseName).toBe('Sam');
    });

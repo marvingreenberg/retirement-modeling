@@ -43,8 +43,8 @@ function makeYear(overrides: Partial<YearResult> = {}): YearResult {
 
 describe('WithdrawalPlan', () => {
    beforeEach(() => {
-      profile.set({ primaryName: 'Alex', spouseName: 'Sam' });
-      portfolio.set(structuredClone(samplePortfolio));
+      profile.value = { primaryName: 'Alex', spouseName: 'Sam' };
+      portfolio.value = structuredClone(samplePortfolio);
    });
 
    it('renders heading', () => {
@@ -64,7 +64,7 @@ describe('WithdrawalPlan', () => {
    });
 
    it('shows single person header when no spouse', () => {
-      profile.set({ primaryName: 'Alex', spouseName: '' });
+      profile.value = { primaryName: 'Alex', spouseName: '' };
       render(WithdrawalPlan, {
          props: { years: [makeYear({ year: 2027, age_primary: 66 })] },
       });
@@ -309,7 +309,7 @@ describe('WithdrawalPlan', () => {
             inflation_adjusted: false,
          },
       ];
-      portfolio.set(p);
+      portfolio.value = p;
       const yr = makeYear({ planned_expense: 25000, spending_target: 105000 });
       render(WithdrawalPlan, { props: { years: [yr] } });
       expect(screen.getByText('Planned Expenses')).toBeInTheDocument();

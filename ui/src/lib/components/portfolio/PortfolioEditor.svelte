@@ -22,35 +22,35 @@
    let accountsOpen = $state(false);
    let budgetOpen = $state(false);
    let incomeOpen = $state(false);
-   let errors = $derived(validatePortfolio($portfolio));
+   let errors = $derived(validatePortfolio(portfolio.value));
    $effect(() => {
-      validationErrors.set(errors);
+      validationErrors.value = errors;
    });
 
    const configInputPaths = ['config.inflation_rate'];
    let errorList = $derived(
-      $formTouched
+      formTouched.value
          ? Object.entries(errors).filter(([k]) => !configInputPaths.includes(k))
          : [],
    );
 
-   let noAccounts = $derived($portfolio.accounts.length === 0);
-   let noBudget = $derived($portfolio.config.annual_spend_net === 0);
+   let noAccounts = $derived(portfolio.value.accounts.length === 0);
+   let noBudget = $derived(portfolio.value.config.annual_spend_net === 0);
    let totalBalance = $derived(
-      $portfolio.accounts.reduce((sum, a) => sum + a.balance, 0),
+      portfolio.value.accounts.reduce((sum, a) => sum + a.balance, 0),
    );
 
    let incomeSummary = $derived.by(() => {
       const parts: string[] = [];
-      const ss = $portfolio.config.social_security;
-      const ssAuto = $portfolio.config.ss_auto;
+      const ss = portfolio.value.config.social_security;
+      const ssAuto = portfolio.value.config.ss_auto;
       const hasSS =
          (ssAuto && ssAuto.primary_fra_amount > 0) || ss.primary_benefit > 0;
       if (hasSS) {
          const startAge = ssAuto?.primary_start_age ?? ss.primary_start_age;
          parts.push(`SS at ${startAge}`);
       }
-      for (const s of $portfolio.config.income_streams) {
+      for (const s of portfolio.value.config.income_streams) {
          const amt =
             s.amount >= 1000
                ? `$${Math.round(s.amount / 1000)}K`
@@ -61,7 +61,7 @@
    });
 
    $effect(() => {
-      const section = $simulateBlockedSection;
+      const section = simulateBlockedSection.value;
       if (section === 'accounts') accountsOpen = true;
       if (section === 'budget') budgetOpen = true;
    });
@@ -80,7 +80,8 @@
       if (accountMatch) {
          const idx = parseInt(accountMatch[1]);
          const field = accountMatch[2];
-         const name = $portfolio.accounts[idx]?.name || `Account ${idx + 1}`;
+         const name =
+            portfolio.value.accounts[idx]?.name || `Account ${idx + 1}`;
          const fieldName = fieldLabels[field] || field;
          return `${name} - ${fieldName}`;
       }
@@ -91,7 +92,7 @@
          const idx = parseInt(expenseMatch[1]);
          const field = expenseMatch[2];
          const name =
-            $portfolio.config.planned_expenses?.[idx]?.name ||
+            portfolio.value.config.planned_expenses?.[idx]?.name ||
             `Expense ${idx + 1}`;
          const fieldName = fieldLabels[field] || field;
          return `${name} - ${fieldName}`;
@@ -100,7 +101,7 @@
    }
 
    $effect(() => {
-      if (!$formTouched) return;
+      if (!formTouched.value) return;
       const keys = Object.keys(errors);
       if (keys.some((k) => k.startsWith('accounts'))) accountsOpen = true;
       if (keys.some((k) => k.startsWith('config.social_security')))
@@ -143,18 +144,18 @@
          </div>
       {/if}
       <AccountsEditor
-         bind:accounts={$portfolio.accounts}
-         config={$portfolio.config}
+         bind:accounts={portfolio.value.accounts}
+         config={portfolio.value.config}
       />
-      <ImportPortfolio bind:accounts={$portfolio.accounts} />
+      <ImportPortfolio bind:accounts={portfolio.value.accounts} />
    </CollapsibleSection>
 
    <CollapsibleSection title="Budget" bind:open={budgetOpen}>
       {#snippet icon()}<Wallet size={20} class="text-primary-500" />{/snippet}
       {#snippet summary()}{currency(
-            $portfolio.config.annual_spend_net,
-         )}/yr{#if ($portfolio.config.planned_expenses ?? []).length > 0}
-            + {($portfolio.config.planned_expenses ?? []).length} expenses{/if}{/snippet}
+            portfolio.value.config.annual_spend_net,
+         )}/yr{#if (portfolio.value.config.planned_expenses ?? []).length > 0}
+            + {(portfolio.value.config.planned_expenses ?? []).length} expenses{/if}{/snippet}
       {#if noBudget && !noAccounts}
          <div
             class="flex items-center gap-2 text-warning-600 dark:text-warning-400 text-sm font-semibold py-2"
@@ -164,8 +165,8 @@
          </div>
       {/if}
       <SpendingEditor
-         bind:config={$portfolio.config}
-         bind:plannedExpenses={$portfolio.config.planned_expenses}
+         bind:config={portfolio.value.config}
+         bind:plannedExpenses={portfolio.value.config.planned_expenses}
       />
    </CollapsibleSection>
 
@@ -176,8 +177,8 @@
          />{/snippet}
       {#snippet summary()}{incomeSummary}{/snippet}
       <IncomeEditor
-         bind:config={$portfolio.config}
-         bind:incomeStreams={$portfolio.config.income_streams}
+         bind:config={portfolio.value.config}
+         bind:incomeStreams={portfolio.value.config.income_streams}
       />
    </CollapsibleSection>
 </div>

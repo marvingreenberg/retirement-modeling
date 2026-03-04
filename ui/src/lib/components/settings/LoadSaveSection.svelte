@@ -11,8 +11,8 @@
    function loadScenario(name: string) {
       const scenario = sampleScenarios[name];
       if (!scenario) return;
-      profile.set(structuredClone(scenario.profile));
-      portfolio.set(structuredClone(scenario.portfolio));
+      profile.value = structuredClone(scenario.profile);
+      portfolio.value = structuredClone(scenario.portfolio);
       goto('/');
    }
 
@@ -46,20 +46,20 @@
             return;
          }
          const { profile: loadedProfile, ...portfolioData } = result.data;
-         portfolio.set(portfolioData as Portfolio);
-         if (loadedProfile) profile.set(loadedProfile);
+         portfolio.value = portfolioData as Portfolio;
+         if (loadedProfile) profile.value = loadedProfile;
       } catch {
          loadError = 'Invalid JSON file';
       }
    }
 
    async function saveFile() {
-      const p = $state.snapshot($portfolio);
-      const profileData = $state.snapshot($profile);
+      const p = $state.snapshot(portfolio.value);
+      const profileData = $state.snapshot(profile.value);
       const saveData = { ...p, profile: profileData };
       const filename = generateFilename(
-         $profile.primaryName,
-         $profile.spouseName,
+         profile.value.primaryName,
+         profile.value.spouseName,
       );
       await saveJsonFile(saveData, filename);
    }

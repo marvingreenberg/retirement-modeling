@@ -3,7 +3,7 @@
    import { currency, pct } from '$lib/format';
    import type { ComparisonSnapshot } from '$lib/types';
 
-   let snapshots = $derived($comparisonSnapshots);
+   let snapshots = $derived(comparisonSnapshots.value);
    let singleRuns = $derived(snapshots.filter((s) => s.runType === 'single'));
    let mcRuns = $derived(snapshots.filter((s) => s.runType === 'monte_carlo'));
 
@@ -26,10 +26,12 @@
    let bestMcSuccess = $derived(bestIn(mcRuns, 'successRate', 'max'));
 
    function removeSnapshot(id: string) {
-      comparisonSnapshots.update((snaps) => snaps.filter((s) => s.id !== id));
+      comparisonSnapshots.value = comparisonSnapshots.value.filter(
+         (s) => s.id !== id,
+      );
    }
    function clearAll() {
-      comparisonSnapshots.set([]);
+      comparisonSnapshots.value = [];
    }
 </script>
 

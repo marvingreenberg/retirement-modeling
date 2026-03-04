@@ -30,8 +30,8 @@ async function expandAccount(name: string) {
 
 describe('AccountsEditor', () => {
    beforeEach(() => {
-      validationErrors.set({});
-      formTouched.set(false);
+      validationErrors.value = {};
+      formTouched.value = false;
    });
 
    describe('compact row', () => {
@@ -131,8 +131,8 @@ describe('AccountsEditor', () => {
       });
 
       it('auto-expands accounts with validation errors', () => {
-         validationErrors.set({ 'accounts.0.balance': 'Must be >= 0' });
-         formTouched.set(true);
+         validationErrors.value = { 'accounts.0.balance': 'Must be >= 0' };
+         formTouched.value = true;
          render(AccountsEditor, {
             accounts: [makeAccount({ balance: -100 })],
          });
@@ -214,8 +214,8 @@ describe('AccountsEditor', () => {
       });
 
       it('shows balance error styling when form touched and validation fails', async () => {
-         validationErrors.set({ 'accounts.0.balance': 'Must be >= 0' });
-         formTouched.set(true);
+         validationErrors.value = { 'accounts.0.balance': 'Must be >= 0' };
+         formTouched.value = true;
          render(AccountsEditor, {
             accounts: [makeAccount({ balance: -100 })],
          });
@@ -226,8 +226,8 @@ describe('AccountsEditor', () => {
       });
 
       it('hides balance error styling when form not touched', async () => {
-         validationErrors.set({ 'accounts.0.balance': 'Must be >= 0' });
-         formTouched.set(false);
+         validationErrors.value = { 'accounts.0.balance': 'Must be >= 0' };
+         formTouched.value = false;
          render(AccountsEditor, {
             accounts: [makeAccount({ balance: -100 })],
          });
@@ -238,8 +238,8 @@ describe('AccountsEditor', () => {
       });
 
       it('clears balance error when validation errors removed', async () => {
-         validationErrors.set({ 'accounts.0.balance': 'Must be >= 0' });
-         formTouched.set(true);
+         validationErrors.value = { 'accounts.0.balance': 'Must be >= 0' };
+         formTouched.value = true;
          render(AccountsEditor, {
             accounts: [makeAccount({ balance: -100 })],
          });
@@ -247,7 +247,7 @@ describe('AccountsEditor', () => {
             'ring-error-500',
          );
 
-         validationErrors.set({});
+         validationErrors.value = {};
          await waitFor(() => {
             expect(screen.getByLabelText('Balance').className).not.toContain(
                'ring-error-500',
@@ -256,8 +256,8 @@ describe('AccountsEditor', () => {
       });
 
       it('shows error styling on correct account index', async () => {
-         validationErrors.set({ 'accounts.1.balance': 'Must be >= 0' });
-         formTouched.set(true);
+         validationErrors.value = { 'accounts.1.balance': 'Must be >= 0' };
+         formTouched.value = true;
          const accounts = [
             makeAccount(),
             makeAccount({

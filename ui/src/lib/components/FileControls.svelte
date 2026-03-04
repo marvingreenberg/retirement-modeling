@@ -6,8 +6,8 @@
    function loadScenario(name: string) {
       const scenario = sampleScenarios[name];
       if (!scenario) return;
-      profile.set(structuredClone(scenario.profile));
-      portfolio.set(structuredClone(scenario.portfolio));
+      profile.value = structuredClone(scenario.profile);
+      portfolio.value = structuredClone(scenario.portfolio);
    }
 
    let fileInput: HTMLInputElement;
@@ -33,7 +33,7 @@
                   'Invalid portfolio file — may be pre-version 0.10.0 data.';
                return;
             }
-            portfolio.set(result.data as Portfolio);
+            portfolio.value = result.data as Portfolio;
          } catch {
             loadError = 'Invalid JSON file';
          }
@@ -43,9 +43,8 @@
    }
 
    function saveFile() {
-      let data: Portfolio;
-      portfolio.subscribe((p) => (data = p))();
-      const blob = new Blob([JSON.stringify(data!, null, 2)], {
+      const data = portfolio.value;
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
          type: 'application/json',
       });
       const url = URL.createObjectURL(blob);

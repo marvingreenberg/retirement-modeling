@@ -11,7 +11,9 @@
    import WithdrawalOrderEditor from './settings/WithdrawalOrderEditor.svelte';
 
    let inflError = $derived(
-      $formTouched ? ($validationErrors['config.inflation_rate'] ?? '') : '',
+      formTouched.value
+         ? (validationErrors.value['config.inflation_rate'] ?? '')
+         : '',
    );
    let {
       onrun,
@@ -29,21 +31,21 @@
    }
 
    function guardrailFloor(): number {
-      const g = $portfolio.config.guardrails_config;
+      const g = portfolio.value.config.guardrails_config;
       if (!g) return 4;
       return (
          Math.round(g.initial_withdrawal_rate * g.floor_percent * 1000) / 10
       );
    }
    function guardrailCeiling(): number {
-      const g = $portfolio.config.guardrails_config;
+      const g = portfolio.value.config.guardrails_config;
       if (!g) return 6;
       return (
          Math.round(g.initial_withdrawal_rate * g.ceiling_percent * 1000) / 10
       );
    }
    function setGuardrailRange(floor: number, ceiling: number) {
-      const g = $portfolio.config.guardrails_config;
+      const g = portfolio.value.config.guardrails_config;
       if (!g) return;
       const init = (floor + ceiling) / 2 / 100;
       g.initial_withdrawal_rate = init;
@@ -52,7 +54,7 @@
    }
 
    function strategySummary(): string {
-      const c = $portfolio.config;
+      const c = portfolio.value.config;
       const s = c.spending_strategy ?? 'fixed_dollar';
       if (s === 'fixed_dollar') {
          const spend =
@@ -71,10 +73,10 @@
    }
 
    let strategyDiagnostic = $derived.by(() => {
-      const c = $portfolio.config;
+      const c = portfolio.value.config;
       const s = c.spending_strategy ?? 'fixed_dollar';
       if (s === 'fixed_dollar') return null;
-      const totalBalance = $portfolio.accounts.reduce(
+      const totalBalance = portfolio.value.accounts.reduce(
          (sum, a) => sum + a.balance,
          0,
       );
@@ -99,11 +101,14 @@
       return null;
    });
 
-   let showConversion = $derived(hasPretaxAccounts($portfolio.accounts));
+   let showConversion = $derived(hasPretaxAccounts(portfolio.value.accounts));
 
    $effect(() => {
-      if (!showConversion && $portfolio.config.strategy_target !== 'standard') {
-         $portfolio.config.strategy_target = 'standard';
+      if (
+         !showConversion &&
+         portfolio.value.config.strategy_target !== 'standard'
+      ) {
+         portfolio.value.config.strategy_target = 'standard';
       }
    });
 
@@ -112,7 +117,7 @@
    function handleKeydown(e: KeyboardEvent) {
       if (e.key === 'Enter') {
          markFormTouched();
-         portfolio.update((p) => ({ ...p }));
+         portfolio.value = { ...portfolio.value };
       }
    }
 </script>
@@ -149,9 +154,9 @@
             class="input w-20 text-sm {inflError
                ? 'ring-2 ring-error-500 border-error-500'
                : ''}"
-            value={toPct($portfolio.config.inflation_rate)}
+            value={toPct(portfolio.value.config.inflation_rate)}
             oninput={(e) =>
-               setPct(e, (v) => ($portfolio.config.inflation_rate = v))}
+               setPct(e, (v) => (portfolio.value.config.inflation_rate = v))}
             min="0"
             max="50"
             step="0.5"
@@ -166,7 +171,7 @@
          <input
             type="checkbox"
             class="checkbox"
-            bind:checked={$portfolio.config.conservative_growth}
+            bind:checked={portfolio.value.config.conservative_growth}
          />
          Conservative growth
          <HelpButton
@@ -186,7 +191,7 @@
             >
             <select
                class="select w-40 text-sm"
-               bind:value={$portfolio.config.strategy_target}
+               bind:value={portfolio.value.config.strategy_target}
             >
                <option value="standard">No Conversion</option>
                <option value="irmaa_tier_1">IRMAA Tier 1</option>
@@ -211,7 +216,7 @@
 
    {#if strategyOpen}
       <div class="pl-3 space-y-2">
-         {#if $portfolio.config.spending_strategy === 'percent_of_portfolio'}
+         {#if portfolio.value.config.spending_strategy === 'percent_of_portfolio'}
             <div class="flex gap-4 flex-wrap items-end">
                <label
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
@@ -224,7 +229,7 @@
                   >
                   <select
                      class="select w-44 text-sm"
-                     bind:value={$portfolio.config.spending_strategy}
+                     bind:value={portfolio.value.config.spending_strategy}
                   >
                      <option value="fixed_dollar">Fixed Dollar</option>
                      <option value="percent_of_portfolio">% of Portfolio</option
@@ -239,11 +244,13 @@
                   <input
                      type="number"
                      class="input w-24 text-sm"
-                     value={toPct($portfolio.config.withdrawal_rate ?? 0.04)}
+                     value={toPct(
+                        portfolio.value.config.withdrawal_rate ?? 0.04,
+                     )}
                      oninput={(e) =>
                         setPct(
                            e,
-                           (v) => ($portfolio.config.withdrawal_rate = v),
+                           (v) => (portfolio.value.config.withdrawal_rate = v),
                         )}
                      min="1"
                      max="15"
@@ -251,7 +258,7 @@
                   />
                </label>
             </div>
-         {:else if $portfolio.config.spending_strategy === 'guardrails' && $portfolio.config.guardrails_config}
+         {:else if portfolio.value.config.spending_strategy === 'guardrails' && portfolio.value.config.guardrails_config}
             <div class="flex gap-4 flex-wrap items-end">
                <label
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
@@ -264,7 +271,7 @@
                   >
                   <select
                      class="select w-44 text-sm"
-                     bind:value={$portfolio.config.spending_strategy}
+                     bind:value={portfolio.value.config.spending_strategy}
                   >
                      <option value="fixed_dollar">Fixed Dollar</option>
                      <option value="percent_of_portfolio">% of Portfolio</option
@@ -326,13 +333,14 @@
                      type="number"
                      class="input w-20 text-sm"
                      value={toPct(
-                        $portfolio.config.guardrails_config.adjustment_percent,
+                        portfolio.value.config.guardrails_config
+                           .adjustment_percent,
                      )}
                      oninput={(e) =>
                         setPct(
                            e,
                            (v) =>
-                              ($portfolio.config.guardrails_config!.adjustment_percent =
+                              (portfolio.value.config.guardrails_config!.adjustment_percent =
                                  v),
                         )}
                      min="1"
@@ -342,7 +350,7 @@
                </label>
                <span class="text-xs text-surface-500 self-end pb-1.5"
                   >Initial rate: {toPct(
-                     $portfolio.config.guardrails_config
+                     portfolio.value.config.guardrails_config
                         .initial_withdrawal_rate,
                   ).toFixed(1)}%</span
                >
@@ -360,7 +368,7 @@
                   >
                   <select
                      class="select w-44 text-sm"
-                     bind:value={$portfolio.config.spending_strategy}
+                     bind:value={portfolio.value.config.spending_strategy}
                   >
                      <option value="fixed_dollar">Fixed Dollar</option>
                      <option value="percent_of_portfolio">% of Portfolio</option
@@ -380,9 +388,9 @@
             </div>
          {/if}
          <WithdrawalOrderEditor
-            bind:order={$portfolio.config.withdrawal_order}
-            accounts={$portfolio.accounts}
-            conversionStrategy={$portfolio.config.strategy_target}
+            bind:order={portfolio.value.config.withdrawal_order}
+            accounts={portfolio.value.accounts}
+            conversionStrategy={portfolio.value.config.strategy_target}
          />
       </div>
    {/if}

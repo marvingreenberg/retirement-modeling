@@ -26,8 +26,8 @@ function renderEditor(
 
 describe('SpendingEditor', () => {
    beforeEach(() => {
-      validationErrors.set({});
-      formTouched.set(false);
+      validationErrors.value = {};
+      formTouched.value = false;
    });
 
    it('shows annual spending label', () => {
@@ -106,8 +106,10 @@ describe('SpendingEditor', () => {
    });
 
    it('shows error styling for expense amount when validation fails', () => {
-      formTouched.set(true);
-      validationErrors.set({ 'config.planned_expenses.0.amount': 'Required' });
+      formTouched.value = true;
+      validationErrors.value = {
+         'config.planned_expenses.0.amount': 'Required',
+      };
       renderEditor();
       const amountInput = screen.getAllByLabelText('Amount')[0];
       expect(amountInput.className).toContain('ring-error');

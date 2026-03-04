@@ -16,9 +16,9 @@ import {
 describe('autoSave', () => {
    beforeEach(() => {
       localStorage.clear();
-      portfolio.set(structuredClone(defaultPortfolio));
-      profile.set(structuredClone(defaultProfile));
-      numSimulations.set(1000);
+      portfolio.value = structuredClone(defaultPortfolio);
+      profile.value = structuredClone(defaultProfile);
+      numSimulations.value = 1000;
    });
 
    it('isAutoSave returns false by default', () => {

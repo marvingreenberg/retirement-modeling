@@ -19,12 +19,11 @@
       MonteCarloResponse,
       ComparisonSnapshot,
    } from '$lib/types';
-   import { get } from 'svelte/store';
    import { goto } from '$app/navigation';
    import { isNarrow } from '$lib/components/PortraitBlocker.svelte';
 
    function spendingLabel(): string {
-      const c = $portfolio.config;
+      const c = portfolio.value.config;
       const s = c.spending_strategy ?? 'fixed_dollar';
       if (s === 'fixed_dollar') {
          const spend =
@@ -72,14 +71,14 @@
 
    function addSnapshot(snap: ComparisonSnapshot) {
       const key = snapshotKey(snap);
-      comparisonSnapshots.update((snaps) => {
-         const filtered = snaps.filter((s) => snapshotKey(s) !== key);
-         return [...filtered, snap];
-      });
+      const filtered = comparisonSnapshots.value.filter(
+         (s) => snapshotKey(s) !== key,
+      );
+      comparisonSnapshots.value = [...filtered, snap];
    }
 
    function buildSnapshotBase() {
-      const c = $portfolio.config;
+      const c = portfolio.value.config;
       return {
          id: crypto.randomUUID(),
          name: '',
@@ -94,7 +93,7 @@
       };
    }
 
-   let needsSetup = $derived($portfolio.config.current_age_primary === 0);
+   let needsSetup = $derived(portfolio.value.config.current_age_primary === 0);
 
    $effect(() => {
       if (needsSetup && !isNarrow()) goto('/settings');
@@ -104,40 +103,43 @@
    let mcLoading = $state(false);
    let error = $state('');
 
-   let stored = get(simulationResults);
-   let singleResult = $state<SimulationResponse | null>(stored.singleResult);
-   let mcResult = $state<MonteCarloResponse | null>(stored.mcResult);
+   let singleResult = $state<SimulationResponse | null>(
+      simulationResults.value.singleResult,
+   );
+   let mcResult = $state<MonteCarloResponse | null>(
+      simulationResults.value.mcResult,
+   );
 
    // Clear cached results when portfolio inputs change
-   let lastPortfolioJson = $state(JSON.stringify($portfolio));
+   let lastPortfolioJson = $state(JSON.stringify(portfolio.value));
    let simRunning = $state(false);
    $effect(() => {
-      const json = JSON.stringify($portfolio);
+      const json = JSON.stringify(portfolio.value);
       if (json !== lastPortfolioJson) {
          lastPortfolioJson = json;
          if (!simRunning) {
             singleResult = null;
             mcResult = null;
             error = '';
-            simulationResults.set({ singleResult: null, mcResult: null });
+            simulationResults.value = { singleResult: null, mcResult: null };
          }
       }
    });
 
    async function handleRun() {
-      if ($portfolio.accounts.length === 0) {
-         simulateBlockedSection.set('accounts');
+      if (portfolio.value.accounts.length === 0) {
+         simulateBlockedSection.value = 'accounts';
          return;
       }
-      if ($portfolio.config.annual_spend_net === 0) {
-         simulateBlockedSection.set('budget');
+      if (portfolio.value.config.annual_spend_net === 0) {
+         simulateBlockedSection.value = 'budget';
          return;
       }
-      simulateBlockedSection.set(null);
+      simulateBlockedSection.value = null;
 
-      const p = $portfolio;
+      const p = portfolio.value;
       const errors = validatePortfolio(p);
-      validationErrors.set(errors);
+      validationErrors.value = errors;
       if (Object.keys(errors).length > 0) {
          error =
             'Portfolio has validation errors. Check the portfolio sections.';
@@ -150,14 +152,17 @@
       error = '';
       singleResult = null;
       mcResult = null;
-      simulationResults.set({ singleResult: null, mcResult: null });
+      simulationResults.value = { singleResult: null, mcResult: null };
 
-      const numSims = get(numSimsStore);
+      const numSims = numSimsStore.value;
 
       const singlePromise = runSimulation(p).then((res) => {
          singleResult = res;
          loading = false;
-         simulationResults.update((s) => ({ ...s, singleResult: res }));
+         simulationResults.value = {
+            ...simulationResults.value,
+            singleResult: res,
+         };
          const spends = res.result.years.map((y) => y.spending_target);
          const minSpend = Math.min(...spends);
          const maxSpend = Math.max(...spends);
@@ -175,7 +180,10 @@
       const mcPromise = runMonteCarlo(p, numSims).then((res) => {
          mcResult = res;
          mcLoading = false;
-         simulationResults.update((s) => ({ ...s, mcResult: res }));
+         simulationResults.value = {
+            ...simulationResults.value,
+            mcResult: res,
+         };
          const pcts = res.yearly_percentiles;
          const p5min =
             pcts.length > 0 ? Math.min(...pcts.map((p) => p.spending_p5)) : 0;
@@ -203,7 +211,7 @@
          mcLoading = false;
       } finally {
          simRunning = false;
-         lastPortfolioJson = JSON.stringify($portfolio);
+         lastPortfolioJson = JSON.stringify(portfolio.value);
       }
    }
 
@@ -221,7 +229,7 @@
          {mcResult}
          {mcLoading}
          {error}
-         config={$portfolio.config}
+         config={portfolio.value.config}
       />
    {:else if loading}
       <div class="flex flex-col items-center justify-center py-16 gap-3">

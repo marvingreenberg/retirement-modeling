@@ -81,9 +81,9 @@ const mockMCResult: MonteCarloResponse = {
 describe('SimulateView (tabbed results)', () => {
    beforeEach(() => {
       vi.clearAllMocks();
-      portfolio.set(structuredClone(samplePortfolio));
-      validationErrors.set({});
-      comparisonSnapshots.set([]);
+      portfolio.value = structuredClone(samplePortfolio);
+      validationErrors.value = {};
+      comparisonSnapshots.value = [];
    });
 
    it('renders tab bar with Simulation, Spending, and Monte Carlo tabs', () => {

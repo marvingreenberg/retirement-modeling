@@ -84,7 +84,7 @@ const mockMCResult: MonteCarloResponse = {
 
 describe('Details page', () => {
    beforeEach(() => {
-      simulationResults.set({ singleResult: null, mcResult: null });
+      simulationResults.value = { singleResult: null, mcResult: null };
    });
 
    it('shows empty state when no results', () => {
@@ -95,7 +95,10 @@ describe('Details page', () => {
    });
 
    it('shows year-by-year table for single run results', () => {
-      simulationResults.set({ singleResult: mockSingleResult, mcResult: null });
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
       render(DetailsPage);
       expect(screen.getByText('Year-by-Year Detail')).toBeInTheDocument();
       expect(screen.getByText('2026')).toBeInTheDocument();
@@ -104,7 +107,7 @@ describe('Details page', () => {
    });
 
    it('shows Monte Carlo percentile table on MC tab', async () => {
-      simulationResults.set({ singleResult: null, mcResult: mockMCResult });
+      simulationResults.value = { singleResult: null, mcResult: mockMCResult };
       render(DetailsPage);
       const mcTab = screen.getByText('Monte Carlo');
       await fireEvent.click(mcTab);
@@ -125,10 +128,10 @@ describe('Details page', () => {
    });
 
    it('shows tab bar when results exist', () => {
-      simulationResults.set({
+      simulationResults.value = {
          singleResult: mockSingleResult,
          mcResult: mockMCResult,
-      });
+      };
       render(DetailsPage);
       expect(screen.getByText('Simulation')).toBeInTheDocument();
       expect(screen.getByText('Monte Carlo')).toBeInTheDocument();

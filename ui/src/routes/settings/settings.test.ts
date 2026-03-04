@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import { get } from 'svelte/store';
 import {
    portfolio,
    sampleScenarios,
@@ -24,9 +23,9 @@ const { goto } = await import('$app/navigation');
 
 describe('Settings Page', () => {
    beforeEach(() => {
-      portfolio.set(structuredClone(defaultPortfolio));
-      profile.set(structuredClone(defaultProfile));
-      numSimulations.set(1000);
+      portfolio.value = structuredClone(defaultPortfolio);
+      profile.value = structuredClone(defaultProfile);
+      numSimulations.value = 1000;
       vi.mocked(goto).mockClear();
       localStorage.clear();
       mockPage.url = new URL('http://localhost/settings');
@@ -56,7 +55,7 @@ describe('Settings Page', () => {
       });
 
       it('shows avatar header with name when set', () => {
-         profile.set({ primaryName: 'Mike', spouseName: 'Karen' });
+         profile.value = { primaryName: 'Mike', spouseName: 'Karen' };
          render(SettingsPage);
          expect(screen.getByText('Mike & Karen')).toBeInTheDocument();
       });
@@ -86,10 +85,10 @@ describe('Settings Page', () => {
       });
 
       it('hides Get Started when already set up', () => {
-         portfolio.update((p) => {
-            p.config.current_age_primary = 58;
-            return p;
-         });
+         portfolio.value = {
+            ...portfolio.value,
+            config: { ...portfolio.value.config, current_age_primary: 58 },
+         };
          render(SettingsPage);
          expect(
             screen.queryByRole('button', { name: /get started/i }),
@@ -109,10 +108,10 @@ describe('Settings Page', () => {
       });
 
       it('shows spouse fields when spouse exists', () => {
-         portfolio.update((p) => {
-            p.config.current_age_spouse = 55;
-            return p;
-         });
+         portfolio.value = {
+            ...portfolio.value,
+            config: { ...portfolio.value.config, current_age_spouse: 55 },
+         };
          render(SettingsPage);
          expect(screen.getByText('Spouse Name')).toBeInTheDocument();
          expect(screen.getByText('Spouse Age')).toBeInTheDocument();
@@ -128,7 +127,7 @@ describe('Settings Page', () => {
       });
 
       it('Get Started validates age', async () => {
-         profile.set({ primaryName: 'Mike', spouseName: '' });
+         profile.value = { primaryName: 'Mike', spouseName: '' };
          render(SettingsPage);
          await fireEvent.click(
             screen.getByRole('button', { name: /get started/i }),
@@ -142,11 +141,11 @@ describe('Settings Page', () => {
          // Render with age=0 so initialNeedsSetup=true and Get Started shows
          render(SettingsPage);
          // Set valid values via stores (simulating user input)
-         profile.set({ primaryName: 'Alice', spouseName: '' });
-         portfolio.update((p) => {
-            p.config.current_age_primary = 60;
-            return p;
-         });
+         profile.value = { primaryName: 'Alice', spouseName: '' };
+         portfolio.value = {
+            ...portfolio.value,
+            config: { ...portfolio.value.config, current_age_primary: 60 },
+         };
          await fireEvent.click(
             screen.getByRole('button', { name: /get started/i }),
          );
@@ -170,8 +169,8 @@ describe('Settings Page', () => {
          await fireEvent.change(select, {
             target: { value: 'Moderate Couple' },
          });
-         expect(get(portfolio).config.current_age_primary).toBe(65);
-         expect(get(profile).primaryName).toBe('Pat');
+         expect(portfolio.value.config.current_age_primary).toBe(65);
+         expect(profile.value.primaryName).toBe('Pat');
          expect(goto).toHaveBeenCalledWith('/');
       });
    });

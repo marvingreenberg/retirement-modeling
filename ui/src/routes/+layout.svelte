@@ -18,11 +18,11 @@
                const data = JSON.parse(raw);
                const pResult = portfolioSchema.safeParse(data.portfolio);
                if (pResult.success) {
-                  portfolio.set(pResult.data as Portfolio);
+                  portfolio.value = pResult.data as Portfolio;
                   const profResult = userProfileSchema.safeParse(data.profile);
-                  if (profResult.success) profile.set(profResult.data);
+                  if (profResult.success) profile.value = profResult.data;
                   if (data.numSimulations)
-                     numSimulations.set(data.numSimulations);
+                     numSimulations.value = data.numSimulations;
                }
             }
          } catch {

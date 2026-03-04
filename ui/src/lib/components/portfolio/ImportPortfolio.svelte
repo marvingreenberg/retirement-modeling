@@ -26,7 +26,7 @@
    let accountOwners = $state<Owner[]>([]);
    let accountNames = $state<string[]>([]);
 
-   let hasSpouse = $derived(!!$profile.spouseName?.trim());
+   let hasSpouse = $derived(!!profile.value.spouseName?.trim());
 
    let sourceFiles = $state<string[]>([]);
    let loading = $state(false);

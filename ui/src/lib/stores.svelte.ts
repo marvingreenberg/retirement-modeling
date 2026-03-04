@@ -1,6 +1,4 @@
-import { untrack } from 'svelte';
 import { SvelteSet } from 'svelte/reactivity';
-import type { Writable, Subscriber, Unsubscriber } from 'svelte/store';
 import type {
    Portfolio,
    ComparisonSnapshot,
@@ -16,30 +14,14 @@ export {
    type SampleScenario,
 } from './sampleScenarios';
 
-function reactiveWritable<T>(initial: T): Writable<T> {
-   let _value: T = $state(initial);
-   // eslint-disable-next-line svelte/prefer-svelte-reactivity -- internal subscriber tracking, not reactive state
-   const subs = new Set<Subscriber<T>>();
-
-   function notify() {
-      for (const fn of subs) fn(_value);
-   }
-
+function createStore<T>(initial: T) {
+   let _value = $state(initial);
    return {
-      subscribe(fn: Subscriber<T>): Unsubscriber {
-         subs.add(fn);
-         untrack(() => fn(_value));
-         return () => {
-            subs.delete(fn);
-         };
+      get value() {
+         return _value;
       },
-      set(v: T) {
+      set value(v: T) {
          _value = v;
-         untrack(notify);
-      },
-      update(fn: (v: T) => T) {
-         _value = untrack(() => fn(_value));
-         untrack(notify);
       },
    };
 }
@@ -90,47 +72,45 @@ export const defaultPortfolio: Portfolio = {
 
 export const defaultProfile: UserProfile = { primaryName: '', spouseName: '' };
 
-export const profile = reactiveWritable<UserProfile>(
+export const profile = createStore<UserProfile>(
    structuredClone(defaultProfile),
 );
-export const portfolio = reactiveWritable<Portfolio>(
+export const portfolio = createStore<Portfolio>(
    structuredClone(defaultPortfolio),
 );
-export const validationErrors = reactiveWritable<FieldErrors>({});
-export const touchedFields = reactiveWritable<SvelteSet<string>>(
-   new SvelteSet(),
-);
-export const formTouched = reactiveWritable<boolean>(false);
-export const comparisonSnapshots = reactiveWritable<ComparisonSnapshot[]>([]);
-export const simulateBlockedSection = reactiveWritable<string | null>(null);
-export const numSimulations = reactiveWritable<number>(1000);
+export const validationErrors = createStore<FieldErrors>({});
+export const touchedFields = createStore<SvelteSet<string>>(new SvelteSet());
+export const formTouched = createStore<boolean>(false);
+export const comparisonSnapshots = createStore<ComparisonSnapshot[]>([]);
+export const simulateBlockedSection = createStore<string | null>(null);
+export const numSimulations = createStore<number>(1000);
 
 export interface SimulationResultsState {
    singleResult: SimulationResponse | null;
    mcResult: MonteCarloResponse | null;
 }
 
-export const simulationResults = reactiveWritable<SimulationResultsState>({
+export const simulationResults = createStore<SimulationResultsState>({
    singleResult: null,
    mcResult: null,
 });
 
 export function markTouched(path: string) {
-   touchedFields.update((s) => new SvelteSet([...s, path]));
+   touchedFields.value = new SvelteSet([...touchedFields.value, path]);
 }
 
 export function markFormTouched() {
-   formTouched.set(true);
+   formTouched.value = true;
 }
 
 export function randomizeForDemo() {
-   portfolio.update((p) => ({
-      ...p,
-      accounts: p.accounts.map((a) => ({
+   portfolio.value = {
+      ...portfolio.value,
+      accounts: portfolio.value.accounts.map((a) => ({
          ...a,
          balance:
             Math.round((a.balance * (0.3 + Math.random() * 0.4)) / 1000) * 1000,
       })),
-   }));
-   profile.update(() => ({ primaryName: 'Alex', spouseName: 'Sam' }));
+   };
+   profile.value = { primaryName: 'Alex', spouseName: 'Sam' };
 }

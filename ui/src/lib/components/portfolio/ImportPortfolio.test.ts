@@ -76,7 +76,7 @@ describe('ImportPortfolio', () => {
    beforeEach(() => {
       vi.clearAllMocks();
       vi.useFakeTimers();
-      profile.set(structuredClone(defaultProfile));
+      profile.value = structuredClone(defaultProfile);
    });
 
    afterEach(() => {
@@ -210,7 +210,7 @@ describe('ImportPortfolio', () => {
    });
 
    it('shows owner dropdown when spouse is set', async () => {
-      profile.set({ primaryName: 'Pat', spouseName: 'Chris' });
+      profile.value = { primaryName: 'Pat', spouseName: 'Chris' };
       render(ImportPortfolio, { accounts: [] });
       const input = document.querySelector(
          'input[type="file"]',
@@ -233,7 +233,7 @@ describe('ImportPortfolio', () => {
    });
 
    it('does not show owner dropdown when no spouse', async () => {
-      profile.set({ primaryName: 'Pat', spouseName: '' });
+      profile.value = { primaryName: 'Pat', spouseName: '' };
       render(ImportPortfolio, { accounts: [] });
       const input = document.querySelector(
          'input[type="file"]',
@@ -247,7 +247,7 @@ describe('ImportPortfolio', () => {
    });
 
    it('hides joint option for individual-only account types', async () => {
-      profile.set({ primaryName: 'Pat', spouseName: 'Chris' });
+      profile.value = { primaryName: 'Pat', spouseName: 'Chris' };
       render(ImportPortfolio, { accounts: [] });
       const input = document.querySelector(
          'input[type="file"]',

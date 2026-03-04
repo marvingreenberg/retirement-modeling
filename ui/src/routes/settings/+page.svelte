@@ -34,13 +34,13 @@
    // Track initial setup state at mount time, not reactively (so button doesn't vanish as user types age)
    let initialNeedsSetup = $state(false);
    onMount(() => {
-      initialNeedsSetup = $portfolio.config.current_age_primary === 0;
+      initialNeedsSetup = portfolio.value.config.current_age_primary === 0;
       initDarkMode();
       initAutoSave();
    });
 
    let src = $derived(
-      avatarSrc($profile.primaryName || 'user', $profile.avatarSvg),
+      avatarSrc(profile.value.primaryName || 'user', profile.value.avatarSvg),
    );
    let avatarError = $state(false);
    $effect(() => {
@@ -50,52 +50,55 @@
 
    // Cache avatar SVG when name changes (debounced)
    $effect(() => {
-      const name = $profile.primaryName;
+      const name = profile.value.primaryName;
       fetchAvatarSvg(name, (dataUri) => {
-         profile.update((p) => ({ ...p, avatarSvg: dataUri }));
+         profile.value = { ...profile.value, avatarSvg: dataUri };
       });
    });
 
    let displayName = $derived.by(() => {
-      const p = $profile;
+      const p = profile.value;
       if (!p.primaryName) return 'Settings';
       if (p.spouseName) return `${p.primaryName} & ${p.spouseName}`;
       return p.primaryName;
    });
 
    // Basic Info
-   let hasSpouse = $derived($portfolio.config.current_age_spouse > 0);
+   let hasSpouse = $derived(portfolio.value.config.current_age_spouse > 0);
    function addSpouse() {
-      $portfolio.config.current_age_spouse = 62;
-      $profile.spouseName = '';
+      portfolio.value.config.current_age_spouse = 62;
+      profile.value.spouseName = '';
    }
    function removeSpouse() {
-      $portfolio.config.current_age_spouse = 0;
-      $profile.spouseName = '';
-      $portfolio.config.social_security.spouse_benefit = 0;
-      $portfolio.config.social_security.spouse_start_age = 67;
-      if ($portfolio.config.ss_auto) {
-         $portfolio.config.ss_auto.spouse_fra_amount = null;
-         $portfolio.config.ss_auto.spouse_start_age = null;
+      portfolio.value.config.current_age_spouse = 0;
+      profile.value.spouseName = '';
+      portfolio.value.config.social_security.spouse_benefit = 0;
+      portfolio.value.config.social_security.spouse_start_age = 67;
+      if (portfolio.value.config.ss_auto) {
+         portfolio.value.config.ss_auto.spouse_fra_amount = null;
+         portfolio.value.config.ss_auto.spouse_start_age = null;
       }
    }
 
    let setupError = $state('');
    function handleGetStarted() {
-      if (!$profile.primaryName.trim()) {
+      if (!profile.value.primaryName.trim()) {
          setupError = 'Please enter your name.';
          return;
       }
       if (
-         $portfolio.config.current_age_primary < 20 ||
-         $portfolio.config.current_age_primary > 120
+         portfolio.value.config.current_age_primary < 20 ||
+         portfolio.value.config.current_age_primary > 120
       ) {
          setupError = 'Please enter a valid age between 20 and 120.';
          return;
       }
       setupError = '';
-      const simYears = Math.max(1, 95 - $portfolio.config.current_age_primary);
-      $portfolio.config.simulation_years = simYears;
+      const simYears = Math.max(
+         1,
+         95 - portfolio.value.config.current_age_primary,
+      );
+      portfolio.value.config.simulation_years = simYears;
       goto('/');
    }
 
@@ -103,9 +106,9 @@
    $effect(() => {
       if (isAutoSave()) {
          const data = {
-            portfolio: $portfolio,
-            profile: $profile,
-            numSimulations: $numSimulations,
+            portfolio: portfolio.value,
+            profile: profile.value,
+            numSimulations: numSimulations.value,
          };
          localStorage.setItem('retirement-sim-state', JSON.stringify(data));
       }
@@ -115,7 +118,7 @@
    function handleKeydown(e: KeyboardEvent) {
       if (e.key === 'Enter') {
          markFormTouched();
-         portfolio.update((p) => ({ ...p }));
+         portfolio.value = { ...portfolio.value };
       }
    }
 
@@ -140,7 +143,7 @@
       <div
          class="p-5 text-center border-b border-surface-300 dark:border-surface-700"
       >
-         {#if !avatarError && $profile.primaryName}
+         {#if !avatarError && profile.value.primaryName}
             <img
                {src}
                alt="Avatar"
@@ -217,7 +220,7 @@
                <input
                   type="text"
                   class="input text-sm"
-                  bind:value={$profile.primaryName}
+                  bind:value={profile.value.primaryName}
                   placeholder="e.g. Mike"
                />
             </label>
@@ -229,7 +232,7 @@
                <input
                   type="number"
                   class="input text-sm"
-                  bind:value={$portfolio.config.current_age_primary}
+                  bind:value={portfolio.value.config.current_age_primary}
                   min="20"
                   max="120"
                   placeholder="e.g. 55"
@@ -256,7 +259,7 @@
                   <input
                      type="text"
                      class="input text-sm"
-                     bind:value={$profile.spouseName}
+                     bind:value={profile.value.spouseName}
                      placeholder="e.g. Karen"
                   />
                </label>
@@ -268,7 +271,7 @@
                   <input
                      type="number"
                      class="input text-sm"
-                     bind:value={$portfolio.config.current_age_spouse}
+                     bind:value={portfolio.value.config.current_age_spouse}
                      min="20"
                      max="120"
                   />
@@ -282,7 +285,7 @@
                <input
                   type="number"
                   class="input text-sm"
-                  bind:value={$portfolio.config.simulation_years}
+                  bind:value={portfolio.value.config.simulation_years}
                   min="1"
                   max="60"
                />
@@ -295,7 +298,7 @@
                <input
                   type="number"
                   class="input text-sm"
-                  bind:value={$portfolio.config.start_year}
+                  bind:value={portfolio.value.config.start_year}
                   min="2000"
                   max="2100"
                />
@@ -308,10 +311,12 @@
                <input
                   type="number"
                   class="input text-sm"
-                  value={$portfolio.config.retirement_age ?? ''}
+                  value={portfolio.value.config.retirement_age ?? ''}
                   onchange={(e) => {
                      const v = e.currentTarget.value;
-                     $portfolio.config.retirement_age = v ? Number(v) : null;
+                     portfolio.value.config.retirement_age = v
+                        ? Number(v)
+                        : null;
                   }}
                   min="0"
                   max="120"

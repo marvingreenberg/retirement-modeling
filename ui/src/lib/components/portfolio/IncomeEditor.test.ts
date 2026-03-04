@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import { portfolio, samplePortfolio } from '$lib/stores';
-import { get } from 'svelte/store';
 
 const { default: IncomeEditor } = await import('./IncomeEditor.svelte');
 

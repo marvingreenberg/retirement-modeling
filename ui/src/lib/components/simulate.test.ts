@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import type { ComparisonSnapshot } from '$lib/types';
-import { get } from 'svelte/store';
 import {
    comparisonSnapshots,
    simulationResults,
@@ -63,7 +62,7 @@ describe('Snapshot name generation', () => {
 
 describe('Comparison store', () => {
    it('starts empty', () => {
-      const snaps = get(comparisonSnapshots);
+      const snaps = comparisonSnapshots.value;
       expect(snaps).toEqual([]);
    });
 
@@ -83,12 +82,14 @@ describe('Comparison store', () => {
          totalRothConversions: 300000,
       };
 
-      comparisonSnapshots.update((s) => [...s, snap]);
-      expect(get(comparisonSnapshots)).toHaveLength(1);
-      expect(get(comparisonSnapshots)[0].name).toBe('Test Run');
+      comparisonSnapshots.value = [...comparisonSnapshots.value, snap];
+      expect(comparisonSnapshots.value).toHaveLength(1);
+      expect(comparisonSnapshots.value[0].name).toBe('Test Run');
 
-      comparisonSnapshots.update((s) => s.filter((x) => x.id !== 'test-1'));
-      expect(get(comparisonSnapshots)).toHaveLength(0);
+      comparisonSnapshots.value = comparisonSnapshots.value.filter(
+         (x) => x.id !== 'test-1',
+      );
+      expect(comparisonSnapshots.value).toHaveLength(0);
    });
 
    it('deduplicates snapshots with same parameters', () => {
@@ -108,39 +109,39 @@ describe('Comparison store', () => {
       };
       const snap2 = { ...snap1, id: 'test-3', finalBalance: 3500000 };
 
-      comparisonSnapshots.set([snap1]);
+      comparisonSnapshots.value = [snap1];
       // Same key params → should replace, not duplicate
       const key = `${snap2.runType}|${snap2.inflationRate}|${snap2.conservativeGrowth}|${snap2.spendingStrategy}|${snap2.conversionStrategy}|${snap2.taxRateState}`;
-      comparisonSnapshots.update((snaps) => {
-         const filtered = snaps.filter(
-            (s) =>
-               `${s.runType}|${s.inflationRate}|${s.conservativeGrowth}|${s.spendingStrategy}|${s.conversionStrategy}|${s.taxRateState}` !==
-               key,
-         );
-         return [...filtered, snap2];
-      });
-      expect(get(comparisonSnapshots)).toHaveLength(1);
-      expect(get(comparisonSnapshots)[0].finalBalance).toBe(3500000);
+      const filtered = comparisonSnapshots.value.filter(
+         (s) =>
+            `${s.runType}|${s.inflationRate}|${s.conservativeGrowth}|${s.spendingStrategy}|${s.conversionStrategy}|${s.taxRateState}` !==
+            key,
+      );
+      comparisonSnapshots.value = [...filtered, snap2];
+      expect(comparisonSnapshots.value).toHaveLength(1);
+      expect(comparisonSnapshots.value[0].finalBalance).toBe(3500000);
 
-      comparisonSnapshots.set([]);
+      comparisonSnapshots.value = [];
    });
 
    it('simulationResults store can be cleared', () => {
-      simulationResults.set({
+      simulationResults.value = {
          singleResult: { result: {} } as any,
          mcResult: { success_rate: 0.9 } as any,
-      });
-      expect(get(simulationResults).singleResult).not.toBeNull();
-      simulationResults.set({ singleResult: null, mcResult: null });
-      expect(get(simulationResults).singleResult).toBeNull();
-      expect(get(simulationResults).mcResult).toBeNull();
+      };
+      expect(simulationResults.value.singleResult).not.toBeNull();
+      simulationResults.value = { singleResult: null, mcResult: null };
+      expect(simulationResults.value.singleResult).toBeNull();
+      expect(simulationResults.value.mcResult).toBeNull();
    });
 
    it('comparisonSnapshots can be cleared', () => {
-      comparisonSnapshots.set([{ id: 'x', name: 'X' } as ComparisonSnapshot]);
-      expect(get(comparisonSnapshots)).toHaveLength(1);
-      comparisonSnapshots.set([]);
-      expect(get(comparisonSnapshots)).toHaveLength(0);
+      comparisonSnapshots.value = [
+         { id: 'x', name: 'X' } as ComparisonSnapshot,
+      ];
+      expect(comparisonSnapshots.value).toHaveLength(1);
+      comparisonSnapshots.value = [];
+      expect(comparisonSnapshots.value).toHaveLength(0);
    });
 
    it('MC snapshot includes success rate', () => {

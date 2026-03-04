@@ -49,8 +49,10 @@
    }
 
    function hasError(path: string): boolean {
-      if (!$formTouched) return false;
-      return Object.keys($validationErrors).some((k) => k.startsWith(path));
+      if (!formTouched.value) return false;
+      return Object.keys(validationErrors.value).some((k) =>
+         k.startsWith(path),
+      );
    }
 </script>
 

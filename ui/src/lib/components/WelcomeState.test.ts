@@ -6,7 +6,7 @@ const { default: WelcomeState } = await import('./WelcomeState.svelte');
 
 describe('WelcomeState', () => {
    beforeEach(() => {
-      portfolio.set(structuredClone(defaultPortfolio));
+      portfolio.value = structuredClone(defaultPortfolio);
    });
 
    it('renders heading', () => {
@@ -22,7 +22,7 @@ describe('WelcomeState', () => {
    });
 
    it('shows portfolio summary when accounts exist', () => {
-      portfolio.set(structuredClone(samplePortfolio));
+      portfolio.value = structuredClone(samplePortfolio);
       render(WelcomeState);
       expect(screen.getByText('Total Balance')).toBeInTheDocument();
       expect(screen.getByText('Annual Spending')).toBeInTheDocument();
@@ -34,7 +34,7 @@ describe('WelcomeState', () => {
    });
 
    it('shows coverage estimate when spending > 0', () => {
-      portfolio.set(structuredClone(samplePortfolio));
+      portfolio.value = structuredClone(samplePortfolio);
       render(WelcomeState);
       expect(screen.getByText('Est. Coverage')).toBeInTheDocument();
       expect(screen.getByText(/~\d+ years/)).toBeInTheDocument();

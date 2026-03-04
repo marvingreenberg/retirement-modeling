@@ -11,9 +11,9 @@ const { default: SimulateSettings } = await import('./SimulateSettings.svelte');
 
 describe('SimulateSettings', () => {
    beforeEach(() => {
-      portfolio.set(structuredClone(samplePortfolio));
-      validationErrors.set({});
-      formTouched.set(false);
+      portfolio.value = structuredClone(samplePortfolio);
+      validationErrors.value = {};
+      formTouched.value = false;
    });
 
    function renderSettings(overrides: Record<string, any> = {}) {
@@ -39,10 +39,10 @@ describe('SimulateSettings', () => {
    });
 
    it('shows strategy controls after expanding strategy section', async () => {
-      portfolio.update((p) => {
-         p.config.spending_strategy = 'guardrails';
-         return p;
-      });
+      portfolio.value = {
+         ...portfolio.value,
+         config: { ...portfolio.value.config, spending_strategy: 'guardrails' },
+      };
       renderSettings();
       const toggle = screen.getByText(/Withdrawal Strategy/);
       await fireEvent.click(toggle);
@@ -53,10 +53,13 @@ describe('SimulateSettings', () => {
    });
 
    it('shows withdrawal rate after expanding strategy for POP', async () => {
-      portfolio.update((p) => {
-         p.config.spending_strategy = 'percent_of_portfolio';
-         return p;
-      });
+      portfolio.value = {
+         ...portfolio.value,
+         config: {
+            ...portfolio.value.config,
+            spending_strategy: 'percent_of_portfolio',
+         },
+      };
       renderSettings();
       const toggle = screen.getByText(/Withdrawal Strategy/);
       await fireEvent.click(toggle);
@@ -64,11 +67,14 @@ describe('SimulateSettings', () => {
    });
 
    it('strategy section collapsed by default shows summary', () => {
-      portfolio.update((p) => {
-         p.config.spending_strategy = 'fixed_dollar';
-         p.config.annual_spend_net = 140000;
-         return p;
-      });
+      portfolio.value = {
+         ...portfolio.value,
+         config: {
+            ...portfolio.value.config,
+            spending_strategy: 'fixed_dollar',
+            annual_spend_net: 140000,
+         },
+      };
       renderSettings();
       expect(screen.getByText(/Fixed \$140K/)).toBeInTheDocument();
    });
@@ -87,23 +93,26 @@ describe('SimulateSettings', () => {
    });
 
    it('conversion dropdown is enabled regardless of age', () => {
-      portfolio.update((p) => {
-         p.config.current_age_primary = 75;
-         p.config.rmd_start_age = 73;
-         return p;
-      });
+      portfolio.value = {
+         ...portfolio.value,
+         config: {
+            ...portfolio.value.config,
+            current_age_primary: 75,
+            rmd_start_age: 73,
+         },
+      };
       renderSettings();
       const select = screen.getByRole('combobox');
       expect(select).not.toBeDisabled();
    });
 
    it('shows inline error for inflation input when validation fails', () => {
-      portfolio.update((p) => {
-         p.config.inflation_rate = -0.01;
-         return p;
-      });
-      formTouched.set(true);
-      validationErrors.set({ 'config.inflation_rate': 'Must be >= 0' });
+      portfolio.value = {
+         ...portfolio.value,
+         config: { ...portfolio.value.config, inflation_rate: -0.01 },
+      };
+      formTouched.value = true;
+      validationErrors.value = { 'config.inflation_rate': 'Must be >= 0' };
       renderSettings();
       expect(screen.getByText('Must be >= 0')).toBeInTheDocument();
    });
@@ -116,8 +125,8 @@ describe('SimulateSettings', () => {
    });
 
    it('does not show inline errors when form is not touched', () => {
-      formTouched.set(false);
-      validationErrors.set({ 'config.inflation_rate': 'Must be >= 0' });
+      formTouched.value = false;
+      validationErrors.value = { 'config.inflation_rate': 'Must be >= 0' };
       renderSettings();
       expect(screen.queryByText('Must be >= 0')).not.toBeInTheDocument();
    });
@@ -129,34 +138,32 @@ describe('SimulateSettings', () => {
    });
 
    it('hides conversion dropdown when no pretax accounts', () => {
-      portfolio.update((p) => {
-         p.accounts = p.accounts.map((a) => ({
+      portfolio.value = {
+         ...portfolio.value,
+         accounts: portfolio.value.accounts.map((a) => ({
             ...a,
             type: 'brokerage' as const,
-         }));
-         return p;
-      });
+         })),
+      };
       renderSettings();
       expect(screen.queryByText(/Conversion/)).not.toBeInTheDocument();
    });
 
    it('resets strategy_target to standard when pretax accounts removed', () => {
-      portfolio.update((p) => {
-         p.config.strategy_target = 'irmaa_tier_1';
-         return p;
-      });
+      portfolio.value = {
+         ...portfolio.value,
+         config: { ...portfolio.value.config, strategy_target: 'irmaa_tier_1' },
+      };
       renderSettings();
       expect(screen.getByRole('combobox')).toHaveValue('irmaa_tier_1');
 
-      portfolio.update((p) => {
-         p.accounts = p.accounts.map((a) => ({
+      portfolio.value = {
+         ...portfolio.value,
+         accounts: portfolio.value.accounts.map((a) => ({
             ...a,
             type: 'brokerage' as const,
-         }));
-         return p;
-      });
+         })),
+      };
       // $effect resets to 'standard'
-      const current = structuredClone(samplePortfolio);
-      portfolio.subscribe((p) => Object.assign(current, p))();
    });
 });

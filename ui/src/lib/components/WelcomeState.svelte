@@ -4,13 +4,13 @@
    import { BarChart3 } from 'lucide-svelte';
 
    let totalBalance = $derived(
-      $portfolio.accounts.reduce((sum, a) => sum + a.balance, 0),
+      portfolio.value.accounts.reduce((sum, a) => sum + a.balance, 0),
    );
-   let spending = $derived($portfolio.config.annual_spend_net);
+   let spending = $derived(portfolio.value.config.annual_spend_net);
    let coverageYears = $derived(
       spending > 0 ? Math.round(totalBalance / spending) : null,
    );
-   let hasAccounts = $derived($portfolio.accounts.length > 0);
+   let hasAccounts = $derived(portfolio.value.accounts.length > 0);
 </script>
 
 <div

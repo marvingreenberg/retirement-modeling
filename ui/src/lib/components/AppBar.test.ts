@@ -31,8 +31,8 @@ const { default: AppBar } = await import('./AppBar.svelte');
 
 describe('AppBar', () => {
    beforeEach(() => {
-      profile.set(structuredClone(defaultProfile));
-      portfolio.set(structuredClone(defaultPortfolio));
+      profile.value = structuredClone(defaultProfile);
+      portfolio.value = structuredClone(defaultPortfolio);
       closeHelp();
    });
 
@@ -109,7 +109,7 @@ describe('AppBar', () => {
    });
 
    it('avatar click opens dropdown with section links', async () => {
-      profile.set({ primaryName: 'Mike', spouseName: '' });
+      profile.value = { primaryName: 'Mike', spouseName: '' };
       render(AppBar);
       await fireEvent.click(screen.getByLabelText('Open profile'));
       expect(
@@ -124,7 +124,7 @@ describe('AppBar', () => {
    });
 
    it('dropdown shows dark mode and auto-save toggles', async () => {
-      profile.set({ primaryName: 'Mike', spouseName: '' });
+      profile.value = { primaryName: 'Mike', spouseName: '' };
       render(AppBar);
       await fireEvent.click(screen.getByLabelText('Open profile'));
       expect(screen.getByLabelText('Toggle dark mode')).toBeInTheDocument();

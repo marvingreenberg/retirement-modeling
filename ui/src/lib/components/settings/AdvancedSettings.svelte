@@ -3,7 +3,9 @@
    import HelpButton from '$lib/components/HelpButton.svelte';
    import { Shuffle } from 'lucide-svelte';
 
-   let showIrmaa = $derived($portfolio.config.strategy_target !== 'standard');
+   let showIrmaa = $derived(
+      portfolio.value.config.strategy_target !== 'standard',
+   );
    let showRandomizeConfirm = $state(false);
 
    function toPct(v: number): number {
@@ -26,9 +28,9 @@
       <input
          type="number"
          class="input text-sm"
-         value={toPct($portfolio.config.tax_rate_state)}
+         value={toPct(portfolio.value.config.tax_rate_state)}
          oninput={(e) =>
-            setPct(e, (v) => ($portfolio.config.tax_rate_state = v))}
+            setPct(e, (v) => (portfolio.value.config.tax_rate_state = v))}
          min="0"
          max="20"
          step="0.25"
@@ -47,7 +49,7 @@
       <input
          type="number"
          class="input text-sm"
-         bind:value={$portfolio.config.rmd_start_age}
+         bind:value={portfolio.value.config.rmd_start_age}
          min="70"
          max="80"
       />
@@ -66,7 +68,7 @@
          <input
             type="number"
             class="input text-sm"
-            bind:value={$portfolio.config.irmaa_limit_tier_1}
+            bind:value={portfolio.value.config.irmaa_limit_tier_1}
             min="0"
             step="1000"
          />
@@ -85,7 +87,7 @@
       <input
          type="number"
          class="input text-sm"
-         bind:value={$numSimulations}
+         bind:value={numSimulations.value}
          min="1"
          max="10000"
       />
@@ -102,7 +104,7 @@
       >
       <select
          class="select text-sm"
-         bind:value={$portfolio.config.excess_income_routing}
+         bind:value={portfolio.value.config.excess_income_routing}
       >
          <option value="brokerage">Brokerage (default)</option>
          <option value="ira_first">IRA first, then brokerage</option>
