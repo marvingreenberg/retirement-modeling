@@ -15,7 +15,7 @@
    import { validationErrors, formTouched } from '$lib/stores';
    import { SvelteSet } from 'svelte/reactivity';
    import { compactCurrency } from '$lib/format';
-   import InfoPopover from '$lib/components/InfoPopover.svelte';
+   import HelpButton from '$lib/components/HelpButton.svelte';
    import {
       ShieldCheck,
       Sprout,
@@ -264,9 +264,7 @@
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
                   <span class="flex items-center gap-1"
-                     >Basis % <InfoPopover
-                        text="The portion of the account that represents original contributions (not gains). Affects capital gains tax on brokerage withdrawals."
-                     /></span
+                     >Basis % <HelpButton topic="accounts-tax-treatment" anchor="cost-basis" /></span
                   >
                   <input
                      type="number"
@@ -292,9 +290,7 @@
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
                   <span class="flex items-center gap-1"
-                     >Stocks % <InfoPopover
-                        text="Percentage of equities vs bonds. Affects tax drag on brokerage accounts."
-                     /></span
+                     >Stocks % <HelpButton topic="accounts-tax-treatment" anchor="stock-allocation" /></span
                   >
                   <input
                      type="number"

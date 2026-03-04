@@ -7,7 +7,7 @@
       type WithdrawalCategory,
    } from '$lib/types';
    import { recommendWithdrawalOrder } from '$lib/taxDrag';
-   import InfoPopover from '$lib/components/InfoPopover.svelte';
+   import HelpButton from '$lib/components/HelpButton.svelte';
 
    let {
       order = $bindable(),
@@ -94,9 +94,7 @@
       class="text-xs font-medium text-surface-600 dark:text-surface-400 flex items-center gap-1"
    >
       Withdrawal Order
-      <InfoPopover
-         text="Order in which account types are tapped for spending. Default: Cash → Brokerage → IRA/401K → Roth. This uses taxable accounts first to let tax-advantaged accounts keep growing. Drag to reorder."
-      />
+      <HelpButton topic="withdrawal-order" />
    </span>
    <div class="flex gap-1 items-center">
       {#each displayOrder as cat, i (cat)}

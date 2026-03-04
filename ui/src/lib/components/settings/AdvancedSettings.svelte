@@ -1,6 +1,6 @@
 <script lang="ts">
    import { portfolio, numSimulations, randomizeForDemo } from '$lib/stores';
-   import InfoPopover from '$lib/components/InfoPopover.svelte';
+   import HelpButton from '$lib/components/HelpButton.svelte';
    import { Shuffle } from 'lucide-svelte';
 
    let showIrmaa = $derived($portfolio.config.strategy_target !== 'standard');
@@ -39,9 +39,7 @@
       class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
    >
       <span class="flex items-center gap-1"
-         >RMD Age <InfoPopover
-            text="Age at which Required Minimum Distributions from pre-tax accounts begin. Currently 73 under the SECURE 2.0 Act."
-         /></span
+         >RMD Age <HelpButton topic="required-minimum-distributions" anchor="rmd-age" /></span
       >
       <input
          type="number"
@@ -57,9 +55,7 @@
          class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
       >
          <span class="flex items-center gap-1"
-            >IRMAA Limit ($) <InfoPopover
-               text="Income threshold above which Medicare Part B/D premiums increase. Roth conversions that push income above this trigger surcharges."
-            /></span
+            >IRMAA Limit ($) <HelpButton topic="roth-conversions" anchor="irmaa" /></span
          >
          <input
             type="number"
@@ -75,9 +71,7 @@
       class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
    >
       <span class="flex items-center gap-1"
-         >MC Iterations <InfoPopover
-            text="Number of Monte Carlo simulations to run. More iterations give more stable results but take longer."
-         /></span
+         >MC Iterations <HelpButton topic="monte-carlo" anchor="iterations" /></span
       >
       <input
          type="number"
@@ -92,9 +86,7 @@
       class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
    >
       <span class="flex items-center gap-1"
-         >Excess Income Routing <InfoPopover
-            text="When income exceeds spending, surplus is invested. Choose where: brokerage (default), IRA first (then brokerage), or Roth IRA first (then brokerage). IRA/Roth options require employment income."
-         /></span
+         >Excess Income Routing <HelpButton topic="withdrawal-order" anchor="excess-income-routing" /></span
       >
       <select
          class="select text-sm"
