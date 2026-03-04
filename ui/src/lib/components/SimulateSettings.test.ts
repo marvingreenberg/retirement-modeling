@@ -27,7 +27,9 @@ describe('SimulateSettings', () => {
    it('shows primary inputs by default', () => {
       renderSettings();
       expect(screen.getByText(/Inflation %/)).toBeInTheDocument();
-      expect(screen.getByText(/Growth %/)).toBeInTheDocument();
+      expect(
+         screen.getByRole('checkbox', { name: /conservative growth/i }),
+      ).toBeInTheDocument();
       expect(screen.getAllByText(/Conversion/).length).toBeGreaterThan(0);
    });
 
@@ -106,11 +108,11 @@ describe('SimulateSettings', () => {
       expect(screen.getByText('Must be >= 0')).toBeInTheDocument();
    });
 
-   it('shows inline error for growth input when validation fails', () => {
-      formTouched.set(true);
-      validationErrors.set({ 'config.investment_growth_rate': 'Invalid rate' });
+   it('renders conservative growth checkbox', () => {
       renderSettings();
-      expect(screen.getByText('Invalid rate')).toBeInTheDocument();
+      expect(
+         screen.getByRole('checkbox', { name: /conservative growth/i }),
+      ).toBeInTheDocument();
    });
 
    it('does not show inline errors when form is not touched', () => {

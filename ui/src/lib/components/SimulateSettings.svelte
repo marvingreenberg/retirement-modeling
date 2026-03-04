@@ -13,12 +13,6 @@
    let inflError = $derived(
       $formTouched ? ($validationErrors['config.inflation_rate'] ?? '') : '',
    );
-   let growthError = $derived(
-      $formTouched
-         ? ($validationErrors['config.investment_growth_rate'] ?? '')
-         : '',
-   );
-
    let {
       onrun,
       loading = false,
@@ -167,31 +161,18 @@
             >{/if}
       </label>
       <label
-         class="flex flex-col gap-0.5 text-xs font-medium {growthError
-            ? 'text-error-600 dark:text-error-400'
-            : 'text-surface-600 dark:text-surface-400'}"
+         class="flex items-center gap-2 text-xs font-medium text-surface-600 dark:text-surface-400"
       >
-         <span class="flex items-center gap-1"
-            >Growth % <HelpButton
-               topic="simulation-parameters"
-               anchor="growth-rate"
-            /></span
-         >
          <input
-            type="number"
-            class="input w-20 text-sm {growthError
-               ? 'ring-2 ring-error-500 border-error-500'
-               : ''}"
-            value={toPct($portfolio.config.investment_growth_rate)}
-            oninput={(e) =>
-               setPct(e, (v) => ($portfolio.config.investment_growth_rate = v))}
-            min="-50"
-            max="50"
-            step="0.5"
+            type="checkbox"
+            class="checkbox"
+            bind:checked={$portfolio.config.conservative_growth}
          />
-         {#if growthError}<span class="text-[10px] text-error-500"
-               >{growthError}</span
-            >{/if}
+         Conservative growth
+         <HelpButton
+            topic="simulation-parameters"
+            anchor="conservative-growth"
+         />
       </label>
       {#if showConversion}
          <label

@@ -27,10 +27,7 @@
       validationErrors.set(errors);
    });
 
-   const configInputPaths = [
-      'config.inflation_rate',
-      'config.investment_growth_rate',
-   ];
+   const configInputPaths = ['config.inflation_rate'];
    let errorList = $derived(
       $formTouched
          ? Object.entries(errors).filter(([k]) => !configInputPaths.includes(k))
