@@ -1,47 +1,45 @@
 import { describe, it, expect } from 'vitest';
-import { helpTopics, getTopicById, getDefaultTopicId } from './helpContent';
+import { getTopicHtml } from './helpContent';
 
-describe('helpContent', () => {
-   it('exports all four topics', () => {
-      expect(helpTopics).toHaveLength(4);
-      const ids = helpTopics.map((t) => t.id);
-      expect(ids).toContain('tax-indexing');
-      expect(ids).toContain('spending-strategies');
-      expect(ids).toContain('ss-benefit');
-      expect(ids).toContain('income-cola');
-   });
+describe('helpContent (markdown loader)', () => {
+	it('returns HTML for a known topic', () => {
+		const html = getTopicHtml('getting-started');
+		expect(html).toContain('<');
+		expect(html.length).toBeGreaterThan(50);
+	});
 
-   it('getTopicById returns matching topic', () => {
-      const topic = getTopicById('ss-benefit');
-      expect(topic).toBeDefined();
-      expect(topic!.title).toBe('Social Security Benefit Formula');
-   });
+	it('returns fallback for unknown topic', () => {
+		const html = getTopicHtml('nonexistent');
+		expect(html).toContain('No content available');
+	});
 
-   it('getTopicById returns undefined for unknown id', () => {
-      expect(getTopicById('nonexistent')).toBeUndefined();
-   });
+	it('all 15 topics return non-empty content', () => {
+		const topicIds = [
+			'getting-started',
+			'about',
+			'accounts-tax-treatment',
+			'income-cola',
+			'social-security',
+			'spending-strategies',
+			'withdrawal-order',
+			'roth-conversions',
+			'required-minimum-distributions',
+			'simulation-parameters',
+			'tax-bracket-indexing',
+			'balance-chart',
+			'spending-chart',
+			'monte-carlo',
+			'outcome-distribution',
+		];
+		for (const id of topicIds) {
+			const html = getTopicHtml(id);
+			expect(html.length, `${id} should have content`).toBeGreaterThan(50);
+		}
+	});
 
-   it('getDefaultTopicId returns spending-strategies for /', () => {
-      expect(getDefaultTopicId('/')).toBe('spending-strategies');
-   });
-
-   it('getDefaultTopicId returns tax-indexing for /details', () => {
-      expect(getDefaultTopicId('/details')).toBe('tax-indexing');
-   });
-
-   it('getDefaultTopicId returns spending-strategies for unknown route', () => {
-      expect(getDefaultTopicId('/unknown')).toBe('spending-strategies');
-   });
-
-   it('all relatedTopics reference valid topic ids', () => {
-      const validIds = new Set(helpTopics.map((t) => t.id));
-      for (const topic of helpTopics) {
-         for (const relId of topic.relatedTopics) {
-            expect(
-               validIds.has(relId),
-               `${topic.id} references unknown topic ${relId}`,
-            ).toBe(true);
-         }
-      }
-   });
+	it('processes conditional sections when conditions provided', () => {
+		const withPretax = getTopicHtml('balance-chart', { has_pretax: true });
+		const withoutPretax = getTopicHtml('balance-chart', { has_pretax: false });
+		expect(withPretax.length).toBeGreaterThan(withoutPretax.length);
+	});
 });
