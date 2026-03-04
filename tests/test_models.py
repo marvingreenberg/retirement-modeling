@@ -133,7 +133,7 @@ class TestSimulationConfig:
         )
         assert cfg.simulation_years == 30  # default
         assert cfg.inflation_rate == 0.03  # default
-        assert cfg.investment_growth_rate == 0.06  # default
+        assert cfg.conservative_growth is False  # default
 
     def test_monthly_spend_property(self):
         cfg = SimulationConfig(

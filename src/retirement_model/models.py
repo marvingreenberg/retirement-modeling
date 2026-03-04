@@ -6,7 +6,6 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from retirement_model.constants import (
-    DEFAULT_GROWTH_RATE,
     DEFAULT_INFLATION_RATE,
     DEFAULT_SIMULATION_YEARS,
     DEFAULT_STATE_TAX_RATE,
@@ -321,7 +320,7 @@ class SimulationConfig(BaseModel):
 
     annual_spend_net: float = Field(gt=0)
     inflation_rate: float = Field(default=DEFAULT_INFLATION_RATE, ge=0, le=0.5)
-    investment_growth_rate: float = Field(default=DEFAULT_GROWTH_RATE, ge=-0.5, le=0.5)
+    conservative_growth: bool = Field(default=False)
 
     # Conversion strategy (Roth conversion ceiling)
     strategy_target: ConversionStrategy = ConversionStrategy.IRMAA_TIER_1

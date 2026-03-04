@@ -62,7 +62,7 @@ def sample_config() -> SimulationConfig:
         start_year=2026,
         annual_spend_net=100000,
         inflation_rate=0.03,
-        investment_growth_rate=0.06,
+        conservative_growth=False,
         strategy_target=WithdrawalStrategy.IRMAA_TIER_1,
         tax_brackets_federal=[
             TaxBracket(limit=23200, rate=0.10),
