@@ -38,17 +38,23 @@ Full-stack retirement planning simulator: Python/FastAPI backend + SvelteKit fro
 
 ## Development Workflow
 
+### Miscellaneous Tools
+
+Use `do_cmd` for running commands in worktrees or to run commnds in subdirectories generally.  Also use to setup venv before running command.
+Run do_cmd --help for full description
+
+- `do_cmd -w <worktree> -- <command>` — run command in a worktree
+- `do_cmd -w <worktree> -p .,dev -- pytest tests -q` — API tests in worktree, with venv set up, and activated
+- `do_cmd -w <worktree> -d ui -- pnpm exec vitest run` — frontend tests in worktree
+- `-p .,dev` sets up `.venv` with dev extras (skips if `.venv` exists); `-d` changes to subdirectory
+
+
+
 ### Task Execution Process
 
-1. **Branch**: `git checkout -b <feature-branch>` off main
-2. **Plan**: Use plan mode for non-trivial changes to design the approach
-3. **Implement**: Write code and tests
-4. **Test**: Run all tests, fix failures
-5. **Commit**: Commit changes to the feature branch
-6. **Merge**: Merge feature branch onto main (conflicts resolved by user)
-7. **Push**: Push main to origin. Leave local branches in place. Do NOT push feature branches.
+Follow global CLAUDE.md.
 
-Update DESIGN.md when changes affect the overall architecture.
+In addition, update DESIGN.md when changes affect the overall architecture, and review help text when behavior is changed or added.
 
 ### Linting
 
@@ -62,10 +68,6 @@ Keep the Makefile lint/format targets up to date as the project evolves.
 
 - ESLint is configured with warnings (not errors) for pre-existing patterns like `no-explicit-any`, `require-each-key`, `no-navigation-without-resolve` (off — project uses adapter-static)
 - New code should not introduce new warnings; fix or suppress with inline comments if justified
-
-### Responding to Warnings
-
-When a linter, type-checker, compiler, or any tool produces a warning, do not apply a mechanical fix. Trace the full consequences of the proposed change — what reads the value, what writes it, what triggers re-execution. A warning identifies a real concern, but the "obvious" fix may create a worse problem (infinite loops, race conditions, subtle breakage) if applied without understanding the surrounding data flow. Think through second-order effects before changing code to silence a warning.
 
 ### Testing
 
