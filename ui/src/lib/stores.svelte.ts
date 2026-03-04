@@ -58,7 +58,7 @@ export const defaultPortfolio: Portfolio = {
       start_year: currentYear,
       annual_spend_net: 0,
       inflation_rate: 0.03,
-      investment_growth_rate: 0.07,
+      conservative_growth: false,
       strategy_target: 'standard',
       spending_strategy: 'fixed_dollar',
       withdrawal_rate: 0.04,

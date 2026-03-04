@@ -118,7 +118,7 @@ export const simulationConfigSchema = z
       start_year: z.number().int().min(2000).max(2100),
       annual_spend_net: z.number().min(0),
       inflation_rate: z.number().min(0).max(0.5),
-      investment_growth_rate: z.number().min(-0.5).max(0.5),
+      conservative_growth: z.boolean(),
       strategy_target: conversionStrategySchema,
       spending_strategy: spendingStrategySchema.default('fixed_dollar'),
       withdrawal_rate: z.number().min(0.01).max(0.15).default(0.04),

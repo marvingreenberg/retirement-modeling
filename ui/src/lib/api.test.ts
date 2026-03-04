@@ -10,7 +10,7 @@ const mockPortfolio: Portfolio = {
       start_year: 2026,
       annual_spend_net: 100000,
       inflation_rate: 0.03,
-      investment_growth_rate: 0.06,
+      conservative_growth: false,
       strategy_target: 'irmaa_tier_1',
       spending_strategy: 'fixed_dollar',
       withdrawal_rate: 0.04,

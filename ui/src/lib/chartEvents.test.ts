@@ -12,7 +12,7 @@ function makeConfig(
       start_year: 2026,
       annual_spend_net: 100000,
       inflation_rate: 0.03,
-      investment_growth_rate: 0.06,
+      conservative_growth: false,
       strategy_target: 'irmaa_tier_1',
       tax_brackets_federal: [],
       tax_rate_state: 0.05,

@@ -248,7 +248,7 @@ export interface SimulationConfig {
    start_year: number;
    annual_spend_net: number;
    inflation_rate: number;
-   investment_growth_rate: number;
+   conservative_growth: boolean;
    strategy_target: ConversionStrategy;
    spending_strategy?: SpendingStrategy;
    withdrawal_rate?: number;
@@ -387,7 +387,7 @@ export interface ComparisonSnapshot {
    runType: 'single' | 'monte_carlo';
    numSimulations?: number;
    inflationRate: number;
-   growthRate: number;
+   conservativeGrowth: boolean;
    spendingStrategy: string;
    conversionStrategy: string;
    taxRateState: number;

@@ -181,7 +181,7 @@ describe('defaultPortfolio', () => {
 
    it('has sensible defaults for simulation params', () => {
       expect(defaultPortfolio.config.inflation_rate).toBeDefined();
-      expect(defaultPortfolio.config.investment_growth_rate).toBeDefined();
+      expect(defaultPortfolio.config.conservative_growth).toBe(false);
       expect(defaultPortfolio.config.spending_strategy).toBeDefined();
       expect(defaultPortfolio.config.strategy_target).toBeDefined();
    });
