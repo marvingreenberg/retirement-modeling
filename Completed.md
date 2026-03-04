@@ -4,6 +4,19 @@ Items moved from TODO.md in order of completion.
 
 ---
 
+## 200-help refactor (v2.0.0)
+
+Replaced InfoPopover (i) tooltips and basic HelpDrawer with a unified contextual help system:
+- HelpButton (?) icons on all fields and charts that open a HelpPanel drawer
+- HelpPanel with grouped accordion navigation (App Basics, Your Inputs, Rules & Strategies, Understanding Results)
+- 15 concept-based help topics authored as markdown files in `ui/src/lib/help/en/`
+- Context-aware chart help with conditional sections based on portfolio state
+- Shared reactive help state (`helpState.svelte.ts`) connecting buttons to panel
+- `marked` for runtime markdown rendering with build-time `?raw` imports
+- i18n-ready: content in separate locale-organized markdown files
+
+---
+
 ## FE/BE boundary verification tests
 
 Review the FE/BE boundary with permutations of inputs to ensure that the changes at the UI are processed properly to cause changes in returned API requests for simulation and montecarlo.
