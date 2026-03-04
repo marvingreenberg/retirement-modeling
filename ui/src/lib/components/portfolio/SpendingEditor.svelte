@@ -2,6 +2,7 @@
    import type { SimulationConfig, PlannedExpense } from '$lib/types';
    import { currency } from '$lib/format';
    import { validationErrors, formTouched } from '$lib/stores';
+   import { Trash2 } from 'lucide-svelte';
 
    let {
       config = $bindable(),
@@ -167,9 +168,9 @@
             />
          </div>
          <button
-            class="btn preset-outlined btn-sm"
+            class="btn btn-sm preset-tonal p-1"
             onclick={() => removeExpense(i)}
-            aria-label="Remove expense">✕</button
+            aria-label="Remove expense"><Trash2 size={14} /></button
          >
       </div>
    {/each}

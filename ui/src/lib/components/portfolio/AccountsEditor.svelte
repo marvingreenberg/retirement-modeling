@@ -24,6 +24,7 @@
       RotateCcw,
       Pencil,
       Check,
+      Trash2,
    } from 'lucide-svelte';
    import { estimateTaxDrag } from '$lib/taxDrag';
    import TaxDragCalculator from './TaxDragCalculator.svelte';
@@ -163,6 +164,13 @@
             class="border border-surface-300 dark:border-surface-600 rounded p-3 bg-surface-50 dark:bg-surface-800 space-y-2"
          >
             <div class="flex gap-2 items-center">
+               <button
+                  class="btn btn-sm preset-tonal p-1"
+                  onclick={() => removeAccount(i)}
+                  aria-label="Delete account"
+               >
+                  <Trash2 size={14} />
+               </button>
                <div class="w-5 flex items-center justify-center">
                   {#if iconType === 'pretax'}
                      <ShieldCheck size={18} class="text-blue-500" />
@@ -183,19 +191,11 @@
                   aria-label="Name"
                />
                <button
-                  class="btn preset-tonal btn-sm"
+                  class="btn preset-tonal btn-sm p-1"
                   onclick={() => toggleExpand(account.id)}
                   aria-label="Done editing"
                >
-                  <Check size={14} />
-                  Done
-               </button>
-               <button
-                  class="btn preset-outlined btn-sm"
-                  onclick={() => removeAccount(i)}
-                  aria-label="Delete account"
-               >
-                  ✕
+                  <Check size={16} />
                </button>
             </div>
             <div class="flex gap-4 flex-wrap items-end pl-7">
