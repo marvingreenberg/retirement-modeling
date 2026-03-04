@@ -18,6 +18,16 @@ The simulation models several account types, each with distinct tax rules that a
 
 The cost basis ratio represents what fraction of a brokerage account's value is original contributions (as opposed to accumulated gains). A ratio of 0.40 means 40% is cost basis and 60% is gains. When withdrawing from brokerage accounts, only the gains portion is subject to capital gains tax. A higher ratio means less tax on withdrawals. The simulation updates this ratio over time as the account grows and gains accumulate.
 
-### Stock Allocation
+### Stock Allocation {#stock-allocation}
 
-The stock percentage (equity allocation) for each account controls how much of the account is invested in equities versus bonds. This affects the annual tax drag calculation for brokerage accounts — stock-heavy allocations generate more qualified dividends (taxed at lower rates) while bond-heavy allocations generate more ordinary income (taxed at higher rates). If not set for an individual account, the portfolio-level default is used.
+The stock percentage (equity allocation) determines each account's expected growth rate using long-term historical return assumptions:
+
+- **Equities:** 10% annual return
+- **Bonds:** 4% annual return
+- **Formula:** stock% × 10% + bond% × 4%
+
+Examples: 80/20 → 8.8%, 60/40 → 7.6%, 40/60 → 6.4%
+
+The effective growth rate is shown on each account's summary row. For brokerage (taxable) accounts, annual tax drag is subtracted — stock dividends and bond interest are taxed each year, reducing effective growth. Tax-sheltered accounts (IRA, 401k, Roth) grow at the full nominal rate with no drag.
+
+If not set, each account type has a default stock allocation (e.g., 60% for brokerage, 80% for Roth).

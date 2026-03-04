@@ -10,10 +10,10 @@ Higher inflation erodes purchasing power faster, requiring larger withdrawals to
 
 In Monte Carlo mode, this configured value is **not used** — historical inflation rates from the sampled year sequences are applied instead.
 
-### Growth Rate
+### Conservative Growth {#conservative-growth}
 
-The assumed annual investment return applied to all accounts. The default is 7%, which approximates the long-term nominal return of a diversified stock portfolio.
+By default, each account grows at a rate determined by its stock/bond allocation (see Stock Allocation in Accounts & Tax Treatment). Enable "Conservative growth assumptions" to reduce all account growth rates by 25%, modeling a lower-return environment.
 
-This is a nominal rate (before subtracting inflation). A 7% growth rate with 3% inflation implies roughly 4% real growth. More conservative portfolios (heavy in bonds or cash) may warrant a lower assumption — 4-5% nominal is common for balanced portfolios.
+For example, a 60/40 account normally grows at 7.6%. With conservative growth enabled, it grows at 5.7% (7.6% × 0.75).
 
-In Monte Carlo mode, this configured value is **not used** — historical market returns from the sampled year sequences are applied instead. The growth rate setting only matters for single deterministic simulations.
+This setting only affects single deterministic simulations. In Monte Carlo mode, historical market returns are sampled directly and this setting has no effect.
