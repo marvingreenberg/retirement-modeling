@@ -7,7 +7,7 @@
    } from '$lib/stores';
    import { hasPretaxAccounts } from '$lib/types';
    import { currency } from '$lib/format';
-   import InfoPopover from './InfoPopover.svelte';
+   import HelpButton from './HelpButton.svelte';
    import WithdrawalOrderEditor from './settings/WithdrawalOrderEditor.svelte';
 
    let inflError = $derived(
@@ -145,8 +145,9 @@
             : 'text-surface-600 dark:text-surface-400'}"
       >
          <span class="flex items-center gap-1"
-            >Inflation % <InfoPopover
-               text="Assumed annual rate at which prices increase, reducing the purchasing power of fixed withdrawals over time."
+            >Inflation % <HelpButton
+               topic="simulation-parameters"
+               anchor="inflation"
             /></span
          >
          <input
@@ -171,8 +172,9 @@
             : 'text-surface-600 dark:text-surface-400'}"
       >
          <span class="flex items-center gap-1"
-            >Growth % <InfoPopover
-               text="Assumed annual return on investments before inflation. Monte Carlo uses historically-sampled returns instead."
+            >Growth % <HelpButton
+               topic="simulation-parameters"
+               anchor="growth-rate"
             /></span
          >
          <input
@@ -196,8 +198,9 @@
             class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
          >
             <span class="flex items-center gap-1"
-               >Conversion <InfoPopover
-                  text="Controls Roth conversion aggressiveness. No Conversion skips conversions. Other strategies convert pre-tax to Roth up to a tax bracket or IRMAA threshold to reduce future taxes."
+               >Conversion <HelpButton
+                  topic="roth-conversions"
+                  anchor="conversion-strategy"
                /></span
             >
             <select
@@ -233,8 +236,9 @@
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
                   <span class="flex items-center gap-1"
-                     >Strategy <InfoPopover
-                        text="How annual withdrawals are calculated. Fixed Dollar adjusts for inflation. % of Portfolio takes a fixed percentage each year. Guardrails adjusts spending when withdrawal rate drifts. RMD-Based uses IRS Required Minimum Distribution tables."
+                     >Strategy <HelpButton
+                        topic="spending-strategies"
+                        anchor="strategy-selection"
                      /></span
                   >
                   <select
@@ -272,8 +276,9 @@
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
                   <span class="flex items-center gap-1"
-                     >Strategy <InfoPopover
-                        text="How annual withdrawals are calculated. Fixed Dollar adjusts for inflation. % of Portfolio takes a fixed percentage each year. Guardrails adjusts spending when withdrawal rate drifts. RMD-Based uses IRS Required Minimum Distribution tables."
+                     >Strategy <HelpButton
+                        topic="spending-strategies"
+                        anchor="strategy-selection"
                      /></span
                   >
                   <select
@@ -290,8 +295,9 @@
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
                   <span class="flex items-center gap-1"
-                     >Floor Rate % <InfoPopover
-                        text="Minimum withdrawal rate. When the actual rate drops below this, spending is increased."
+                     >Floor Rate % <HelpButton
+                        topic="spending-strategies"
+                        anchor="guardrail-floor"
                      /></span
                   >
                   <input
@@ -312,8 +318,9 @@
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
                   <span class="flex items-center gap-1"
-                     >Ceiling Rate % <InfoPopover
-                        text="Maximum withdrawal rate. When the actual rate exceeds this, spending is cut."
+                     >Ceiling Rate % <HelpButton
+                        topic="spending-strategies"
+                        anchor="guardrail-ceiling"
                      /></span
                   >
                   <input
@@ -365,8 +372,9 @@
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
                   <span class="flex items-center gap-1"
-                     >Strategy <InfoPopover
-                        text="How annual withdrawals are calculated. Fixed Dollar adjusts for inflation. % of Portfolio takes a fixed percentage each year. Guardrails adjusts spending when withdrawal rate drifts. RMD-Based uses IRS Required Minimum Distribution tables."
+                     >Strategy <HelpButton
+                        topic="spending-strategies"
+                        anchor="strategy-selection"
                      /></span
                   >
                   <select
