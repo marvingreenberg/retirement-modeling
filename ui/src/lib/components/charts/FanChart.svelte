@@ -3,6 +3,7 @@
    import { Chart, registerables } from 'chart.js';
    import annotationPlugin from 'chartjs-plugin-annotation';
    import type { YearlyResultPercentiles } from '$lib/types';
+   import HelpButton from '$lib/components/HelpButton.svelte';
 
    let {
       percentiles,
@@ -142,5 +143,8 @@
 </script>
 
 <div class="relative w-full max-h-[400px]">
+   <div class="absolute top-0 right-0 z-10 p-1">
+      <HelpButton topic="outcome-distribution" />
+   </div>
    <canvas bind:this={canvas}></canvas>
 </div>

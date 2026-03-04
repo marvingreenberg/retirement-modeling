@@ -4,6 +4,7 @@
    import annotationPlugin from 'chartjs-plugin-annotation';
    import type { YearResult, ChartEvent } from '$lib/types';
    import ChartEventOverlay from './ChartEventOverlay.svelte';
+   import HelpButton from '$lib/components/HelpButton.svelte';
 
    let {
       years,
@@ -162,6 +163,9 @@
 </script>
 
 <div class="relative w-full max-h-[400px]">
+   <div class="absolute top-0 right-0 z-10 p-1">
+      <HelpButton topic="balance-chart" />
+   </div>
    <canvas bind:this={canvas}></canvas>
    <ChartEventOverlay
       {chart}

@@ -4,6 +4,7 @@
    import annotationPlugin from 'chartjs-plugin-annotation';
    import type { YearResult, ChartEvent } from '$lib/types';
    import ChartEventOverlay from './ChartEventOverlay.svelte';
+   import HelpButton from '$lib/components/HelpButton.svelte';
 
    function totalAvailableForYear(y: YearResult): number {
       return y.spending_target + y.surplus + y.total_tax + y.irmaa_cost;
@@ -208,6 +209,9 @@
 </script>
 
 <div class="relative w-full max-h-[400px]">
+   <div class="absolute top-0 right-0 z-10 p-1">
+      <HelpButton topic="spending-chart" />
+   </div>
    <canvas bind:this={canvas}></canvas>
    <ChartEventOverlay
       {chart}
