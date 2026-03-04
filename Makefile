@@ -9,7 +9,6 @@ IS_STABLE := $(shell echo $(VERSION) | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$$' && e
 
 PKG_NAME := retirement-model
 ACTIVATE := if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi
-GITCLN := git clean -fdx
 FILE ?= input.json
 
 REPO = ghcr.io
@@ -66,10 +65,9 @@ build: build-api build-ui
 test: test-api test-ui
 
 clean:
-	@[[ ! -e .venv ]] || ($(ACTIVATE); pip3 uninstall -q -y $(PKG_NAME) 2>/dev/null || true)
-	@text=$$($(GITCLN) -n .); echo "$$text"; \
-	  [[ -z "$$text" ]] || { read -p 'Delete? (y/N): ' -n1 -r YN; echo; \
-	  [[ "$$YN" == y || "$$YN" == Y ]] && (set -x; $(GITCLN) .); }
+	@git stash --include-untracked
+	@git clean -fdx -e .claude -e .gemini .
+	@git stash pop
 
 
 dev:
@@ -141,7 +139,7 @@ format: format-api format-ui
 setup-api:
 	python3 -m venv .venv && \
 	  $(ACTIVATE) && \
-	  pip install -e ".[dev]"
+	  pip  -q -e ".[dev]"
 
 setup-ui:
 	cd ui && pnpm install

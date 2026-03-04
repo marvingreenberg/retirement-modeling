@@ -5,19 +5,29 @@ The balance chart shows the projected value of all accounts over the simulation 
 ### Account Colors
 
 <!-- if:has_pretax -->
+
 **Pre-tax (red)** — Traditional IRA, 401(k), 403(b), 457(b), SEP IRA, and SIMPLE IRA balances. These accounts are tax-deferred: withdrawals are taxed as ordinary income, and RMDs apply starting at the configured RMD age.
+
 <!-- endif -->
 <!-- if:has_roth_conversion -->
+
 **Roth Conversion (purple)** — Funds that were converted from pre-tax accounts into Roth. Tracked separately to distinguish converted funds from direct Roth contributions. Withdrawals are tax-free.
+
 <!-- endif -->
 <!-- if:has_roth -->
+
 **Roth (green)** — Roth IRA and Roth 401(k) balances. These grow tax-free and qualified withdrawals are untaxed. Not subject to RMDs (Roth IRA).
+
 <!-- endif -->
 <!-- if:has_brokerage -->
+
 **Brokerage (gold)** — Taxable investment account balances. Subject to annual tax drag on dividends and realized gains. Withdrawals are partially taxed based on the cost basis ratio.
+
 <!-- endif -->
 <!-- if:has_cash -->
+
 **Cash (blue)** — Savings accounts and CDs. Minimal growth, typically withdrawn first.
+
 <!-- endif -->
 
 ### Chart Features

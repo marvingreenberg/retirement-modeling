@@ -8,6 +8,7 @@
    } from '$lib/types';
    import { currency } from '$lib/format';
    import { portfolio, profile } from '$lib/stores';
+   import { SvelteMap } from 'svelte/reactivity';
    import { ClipboardList } from 'lucide-svelte';
 
    let {
@@ -32,17 +33,10 @@
       return (details ?? []).filter((d) => d.purpose === purpose);
    }
 
-   function totalForPurpose(
-      details: AccountWithdrawal[] | undefined,
-      purpose: string,
-   ): number {
-      return byPurpose(details, purpose).reduce((sum, d) => sum + d.amount, 0);
-   }
-
    function mergeByAccount(
       entries: AccountWithdrawal[],
    ): { account_id: string; account_name: string; amount: number }[] {
-      const map = new Map<
+      const map = new SvelteMap<
          string,
          { account_id: string; account_name: string; amount: number }
       >();
@@ -139,7 +133,11 @@
       {#each planYears as yr (yr.year)}
          {@const rmdItems = rmdByPerson(yr.withdrawal_details)}
          {@const hasRmd = rmdItems.length > 0}
-         {@const cashWDs = mergeByAccount((yr.withdrawal_details ?? []).filter((d) => d.purpose === 'spending' || d.purpose === 'tax'))}
+         {@const cashWDs = mergeByAccount(
+            (yr.withdrawal_details ?? []).filter(
+               (d) => d.purpose === 'spending' || d.purpose === 'tax',
+            ),
+         )}
          {@const hasIncome = (yr.income_details ?? []).length > 0}
          {@const expenses = activeExpenses(yr)}
          {@const hasExpenses = yr.planned_expense > 0}

@@ -39,7 +39,10 @@
       class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
    >
       <span class="flex items-center gap-1"
-         >RMD Age <HelpButton topic="required-minimum-distributions" anchor="rmd-age" /></span
+         >RMD Age <HelpButton
+            topic="required-minimum-distributions"
+            anchor="rmd-age"
+         /></span
       >
       <input
          type="number"
@@ -55,7 +58,10 @@
          class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
       >
          <span class="flex items-center gap-1"
-            >IRMAA Limit ($) <HelpButton topic="roth-conversions" anchor="irmaa" /></span
+            >IRMAA Limit ($) <HelpButton
+               topic="roth-conversions"
+               anchor="irmaa"
+            /></span
          >
          <input
             type="number"
@@ -71,7 +77,10 @@
       class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
    >
       <span class="flex items-center gap-1"
-         >MC Iterations <HelpButton topic="monte-carlo" anchor="iterations" /></span
+         >MC Iterations <HelpButton
+            topic="monte-carlo"
+            anchor="iterations"
+         /></span
       >
       <input
          type="number"
@@ -86,7 +95,10 @@
       class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
    >
       <span class="flex items-center gap-1"
-         >Excess Income Routing <HelpButton topic="withdrawal-order" anchor="excess-income-routing" /></span
+         >Excess Income Routing <HelpButton
+            topic="withdrawal-order"
+            anchor="excess-income-routing"
+         /></span
       >
       <select
          class="select text-sm"

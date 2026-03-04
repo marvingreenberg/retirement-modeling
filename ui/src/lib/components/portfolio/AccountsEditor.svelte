@@ -264,7 +264,10 @@
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
                   <span class="flex items-center gap-1"
-                     >Basis % <HelpButton topic="accounts-tax-treatment" anchor="cost-basis" /></span
+                     >Basis % <HelpButton
+                        topic="accounts-tax-treatment"
+                        anchor="cost-basis"
+                     /></span
                   >
                   <input
                      type="number"
@@ -290,7 +293,10 @@
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
                   <span class="flex items-center gap-1"
-                     >Stocks % <HelpButton topic="accounts-tax-treatment" anchor="stock-allocation" /></span
+                     >Stocks % <HelpButton
+                        topic="accounts-tax-treatment"
+                        anchor="stock-allocation"
+                     /></span
                   >
                   <input
                      type="number"
@@ -436,12 +442,16 @@
             <span class="text-sm font-medium tabular-nums flex-shrink-0"
                >{compactCurrency(account.balance)}</span
             >
-            <span class="text-xs text-surface-500 dark:text-surface-400 flex-shrink-0 tabular-nums"
-               >{(computeEffectiveGrowth(
-                  account.stock_pct ?? ACCOUNT_TYPE_DEFAULTS[account.type].default_stock_pct,
-                  TAX_CATEGORY_MAP[account.type] === 'brokerage',
-                  account.tax_drag_override ?? undefined,
-               ) * 100).toFixed(1)}%</span
+            <span
+               class="text-xs text-surface-500 dark:text-surface-400 flex-shrink-0 tabular-nums"
+               >{(
+                  computeEffectiveGrowth(
+                     account.stock_pct ??
+                        ACCOUNT_TYPE_DEFAULTS[account.type].default_stock_pct,
+                     TAX_CATEGORY_MAP[account.type] === 'brokerage',
+                     account.tax_drag_override ?? undefined,
+                  ) * 100
+               ).toFixed(1)}%</span
             >
             <div
                class="w-5 h-5 rounded-full flex-shrink-0"
