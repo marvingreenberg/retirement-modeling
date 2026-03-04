@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from retirement_model.constants import BOND_RETURN, CONSERVATIVE_GROWTH_FACTOR, EQUITY_RETURN
 from retirement_model.models import (
     ACCOUNT_TYPE_DEFAULTS,
     BOND_TAX_DRAG,
@@ -150,18 +151,35 @@ def calculate_tax_drag(stock_pct: float) -> float:
     return s * STOCK_TAX_DRAG + (1 - s) * BOND_TAX_DRAG
 
 
-def apply_growth(accounts: list[Account], rate: float) -> float:
+def account_growth_rate(stock_pct: float | None, account_type: AccountType) -> float:
+    """Compute blended return from stock/bond allocation for an account."""
+    if stock_pct is None:
+        stock_pct = ACCOUNT_TYPE_DEFAULTS[account_type]["default_stock_pct"]
+    s = float(stock_pct) / 100.0
+    return s * EQUITY_RETURN + (1 - s) * BOND_RETURN
+
+
+def apply_growth(
+    accounts: list[Account], rate: float | None = None, conservative: bool = False
+) -> float:
     """Apply investment growth to all accounts and return total balance.
 
-    Cash/CD accounts skip growth (they don't earn equity-like returns).
-    Brokerage accounts suffer tax drag that reduces effective growth rate.
-    Brokerage cost_basis_ratio is recalculated after growth — growth adds gains,
-    diluting the basis proportion.
+    When rate is provided (MC path), use it for all accounts.
+    When rate is None (single-run), compute per-account rate from stock_pct.
+    Cash/CD accounts always get 0% growth. Brokerage accounts suffer tax drag.
     """
     total = 0.0
     for acc in accounts:
         if acc.type != AccountType.CASH_CD:
             is_brokerage = tax_category(acc.type) == TaxCategory.BROKERAGE
+
+            if rate is not None:
+                acc_rate = rate
+            else:
+                acc_rate = account_growth_rate(acc.stock_pct, acc.type)
+                if conservative:
+                    acc_rate *= CONSERVATIVE_GROWTH_FACTOR
+
             if is_brokerage:
                 old_basis = acc.balance * acc.cost_basis_ratio
                 if acc.tax_drag_override is not None:
@@ -171,10 +189,9 @@ def apply_growth(accounts: list[Account], rate: float) -> float:
                     if spct is None:
                         spct = ACCOUNT_TYPE_DEFAULTS[acc.type]["default_stock_pct"]
                     drag = calculate_tax_drag(float(spct))
-                effective_rate = rate - drag
-                acc.balance *= 1 + effective_rate
+                acc.balance *= 1 + acc_rate - drag
             else:
-                acc.balance *= 1 + rate
+                acc.balance *= 1 + acc_rate
             acc.balance = round(acc.balance, 2)
             if is_brokerage and acc.balance > 0:
                 acc.cost_basis_ratio = old_basis / acc.balance
