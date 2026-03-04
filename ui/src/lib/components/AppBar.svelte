@@ -3,7 +3,9 @@
    import { AppBar as SkAppBar } from '@skeletonlabs/skeleton-svelte';
    import AvatarButton from './AvatarButton.svelte';
    import AvatarDropdown from './AvatarDropdown.svelte';
-   import HelpDrawer from './HelpDrawer.svelte';
+   import HelpPanel from './HelpPanel.svelte';
+   import { openHelp } from '$lib/helpState.svelte';
+   import { getDefaultTopicId } from '$lib/helpTopics';
    import {
       LayoutDashboard,
       GitCompareArrows,
@@ -25,7 +27,6 @@
    }
 
    let dropdownOpen = $state(false);
-   let helpOpen = $state(false);
    let appVersion = $state('');
 
    onMount(async () => {
@@ -71,7 +72,7 @@
          <button
             class="btn btn-sm preset-ghost"
             color="dark cyan"
-            onclick={() => (helpOpen = true)}
+            onclick={() => openHelp(getDefaultTopicId(page.url.pathname))}
             aria-label="Open help"
          >
             <CircleHelp color="DarkCyan" size={36} />
@@ -82,4 +83,4 @@
 </SkAppBar>
 
 <AvatarDropdown bind:open={dropdownOpen} />
-<HelpDrawer bind:open={helpOpen} />
+<HelpPanel />

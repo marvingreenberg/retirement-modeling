@@ -6,6 +6,7 @@ import {
    portfolio,
    defaultPortfolio,
 } from '$lib/stores';
+import { helpState, closeHelp } from '$lib/helpState.svelte';
 
 Object.defineProperty(window, 'matchMedia', {
    writable: true,
@@ -32,6 +33,7 @@ describe('AppBar', () => {
    beforeEach(() => {
       profile.set(structuredClone(defaultProfile));
       portfolio.set(structuredClone(defaultPortfolio));
+      closeHelp();
    });
 
    it('renders the app title', () => {
@@ -98,15 +100,12 @@ describe('AppBar', () => {
       expect(screen.getByLabelText('Open help')).toBeInTheDocument();
    });
 
-   it('help button opens help drawer', async () => {
+   it('help button opens help panel with default topic', async () => {
       render(AppBar);
-      expect(
-         screen.queryByRole('complementary', { name: 'Help' }),
-      ).not.toBeInTheDocument();
+      expect(helpState.open).toBe(false);
       await fireEvent.click(screen.getByLabelText('Open help'));
-      expect(
-         screen.getByRole('complementary', { name: 'Help' }),
-      ).toBeInTheDocument();
+      expect(helpState.open).toBe(true);
+      expect(helpState.topic).toBe('getting-started');
    });
 
    it('avatar click opens dropdown with section links', async () => {
