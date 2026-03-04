@@ -102,7 +102,8 @@
                value={Math.round(config.ss_auto.cola_rate * 1000) / 10}
                onfocus={(e) => e.currentTarget.select()}
                onchange={(e) => {
-                  config.ss_auto!.cola_rate = Number(e.currentTarget.value) / 100;
+                  config.ss_auto!.cola_rate =
+                     Number(e.currentTarget.value) / 100;
                }}
                min="0"
                max="20"

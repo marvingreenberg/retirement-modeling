@@ -420,6 +420,9 @@ class TestYearByYearResponseStructure:
         assert "balance_p5" in yp
         assert "balance_median" in yp
         assert "balance_p95" in yp
+        assert "spending_p5" in yp
+        assert "spending_median" in yp
+        assert "spending_p95" in yp
 
 
 class TestRequestOverrides:

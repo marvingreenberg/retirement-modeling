@@ -266,11 +266,31 @@
          </div>
 
          {#if mcResult.yearly_percentiles.length > 0}
+            <h4
+               class="text-sm font-semibold text-surface-600 dark:text-surface-400 mt-2"
+            >
+               Balance Distribution
+            </h4>
             <FanChart
                percentiles={mcResult.yearly_percentiles}
+               metric="balance"
                retirementAge={config?.retirement_age}
                startAge={config?.current_age_primary ?? 0}
                startYear={config?.start_year ?? 0}
+            />
+
+            <h4
+               class="text-sm font-semibold text-surface-600 dark:text-surface-400 mt-4"
+            >
+               Spending Distribution
+            </h4>
+            <FanChart
+               percentiles={mcResult.yearly_percentiles}
+               metric="spending"
+               retirementAge={config?.retirement_age}
+               startAge={config?.current_age_primary ?? 0}
+               startYear={config?.start_year ?? 0}
+               helpTopic="spending-strategies"
             />
          {/if}
 

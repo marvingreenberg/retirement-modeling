@@ -98,7 +98,7 @@ export const ssAutoConfigSchema = z.object({
    spouse_fra_amount: z.number().min(0).nullable().default(null),
    spouse_start_age: z.number().int().min(62).max(70).nullable().default(null),
    fra_age: z.number().int().min(62).max(70).default(67),
-   cola_rate: z.number().min(0).max(0.20).default(0.025),
+   cola_rate: z.number().min(0).max(0.2).default(0.025),
 });
 
 export const plannedExpenseSchema = z.object({

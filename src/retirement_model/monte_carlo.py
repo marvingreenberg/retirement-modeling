@@ -60,6 +60,11 @@ class YearlyResultPercentiles(BaseModel):
     balance_median: float
     balance_p75: float
     balance_p95: float
+    spending_p5: float = 0
+    spending_p25: float = 0
+    spending_median: float = 0
+    spending_p75: float = 0
+    spending_p95: float = 0
     agi_median: float
     total_tax_median: float
     roth_conversion_median: float
@@ -429,6 +434,12 @@ def run_full_monte_carlo(
                 for r in all_results
             ]
         )
+        spending = sorted(
+            [
+                r.years[year_idx].spending_target if year_idx < len(r.years) else 0
+                for r in all_results
+            ]
+        )
         n = len(balances)
 
         yearly_percentiles.append(
@@ -440,6 +451,11 @@ def run_full_monte_carlo(
                 balance_median=balances[n // 2],
                 balance_p75=balances[int(n * 0.75)],
                 balance_p95=balances[int(n * 0.95)],
+                spending_p5=spending[int(n * 0.05)],
+                spending_p25=spending[int(n * 0.25)],
+                spending_median=spending[n // 2],
+                spending_p75=spending[int(n * 0.75)],
+                spending_p95=spending[int(n * 0.95)],
                 agi_median=agis[n // 2],
                 total_tax_median=taxes[n // 2],
                 roth_conversion_median=conversions[n // 2],

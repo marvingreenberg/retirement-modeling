@@ -268,6 +268,15 @@ class TestFullMonteCarlo:
             assert yp.balance_median <= yp.balance_p75
             assert yp.balance_p75 <= yp.balance_p95
 
+    def test_full_monte_carlo_spending_percentiles(self, simple_portfolio: Portfolio):
+        result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
+        for yp in result.yearly_percentiles:
+            assert yp.spending_p5 <= yp.spending_p25
+            assert yp.spending_p25 <= yp.spending_median
+            assert yp.spending_median <= yp.spending_p75
+            assert yp.spending_p75 <= yp.spending_p95
+            assert yp.spending_median >= 0
+
     def test_format_full_monte_carlo(self, simple_portfolio: Portfolio):
         result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
         formatted = format_full_monte_carlo_result(result)

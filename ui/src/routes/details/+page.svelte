@@ -177,6 +177,42 @@
                </p>
             {/if}
          </div>
+
+         <div class="card bg-surface-100 dark:bg-surface-800 p-4">
+            <h3
+               class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"
+            >
+               <TrendingUp size={18} class="text-success-500" /> Yearly Spending Percentiles
+            </h3>
+            {#if percentiles.length > 0}
+               <div class="overflow-x-auto">
+                  <table class="table table-sm">
+                     <thead>
+                        <tr>
+                           <th>Age</th><th>5th</th><th>25th</th><th>Median</th
+                           ><th>75th</th><th>95th</th>
+                        </tr>
+                     </thead>
+                     <tbody>
+                        {#each percentiles as p (p.age)}
+                           <tr>
+                              <td>{p.age}</td>
+                              <td>{currency(p.spending_p5)}</td>
+                              <td>{currency(p.spending_p25)}</td>
+                              <td>{currency(p.spending_median)}</td>
+                              <td>{currency(p.spending_p75)}</td>
+                              <td>{currency(p.spending_p95)}</td>
+                           </tr>
+                        {/each}
+                     </tbody>
+                  </table>
+               </div>
+            {:else}
+               <p class="text-surface-500 text-sm">
+                  No yearly percentile data available.
+               </p>
+            {/if}
+         </div>
       {:else}
          <p class="text-surface-500">Monte Carlo results not yet available.</p>
       {/if}

@@ -68,6 +68,7 @@
                         <th>Total Taxes</th>
                         <th>Total IRMAA</th>
                         <th>Roth Conv Acct</th>
+                        <th class="text-left">Spending Range</th>
                         <th></th>
                      </tr>
                   </thead>
@@ -112,6 +113,9 @@
                                  ? currency(snap.totalRothConversions)
                                  : '—'}</td
                            >
+                           <td class="text-left text-xs"
+                              >{snap.spendingRange ?? '—'}</td
+                           >
                            <td>
                               <button
                                  class="btn preset-outlined btn-sm"
@@ -143,6 +147,7 @@
                         <th>Simulations</th>
                         <th>Median Final Balance</th>
                         <th>Success Rate</th>
+                        <th class="text-left">Spending Range</th>
                         <th></th>
                      </tr>
                   </thead>
@@ -167,6 +172,9 @@
                               >{snap.successRate != null
                                  ? pct(snap.successRate)
                                  : '—'}</td
+                           >
+                           <td class="text-left text-xs"
+                              >{snap.spendingRange ?? '—'}</td
                            >
                            <td>
                               <button

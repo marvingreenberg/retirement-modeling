@@ -68,6 +68,11 @@ const mockMCResult: MonteCarloResponse = {
          balance_median: 500000,
          balance_p75: 720000,
          balance_p95: 1100000,
+         spending_p5: 40000,
+         spending_p25: 55000,
+         spending_median: 70000,
+         spending_p75: 85000,
+         spending_p95: 100000,
          agi_median: 50000,
          total_tax_median: 10000,
          roth_conversion_median: 0,
@@ -106,9 +111,12 @@ describe('Details page', () => {
       expect(
          screen.getByText('Yearly Balance Percentiles'),
       ).toBeInTheDocument();
-      expect(screen.getByText('5th')).toBeInTheDocument();
-      expect(screen.getByText('Median')).toBeInTheDocument();
-      expect(screen.getByText('95th')).toBeInTheDocument();
+      expect(
+         screen.getByText('Yearly Spending Percentiles'),
+      ).toBeInTheDocument();
+      expect(screen.getAllByText('5th')).toHaveLength(2);
+      expect(screen.getAllByText('Median')).toHaveLength(2);
+      expect(screen.getAllByText('95th')).toHaveLength(2);
    });
 
    it('shows heading on all states', () => {

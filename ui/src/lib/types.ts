@@ -342,6 +342,11 @@ export interface YearlyResultPercentiles {
    balance_median: number;
    balance_p75: number;
    balance_p95: number;
+   spending_p5: number;
+   spending_p25: number;
+   spending_median: number;
+   spending_p75: number;
+   spending_p95: number;
    agi_median: number;
    total_tax_median: number;
    roth_conversion_median: number;
@@ -397,6 +402,7 @@ export interface ComparisonSnapshot {
    totalIrmaa: number;
    totalRothConversions: number;
    successRate?: number;
+   spendingRange?: string;
    withdrawalOrder?: string;
 }
 

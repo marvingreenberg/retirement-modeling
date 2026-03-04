@@ -9,6 +9,7 @@
    } from '$lib/stores';
    import { validatePortfolio } from '$lib/validation';
    import { runSimulation, runMonteCarlo } from '$lib/api';
+   import { currency } from '$lib/format';
    import PortfolioEditor from '$lib/components/portfolio/PortfolioEditor.svelte';
    import SimulateSettings from '$lib/components/SimulateSettings.svelte';
    import SimulateView from '$lib/components/SimulateView.svelte';
@@ -157,6 +158,9 @@
          singleResult = res;
          loading = false;
          simulationResults.update((s) => ({ ...s, singleResult: res }));
+         const spends = res.result.years.map((y) => y.spending_target);
+         const minSpend = Math.min(...spends);
+         const maxSpend = Math.max(...spends);
          addSnapshot({
             ...buildSnapshotBase(),
             runType: 'single',
@@ -164,6 +168,7 @@
             totalTaxes: res.summary.total_taxes_paid,
             totalIrmaa: res.summary.total_irmaa_paid,
             totalRothConversions: res.summary.total_roth_conversions,
+            spendingRange: `${currency(minSpend)}–${currency(maxSpend)}`,
          });
       });
 
@@ -171,6 +176,11 @@
          mcResult = res;
          mcLoading = false;
          simulationResults.update((s) => ({ ...s, mcResult: res }));
+         const pcts = res.yearly_percentiles;
+         const p5min =
+            pcts.length > 0 ? Math.min(...pcts.map((p) => p.spending_p5)) : 0;
+         const p95max =
+            pcts.length > 0 ? Math.max(...pcts.map((p) => p.spending_p95)) : 0;
          addSnapshot({
             ...buildSnapshotBase(),
             runType: 'monte_carlo',
@@ -181,6 +191,7 @@
             totalIrmaa: 0,
             totalRothConversions: 0,
             successRate: res.success_rate,
+            spendingRange: `${currency(p5min)}–${currency(p95max)}`,
          });
       });
 
