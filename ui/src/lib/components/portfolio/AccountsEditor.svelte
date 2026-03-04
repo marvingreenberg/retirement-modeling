@@ -26,7 +26,7 @@
       Check,
       Trash2,
    } from 'lucide-svelte';
-   import { estimateTaxDrag } from '$lib/taxDrag';
+   import { computeEffectiveGrowth, estimateTaxDrag } from '$lib/taxDrag';
    import TaxDragCalculator from './TaxDragCalculator.svelte';
 
    let {
@@ -435,6 +435,13 @@
             >
             <span class="text-sm font-medium tabular-nums flex-shrink-0"
                >{compactCurrency(account.balance)}</span
+            >
+            <span class="text-xs text-surface-500 dark:text-surface-400 flex-shrink-0 tabular-nums"
+               >{(computeEffectiveGrowth(
+                  account.stock_pct ?? ACCOUNT_TYPE_DEFAULTS[account.type].default_stock_pct,
+                  TAX_CATEGORY_MAP[account.type] === 'brokerage',
+                  account.tax_drag_override ?? undefined,
+               ) * 100).toFixed(1)}%</span
             >
             <div
                class="w-5 h-5 rounded-full flex-shrink-0"

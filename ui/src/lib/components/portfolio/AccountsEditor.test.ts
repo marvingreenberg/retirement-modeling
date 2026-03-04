@@ -74,6 +74,27 @@ describe('AccountsEditor', () => {
          ).toBeInTheDocument();
       });
 
+      it('shows effective growth rate on compact row', () => {
+         render(AccountsEditor, {
+            accounts: [makeAccount({ type: 'ira', stock_pct: 60 })],
+         });
+         expect(screen.getByText('7.6%')).toBeInTheDocument();
+      });
+
+      it('shows growth rate with drag for brokerage', () => {
+         render(AccountsEditor, {
+            accounts: [
+               makeAccount({
+                  type: 'brokerage',
+                  name: 'Brokerage',
+                  stock_pct: 60,
+                  cost_basis_ratio: 0.5,
+               }),
+            ],
+         });
+         expect(screen.getByText('7.1%')).toBeInTheDocument();
+      });
+
       it('renders edit button for each account', () => {
          render(AccountsEditor, { accounts: [makeAccount()] });
          expect(
