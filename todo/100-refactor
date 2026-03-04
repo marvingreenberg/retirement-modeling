@@ -1,27 +1,4 @@
-105. Clean focus
-  The app has gotten very noisy.  There is information presented that, for a given set of inputs, is completely irrelevant.  If there are no brokerage accounts, don't display it in the wd order.  Like roth conversion colunns when there aren't any. Maybe hide everything about IRMA umless an advanced checkbox "Show IRMAA/Medcare penalty details".
-  like roth conversion strategies when the proper choice is probably known.  And RMD withdrawal is probably not something anyone would do?  Maybe move some of the withdrawap stuff under a
-  show advanced.  The account display/edit shows all the fields, noisily.  How about the name with more real estate, the type and total, a little pie char icon with stocks/bonds/other percent, with a mouseover of the meaning, and the calculated expected growth.  And an edit "icon" button (a gear or something, maybe a pencil) that then displays the whole set of fields as editable fields.  Follow same patterns elsewhere, except when fields have no values, display the editor by defulat.  Lets discuss before start.  (This probably subsumes 105b)
+105. Clean focus — hide irrelevant sections
+  The app has gotten noisy. If there are no brokerage accounts, don't display them in withdrawal order. Hide roth conversion columns when there aren't any. Maybe hide IRMAA details unless an advanced checkbox "Show IRMAA/Medicare penalty details" is checked. Consider moving some withdrawal configuration under "show advanced".
 
-105b. AccountsEditor layout wraps badly with Stocks % column
-    Adding the Stocks % column caused account rows to wrap to two lines on
-    normal-width screens. The bottom row (basis, stocks%, avail year, X button)
-    loses its header association. Options:
-    - Make the row horizontally scrollable in a container
-    - Reduce column widths (abbreviate labels, use narrower inputs)
-    - Move less-used fields (basis, stocks%, avail year) into an expandable
-      detail row or popover per account
-    - Use a responsive grid that reflows better than flex-wrap
-
-
-
-106. Estimate growth/income from investment balance
-    Use stock_pct and account balances to estimate expected dividend/interest income
-    and expected capital appreciation separately. This would allow:
-    - Showing estimated annual investment income (dividends + interest) on a per-account
-      or portfolio basis
-    - Pre-filling growth rate suggestions based on actual allocation rather than just
-      the blended OFX import estimate
-    - Displaying expected tax drag more concretely (e.g. "~$2,300/yr in brokerage tax drag")
-    - Potentially modeling reinvested vs distributed income differently
-
+  105/105b compact account display and 106 growth-from-allocation are done (per-account-growth v2.1.0).
