@@ -14,7 +14,7 @@
    } from '$lib/assetClassification';
    import { Upload, X, FileCheck, AlertCircle } from 'lucide-svelte';
 
-   import { portfolio, profile } from '$lib/stores';
+   import { profile } from '$lib/stores';
 
    let { accounts = $bindable() }: { accounts: Account[] } = $props();
 
@@ -137,31 +137,6 @@
          };
       });
       accounts = [...accounts, ...newAccounts];
-
-      // Use blended estimated return from imported holdings to suggest growth rate
-      const validSummaries = summaries.filter((s) => s.holdingsCount > 0);
-      if (validSummaries.length > 0) {
-         const totalValue = validSummaries.reduce(
-            (s, p) => s + p.totalValue,
-            0,
-         );
-         const weightedReturn =
-            validSummaries.reduce(
-               (s, p) => s + p.estimatedReturn * p.totalValue,
-               0,
-            ) / totalValue;
-         if (weightedReturn > 0) {
-            portfolio.update((p) => ({
-               ...p,
-               config: {
-                  ...p.config,
-                  investment_growth_rate:
-                     Math.round(weightedReturn * 1000) / 1000,
-               },
-            }));
-         }
-      }
-
       showModal = false;
    }
 
