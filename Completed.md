@@ -4,6 +4,30 @@ Items moved from TODO.md in order of completion.
 
 ---
 
+## 107-svelte5-runes-store-migration
+
+Migrated all 9 stores from Svelte 4 `Writable` (subscribe/set/update) to Svelte 5 `$state()` runes with getter/setter `.value` pattern. Updated 15 component files, 16 test files, and autoSave module. Eliminated all `binding_property_non_reactive` warnings. Used `$state.snapshot()` where `structuredClone` needed unwrapped proxies.
+
+---
+
+## 108-ss-cola-rate
+
+Added `cola_rate` field to `SSAutoConfig` (default 0.025). `generate_ss_streams()` now passes COLA rate to both primary and spouse income streams. Added COLA % input to SocialSecurityEditor. Updated types, schema, sample scenarios, and added 3 backend tests.
+
+---
+
+## 109-spending-volatility-display
+
+Added spending percentiles (p5/p25/median/p75/p95) to Monte Carlo `YearlyResultPercentiles`. Generalized FanChart to support both balance and spending metrics with distinct color palettes. Added spending fan chart to MC tab, spending range column to compare tables, and spending percentile table to details page. Increased chart opacity for dark mode visibility.
+
+---
+
+## 301-help-text-why-not-what
+
+Reviewed and updated 8 help markdown files to add advisory "why" tone: simulation-parameters, spending-strategies, accounts-tax-treatment, withdrawal-order, balance-chart, spending-chart, social-security, income-cola. Added "Best for...", "Who should use this?", and "What to look for" guidance.
+
+---
+
 ## 202-growth-rate-tax-drag-review (v2.1.0)
 
 Replaced global `investment_growth_rate` with per-account growth rates derived from stock/bond allocation (10% equity / 4% bond). Each account's effective rate shown on collapsed row. Added "Conservative growth" checkbox (0.75 multiplier) replacing the growth rate input. Updated help content, comparison snapshots, and import flow.

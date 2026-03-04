@@ -12,7 +12,6 @@ Full-stack retirement planning simulator: Python/FastAPI backend + SvelteKit fro
 
 ### Frontend (`ui/`)
 - **SvelteKit** with **Svelte 5 runes** (`$state`, `$derived`, `$effect`, `$props`, `$bindable`) — NOT Svelte 4 syntax
-- **Known issue**: `binding_property_non_reactive` warnings in editors — stores use Svelte 4 `writable()` so props are plain objects, not Svelte 5 reactive proxies. Works via focusout-triggered store updates. Proper fix: migrate to `$state()` runes at store level.
 - **Skeleton UI** framework for components (AppBar, drawers, buttons, inputs)
 - **Chart.js** for balance/fan charts
 - **Zod** for client-side validation matching backend Pydantic constraints
@@ -22,7 +21,7 @@ Full-stack retirement planning simulator: Python/FastAPI backend + SvelteKit fro
 ### Key Frontend Files
 - `ui/src/lib/types.ts` — TypeScript interfaces matching backend models
 - `ui/src/lib/schema.ts` — Zod schemas for validation
-- `ui/src/lib/stores.ts` — Svelte writable stores, sample/default portfolio data
+- `ui/src/lib/stores.svelte.ts` — Svelte 5 `$state()` stores with getter/setter `.value` pattern
 - `ui/src/lib/format.ts` — Currency/number formatting helpers
 - `ui/src/lib/api.ts` — API client functions
 - `ui/src/lib/components/portfolio/` — PortfolioEditor, SpendingEditor, AccountsEditor, IncomeEditor
