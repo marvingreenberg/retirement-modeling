@@ -75,7 +75,7 @@
                      {#each singleRuns as snap (snap.id)}
                         <tr>
                            <td>{pct(snap.inflationRate)}</td>
-                           <td>{pct(snap.growthRate)}</td>
+                           <td>{snap.conservativeGrowth ? 'Conserv.' : 'Normal'}</td>
                            <td class="text-left">{snap.spendingStrategy}</td>
                            <td class="text-left">{snap.conversionStrategy}</td>
                            <td
