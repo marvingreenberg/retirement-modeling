@@ -11,7 +11,7 @@ describe('Portfolio defaults', () => {
    it('default portfolio config still has simulation params for API compatibility', () => {
       const config = samplePortfolio.config;
       expect(config.inflation_rate).toBeDefined();
-      expect(config.investment_growth_rate).toBeDefined();
+      expect(config.conservative_growth).toBe(false);
       expect(config.spending_strategy).toBeDefined();
       expect(config.strategy_target).toBeDefined();
       expect(config.tax_rate_state).toBeDefined();
@@ -38,15 +38,15 @@ describe('Snapshot name generation', () => {
          '24_percent_bracket': '24% Bracket',
       };
       const infl = (config.inflation_rate * 100).toFixed(1);
-      const growth = (config.investment_growth_rate * 100).toFixed(1);
+      const growth = config.conservative_growth ? 'Conservative' : 'Normal';
       const spend = spendingLabels[config.spending_strategy ?? 'fixed_dollar'];
       const conv = conversionLabels[config.strategy_target];
-      return `${infl}% infl, ${growth}% growth, ${spend}, ${conv}`;
+      return `${infl}% infl, ${growth} growth, ${spend}, ${conv}`;
    }
 
    it('generates name from default config', () => {
       const name = generateSnapshotName(samplePortfolio.config);
-      expect(name).toBe('3.0% infl, 7.0% growth, Fixed Dollar, IRMAA Tier 1');
+      expect(name).toBe('3.0% infl, Normal growth, Fixed Dollar, IRMAA Tier 1');
    });
 
    it('reflects changed parameters', () => {
@@ -73,7 +73,7 @@ describe('Comparison store', () => {
          name: 'Test Run',
          runType: 'single',
          inflationRate: 0.03,
-         growthRate: 0.06,
+         conservativeGrowth: false,
          spendingStrategy: 'Fixed Dollar',
          conversionStrategy: 'IRMAA Tier 1',
          taxRateState: 0.0575,
@@ -97,7 +97,7 @@ describe('Comparison store', () => {
          name: '',
          runType: 'single',
          inflationRate: 0.03,
-         growthRate: 0.07,
+         conservativeGrowth: false,
          spendingStrategy: 'Fixed Dollar',
          conversionStrategy: '22% Bracket',
          taxRateState: 0.05,
@@ -110,11 +110,11 @@ describe('Comparison store', () => {
 
       comparisonSnapshots.set([snap1]);
       // Same key params → should replace, not duplicate
-      const key = `${snap2.runType}|${snap2.inflationRate}|${snap2.growthRate}|${snap2.spendingStrategy}|${snap2.conversionStrategy}|${snap2.taxRateState}`;
+      const key = `${snap2.runType}|${snap2.inflationRate}|${snap2.conservativeGrowth}|${snap2.spendingStrategy}|${snap2.conversionStrategy}|${snap2.taxRateState}`;
       comparisonSnapshots.update((snaps) => {
          const filtered = snaps.filter(
             (s) =>
-               `${s.runType}|${s.inflationRate}|${s.growthRate}|${s.spendingStrategy}|${s.conversionStrategy}|${s.taxRateState}` !==
+               `${s.runType}|${s.inflationRate}|${s.conservativeGrowth}|${s.spendingStrategy}|${s.conversionStrategy}|${s.taxRateState}` !==
                key,
          );
          return [...filtered, snap2];
@@ -150,7 +150,7 @@ describe('Comparison store', () => {
          runType: 'monte_carlo',
          numSimulations: 500,
          inflationRate: 0.03,
-         growthRate: 0.07,
+         conservativeGrowth: false,
          spendingStrategy: 'Fixed Dollar',
          conversionStrategy: 'No Conversion',
          taxRateState: 0.05,

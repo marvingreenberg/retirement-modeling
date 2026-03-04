@@ -59,14 +59,14 @@
          ComparisonSnapshot,
          | 'runType'
          | 'inflationRate'
-         | 'growthRate'
+         | 'conservativeGrowth'
          | 'spendingStrategy'
          | 'conversionStrategy'
          | 'taxRateState'
          | 'withdrawalOrder'
       >,
    ): string {
-      return `${s.runType}|${s.inflationRate}|${s.growthRate}|${s.spendingStrategy}|${s.conversionStrategy}|${s.taxRateState}|${s.withdrawalOrder ?? ''}`;
+      return `${s.runType}|${s.inflationRate}|${s.conservativeGrowth}|${s.spendingStrategy}|${s.conversionStrategy}|${s.taxRateState}|${s.withdrawalOrder ?? ''}`;
    }
 
    function addSnapshot(snap: ComparisonSnapshot) {
@@ -83,7 +83,7 @@
          id: crypto.randomUUID(),
          name: '',
          inflationRate: c.inflation_rate,
-         growthRate: c.investment_growth_rate,
+         conservativeGrowth: c.conservative_growth,
          spendingStrategy: spendingLabel(),
          conversionStrategy: conversionLabels[c.strategy_target],
          taxRateState: c.tax_rate_state,
