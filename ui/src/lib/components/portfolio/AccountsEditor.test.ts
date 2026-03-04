@@ -274,15 +274,15 @@ describe('AccountsEditor', () => {
          expect(balanceInputs[1].className).toContain('ring-error-500');
       });
 
-      it('disables cost basis for non-brokerage types', async () => {
+      it('hides cost basis for non-brokerage types', async () => {
          render(AccountsEditor, {
             accounts: [makeAccount({ type: 'ira' })],
          });
          await expandAccount('Traditional IRA');
-         expect(screen.getByLabelText('Basis, as %')).toBeDisabled();
+         expect(screen.queryByLabelText('Basis, as %')).toBeNull();
       });
 
-      it('enables cost basis for brokerage type', async () => {
+      it('shows cost basis for brokerage type', async () => {
          render(AccountsEditor, {
             accounts: [
                makeAccount({
@@ -293,7 +293,7 @@ describe('AccountsEditor', () => {
             ],
          });
          await expandAccount('Brokerage');
-         expect(screen.getByLabelText('Basis, as %')).not.toBeDisabled();
+         expect(screen.getByLabelText('Basis, as %')).toBeInTheDocument();
       });
 
       it('shows all expected account types in dropdown', async () => {

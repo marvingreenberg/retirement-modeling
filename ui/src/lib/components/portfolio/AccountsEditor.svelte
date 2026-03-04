@@ -125,8 +125,8 @@
       }
    });
 
-   function isCostBasisEditable(type: AccountType): boolean {
-      return ACCOUNT_TYPE_DEFAULTS[type]?.editable ?? false;
+   function isBrokerage(type: AccountType): boolean {
+      return type === 'brokerage';
    }
 
    function typeIcon(type: AccountType) {
@@ -262,35 +262,36 @@
                      {/if}
                   </select>
                </label>
-               <div
-                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
-               >
-                  <span class="flex items-center gap-1"
-                     >Basis % <HelpButton
-                        topic="accounts-tax-treatment"
-                        anchor="cost-basis"
-                     /></span
+               {#if isBrokerage(account.type)}
+                  <div
+                     class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                   >
-                  <input
-                     type="number"
-                     class="input w-24 no-spinner"
-                     value={Math.round((account.cost_basis_ratio ?? 0) * 100)}
-                     onfocus={(e) => e.currentTarget.select()}
-                     onchange={(e) => {
-                        const pct = Math.max(
-                           0,
-                           Math.min(100, Number(e.currentTarget.value) || 0),
-                        );
-                        account.cost_basis_ratio = pct / 100;
-                        e.currentTarget.value = String(pct);
-                     }}
-                     min="0"
-                     max="100"
-                     step="1"
-                     aria-label="Basis, as %"
-                     disabled={!isCostBasisEditable(account.type)}
-                  />
-               </div>
+                     <span class="flex items-center gap-1"
+                        >Basis % <HelpButton
+                           topic="accounts-tax-treatment"
+                           anchor="cost-basis"
+                        /></span
+                     >
+                     <input
+                        type="number"
+                        class="input w-24 no-spinner"
+                        value={Math.round((account.cost_basis_ratio ?? 0) * 100)}
+                        onfocus={(e) => e.currentTarget.select()}
+                        onchange={(e) => {
+                           const pct = Math.max(
+                              0,
+                              Math.min(100, Number(e.currentTarget.value) || 0),
+                           );
+                           account.cost_basis_ratio = pct / 100;
+                           e.currentTarget.value = String(pct);
+                        }}
+                        min="0"
+                        max="100"
+                        step="1"
+                        aria-label="Basis, as %"
+                     />
+                  </div>
+               {/if}
                <div
                   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
                >
