@@ -19,7 +19,7 @@ Each income stream can have its own COLA rate, representing annual increases to 
 
 where `years_active` is the number of years since the stream started. Year 0 (the start age) uses the base amount with no adjustment.
 
-A pension with a 2% COLA and $30,000 base amount would pay $30,000 in year 0, $30,600 in year 1, $31,212 in year 2, and so on. Setting COLA to 0 means the nominal amount stays flat (losing purchasing power to inflation over time).
+A pension with a 2% COLA and $30,000 base amount would pay $30,000 in year 0, $30,600 in year 1, $31,212 in year 2, and so on. Setting COLA to 0 means the nominal amount stays flat — which sounds fine at first, but over 20 years at 3% inflation, a flat $30,000 has the purchasing power of about $16,600 in today's dollars. If your pension has no COLA, plan for this erosion.
 
 ### Taxability
 

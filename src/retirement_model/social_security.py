@@ -47,6 +47,7 @@ def generate_ss_streams(ss_auto: SSAutoConfig) -> list[IncomeStream]:
             amount=round(primary_amount, 2),
             start_age=ss_auto.primary_start_age,
             taxable_pct=SS_TAXABLE_PCT,
+            cola_rate=ss_auto.cola_rate,
             owner=Owner.PRIMARY,
         )
     )
@@ -61,6 +62,7 @@ def generate_ss_streams(ss_auto: SSAutoConfig) -> list[IncomeStream]:
                 amount=round(spouse_amount, 2),
                 start_age=ss_auto.spouse_start_age,
                 taxable_pct=SS_TAXABLE_PCT,
+                cola_rate=ss_auto.cola_rate,
                 owner=Owner.SPOUSE,
             )
         )

@@ -18,6 +18,8 @@ The simulation models several account types, each with distinct tax rules that a
 
 The cost basis ratio represents what fraction of a brokerage account's value is original contributions (as opposed to accumulated gains). A ratio of 0.40 means 40% is cost basis and 60% is gains. When withdrawing from brokerage accounts, only the gains portion is subject to capital gains tax. A higher ratio means less tax on withdrawals. The simulation updates this ratio over time as the account grows and gains accumulate.
 
+**What should you set it to?** For most 401(k) and IRA rollovers to brokerage, the basis is 0% — all contributions were pre-tax, so the entire balance is gains from the IRS's perspective. For a brokerage account funded with after-tax savings, check your statements for the actual cost basis. A high basis (say 80%) means withdrawals are mostly tax-free; a low basis (say 10%) means nearly every dollar withdrawn triggers capital gains tax.
+
 ### Stock Allocation {#stock-allocation}
 
 The stock percentage (equity allocation) determines each account's expected growth rate using long-term historical return assumptions:
@@ -27,6 +29,8 @@ The stock percentage (equity allocation) determines each account's expected grow
 - **Formula:** stock% × 10% + bond% × 4%
 
 Examples: 80/20 → 8.8%, 60/40 → 7.6%, 40/60 → 6.4%
+
+**What does this mean for your plan?** Higher stock allocations mean faster growth but more volatile returns — a 90/10 portfolio might gain 20% one year and lose 15% the next. Lower stock allocations are smoother but grow more slowly, which can matter over a 30-year retirement. A common guideline is to hold roughly your age in bonds (e.g., 70% stocks at age 30, 40% at age 60), but there's no single right answer — it depends on your risk tolerance and how much you need the portfolio to grow.
 
 The effective growth rate is shown on each account's summary row. For brokerage (taxable) accounts, annual tax drag is subtracted — stock dividends and bond interest are taxed each year, reducing effective growth. Tax-sheltered accounts (IRA, 401k, Roth) grow at the full nominal rate with no drag.
 

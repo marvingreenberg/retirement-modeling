@@ -308,6 +308,7 @@ class SSAutoConfig(BaseModel):
     spouse_fra_amount: float | None = Field(default=None, ge=0)
     spouse_start_age: int | None = Field(default=None, ge=62, le=70)
     fra_age: int = Field(default=67, ge=62, le=70)
+    cola_rate: float = Field(default=0.025, ge=0.0, le=0.20)
 
 
 class SimulationConfig(BaseModel):

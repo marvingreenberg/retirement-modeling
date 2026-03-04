@@ -4,12 +4,12 @@ When spending exceeds income in a given year, the simulation draws down accounts
 
 ### Default Order
 
-The default sequence is:
+The default sequence is designed to maximize the time that tax-advantaged accounts benefit from compounding:
 
-1. **Cash** — Savings and CDs, used first since they earn minimal returns.
-2. **Brokerage** — Taxable investment accounts, withdrawn next. Only gains are taxed (at capital gains rates), so the tax cost is moderate.
-3. **Pre-tax** (IRA/401k) — Traditional retirement accounts. Withdrawals are fully taxed as ordinary income. Keeping these invested longer allows more tax-deferred compounding.
-4. **Roth** — Tax-free accounts, withdrawn last. Roth grows tax-free and withdrawals are untaxed, so maximizing time in Roth accounts provides the greatest long-term tax benefit.
+1. **Cash** — Savings and CDs, used first since they earn minimal returns. There's no tax advantage to keeping cash invested, so spend it first.
+2. **Brokerage** — Taxable investment accounts, withdrawn next. Only gains are taxed (at favorable capital gains rates), so the tax cost is moderate. These accounts suffer tax drag every year, making them less efficient to hold long-term.
+3. **Pre-tax** (IRA/401k) — Traditional retirement accounts. Withdrawals are fully taxed as ordinary income. Keeping these invested longer allows more tax-deferred compounding — every year of deferral saves you a year of tax on dividends and gains.
+4. **Roth** — Tax-free accounts, withdrawn last. Roth grows tax-free and withdrawals are untaxed, so every extra year of Roth compounding is a year of completely untaxed growth. This is the most powerful account type to preserve.
 
 ### Customizing the Order
 

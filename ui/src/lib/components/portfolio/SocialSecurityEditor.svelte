@@ -25,6 +25,7 @@
             spouse_fra_amount: null,
             spouse_start_age: null,
             fra_age: 67,
+            cola_rate: 0.025,
          };
       }
    }
@@ -90,6 +91,23 @@
                   >({ageHint(config.ss_auto.primary_start_age)})</span
                >
             </div>
+         </label>
+         <label
+            class="flex flex-col gap-1 text-sm font-medium text-surface-600 dark:text-surface-400"
+         >
+            Annual COLA %
+            <input
+               type="number"
+               class="input w-20"
+               value={Math.round(config.ss_auto.cola_rate * 1000) / 10}
+               onfocus={(e) => e.currentTarget.select()}
+               onchange={(e) => {
+                  config.ss_auto!.cola_rate = Number(e.currentTarget.value) / 100;
+               }}
+               min="0"
+               max="20"
+               step="0.1"
+            />
          </label>
       </div>
       {#if hasSpouse}

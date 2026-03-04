@@ -41,4 +41,6 @@ When using the fixed dollar strategy, a **dashed line** shows the inflation-adju
 
 ### Reading the Chart
 
-Tall bars in early retirement often reflect high conversion tax (aggressive Roth conversions) or surplus income (still working). The transition to steady-state spending typically occurs once income streams end and conversion activity stabilizes. A growing income tax component in later years may indicate rising RMD obligations.
+Tall bars in early retirement often reflect high conversion tax (aggressive Roth conversions) or surplus income (still working). The transition to steady-state spending typically occurs once income streams end and conversion activity stabilizes.
+
+**What to look for:** A growing income tax component in later years usually means RMDs are forcing taxable withdrawals — consider more aggressive Roth conversions in earlier years to reduce this. If IRMAA surcharges appear, your income is crossing Medicare premium thresholds — the Roth conversion strategy or withdrawal order may need adjustment. A gap between the dashed desired spending line and actual spending means the portfolio couldn't fully fund the target in those years.

@@ -77,6 +77,7 @@ class TestGenerateSSStreams:
         assert streams[0].start_age == 67
         assert streams[0].end_age is None
         assert streams[0].taxable_pct == SS_TAXABLE_PCT
+        assert streams[0].cola_rate == 0.025  # default COLA
 
     def test_primary_and_spouse(self) -> None:
         config = SSAutoConfig(
@@ -88,8 +89,10 @@ class TestGenerateSSStreams:
         streams = generate_ss_streams(config)
         assert len(streams) == 2
         assert streams[0].name == "Social Security (primary)"
+        assert streams[0].cola_rate == 0.025
         assert streams[1].name == "Social Security (spouse)"
         assert streams[1].taxable_pct == SS_TAXABLE_PCT
+        assert streams[1].cola_rate == 0.025
 
     def test_early_claiming_reduces_amount(self) -> None:
         config = SSAutoConfig(
@@ -124,3 +127,33 @@ class TestGenerateSSStreams:
         )
         streams = generate_ss_streams(config)
         assert streams[0].amount == 36000  # at FRA, no adjustment
+
+    def test_custom_cola_rate(self) -> None:
+        config = SSAutoConfig(
+            primary_fra_amount=36000,
+            primary_start_age=67,
+            cola_rate=0.03,
+        )
+        streams = generate_ss_streams(config)
+        assert streams[0].cola_rate == 0.03
+
+    def test_zero_cola_rate(self) -> None:
+        config = SSAutoConfig(
+            primary_fra_amount=36000,
+            primary_start_age=67,
+            cola_rate=0.0,
+        )
+        streams = generate_ss_streams(config)
+        assert streams[0].cola_rate == 0.0
+
+    def test_cola_rate_passed_to_spouse(self) -> None:
+        config = SSAutoConfig(
+            primary_fra_amount=36000,
+            primary_start_age=67,
+            spouse_fra_amount=18000,
+            spouse_start_age=65,
+            cola_rate=0.04,
+        )
+        streams = generate_ss_streams(config)
+        assert streams[0].cola_rate == 0.04
+        assert streams[1].cola_rate == 0.04

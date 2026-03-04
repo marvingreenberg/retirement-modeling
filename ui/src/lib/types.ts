@@ -229,6 +229,7 @@ export interface SSAutoConfig {
    spouse_fra_amount: number | null;
    spouse_start_age: number | null;
    fra_age: number;
+   cola_rate: number;
 }
 
 export interface PlannedExpense {

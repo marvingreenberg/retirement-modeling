@@ -16,4 +16,6 @@ By default, each account grows at a rate determined by its stock/bond allocation
 
 For example, a 60/40 account normally grows at 7.6%. With conservative growth enabled, it grows at 5.7% (7.6% × 0.75).
 
+**Who should use this?** If you want to stress-test your plan against a period of below-average market returns — a "what if the next decade looks like 2000–2010?" scenario — enable this. It's also useful for naturally pessimistic planners who'd rather be pleasantly surprised than caught short. If your plan survives with conservative growth, it's likely robust.
+
 This setting only affects single deterministic simulations. In Monte Carlo mode, historical market returns are sampled directly and this setting has no effect.
