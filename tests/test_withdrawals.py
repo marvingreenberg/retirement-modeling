@@ -2,6 +2,7 @@
 
 import pytest
 
+from retirement_model.constants import CONSERVATIVE_GROWTH_FACTOR
 from retirement_model.models import (
     ACCOUNT_TYPE_DEFAULTS,
     BOND_TAX_DRAG,
@@ -11,7 +12,6 @@ from retirement_model.models import (
     Owner,
     TaxCategory,
 )
-from retirement_model.constants import CONSERVATIVE_GROWTH_FACTOR
 from retirement_model.withdrawals import (
     account_growth_rate,
     apply_growth,
@@ -561,8 +561,12 @@ class TestApplyGrowthWithTaxDrag:
 class TestPerAccountGrowth:
     def _make_ira(self, stock_pct: int | None = 60, balance: float = 100000) -> Account:
         return Account(
-            id="ira", name="IRA", balance=balance,
-            type=AccountType.IRA, owner=Owner.PRIMARY, stock_pct=stock_pct,
+            id="ira",
+            name="IRA",
+            balance=balance,
+            type=AccountType.IRA,
+            owner=Owner.PRIMARY,
+            stock_pct=stock_pct,
         )
 
     def test_high_equity_grows_faster(self):
@@ -593,8 +597,12 @@ class TestPerAccountGrowth:
 
     def test_brokerage_drag_applied_after_conservative(self):
         acc = Account(
-            id="brk", name="Brk", balance=100000,
-            type=AccountType.BROKERAGE, owner=Owner.JOINT, stock_pct=60,
+            id="brk",
+            name="Brk",
+            balance=100000,
+            type=AccountType.BROKERAGE,
+            owner=Owner.JOINT,
+            stock_pct=60,
         )
         apply_growth([acc], conservative=True)
         rate = account_growth_rate(60, AccountType.BROKERAGE) * CONSERVATIVE_GROWTH_FACTOR
@@ -608,8 +616,11 @@ class TestPerAccountGrowth:
 
     def test_cash_cd_zero_growth_regardless(self):
         acc = Account(
-            id="cash", name="Cash", balance=100000,
-            type=AccountType.CASH_CD, owner=Owner.JOINT,
+            id="cash",
+            name="Cash",
+            balance=100000,
+            type=AccountType.CASH_CD,
+            owner=Owner.JOINT,
         )
         apply_growth([acc])
         assert acc.balance == 100000

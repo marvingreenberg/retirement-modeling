@@ -249,7 +249,7 @@ def run_simulation(
         year_return = (
             returns_sequence[year_idx]
             if returns_sequence and year_idx < len(returns_sequence)
-            else cfg.investment_growth_rate
+            else None
         )
 
         # Calculate current total balance for spending strategies that need it
@@ -595,7 +595,9 @@ def run_simulation(
                     tax_shortfall -= result.amount_withdrawn
 
         # Apply growth and get balances
-        total_balance = apply_growth(accounts, year_return)
+        total_balance = apply_growth(
+            accounts, rate=year_return, conservative=cfg.conservative_growth
+        )
 
         results.append(
             YearResult(

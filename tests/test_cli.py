@@ -25,7 +25,6 @@ def sample_portfolio_file() -> Path:
             "start_year": 2026,
             "annual_spend_net": 100000,
             "inflation_rate": 0.03,
-            "investment_growth_rate": 0.06,
             "strategy_target": "irmaa_tier_1",
             "tax_rate_state": 0.05,
             "irmaa_limit_tier_1": 206000,

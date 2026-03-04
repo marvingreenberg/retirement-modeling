@@ -28,7 +28,6 @@ def base_portfolio() -> dict:
             "start_year": 2026,
             "annual_spend_net": 100000,
             "inflation_rate": 0.03,
-            "investment_growth_rate": 0.06,
             "strategy_target": "irmaa_tier_1",
             "spending_strategy": "fixed_dollar",
             "withdrawal_rate": 0.04,
@@ -137,22 +136,26 @@ class TestSpendingChangesAffectSimulation:
 class TestGrowthAndInflationAffectSimulation:
     """Growth rate and inflation rate changes should produce different outcomes."""
 
-    def test_higher_growth_means_higher_balance(self, client, base_portfolio):
-        low = _simulate(client, _set_config(base_portfolio, "investment_growth_rate", 0.03))
-        high = _simulate(client, _set_config(base_portfolio, "investment_growth_rate", 0.10))
-        assert high["summary"]["final_balance"] > low["summary"]["final_balance"]
+    def test_conservative_growth_means_lower_balance(self, client, base_portfolio):
+        normal = _simulate(client, _set_config(base_portfolio, "conservative_growth", False))
+        conservative = _simulate(client, _set_config(base_portfolio, "conservative_growth", True))
+        assert normal["summary"]["final_balance"] > conservative["summary"]["final_balance"]
 
     def test_higher_inflation_means_lower_balance(self, client, base_portfolio):
         low_inf = _simulate(client, _set_config(base_portfolio, "inflation_rate", 0.01))
         high_inf = _simulate(client, _set_config(base_portfolio, "inflation_rate", 0.06))
         assert low_inf["summary"]["final_balance"] > high_inf["summary"]["final_balance"]
 
-    def test_zero_growth_depletes_faster(self, client, base_portfolio):
-        # Use lower spending so base doesn't deplete
-        base_portfolio["config"]["annual_spend_net"] = 60000
-        zero = _simulate(client, _set_config(base_portfolio, "investment_growth_rate", 0.0))
-        normal = _simulate(client, base_portfolio)
-        assert zero["summary"]["final_balance"] < normal["summary"]["final_balance"]
+    def test_all_stocks_vs_all_bonds(self, client, base_portfolio):
+        stocks = copy.deepcopy(base_portfolio)
+        for acc in stocks["accounts"]:
+            acc["stock_pct"] = 100
+        bonds = copy.deepcopy(base_portfolio)
+        for acc in bonds["accounts"]:
+            acc["stock_pct"] = 0
+        r_stocks = _simulate(client, stocks)
+        r_bonds = _simulate(client, bonds)
+        assert r_stocks["summary"]["final_balance"] > r_bonds["summary"]["final_balance"]
 
 
 class TestConversionStrategyAffectsTaxes:

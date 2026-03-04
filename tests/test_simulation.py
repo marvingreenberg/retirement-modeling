@@ -370,7 +370,6 @@ class TestInflationIndexedTaxBrackets:
                 start_year=2026,
                 annual_spend_net=80000,
                 inflation_rate=inflation_rate,
-                investment_growth_rate=0.06,
                 strategy_target=WithdrawalStrategy.BRACKET_24,
                 social_security=SocialSecurityConfig(
                     primary_benefit=30000,
@@ -466,7 +465,6 @@ class TestTaxRegimeSequence:
                 start_year=2026,
                 annual_spend_net=80000,
                 inflation_rate=0.03,
-                investment_growth_rate=0.06,
                 strategy_target=WithdrawalStrategy.BRACKET_24,
                 social_security=SocialSecurityConfig(
                     primary_benefit=30000,
@@ -1284,7 +1282,6 @@ class TestWithdrawalOrder:
             simulation_years=5,
             start_year=2026,
             annual_spend_net=80000,
-            investment_growth_rate=0.0,
             inflation_rate=0.0,
             strategy_target=WithdrawalStrategy.STANDARD,
             social_security=SocialSecurityConfig(
