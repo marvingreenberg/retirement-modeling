@@ -4,6 +4,18 @@ Items moved from TODO.md in order of completion.
 
 ---
 
+## 202-growth-rate-tax-drag-review (v2.1.0)
+
+Replaced global `investment_growth_rate` with per-account growth rates derived from stock/bond allocation (10% equity / 4% bond). Each account's effective rate shown on collapsed row. Added "Conservative growth" checkbox (0.75 multiplier) replacing the growth rate input. Updated help content, comparison snapshots, and import flow.
+
+---
+
+## 300-fixes (v2.0.1)
+
+Standardized account editor buttons: Trash2 icon at far left for delete, Check icon button at far right to close. SpendingEditor switched from ✕ to Trash2. All delete buttons use consistent `preset-tonal` styling.
+
+---
+
 ## 200-help refactor (v2.0.0)
 
 Replaced InfoPopover (i) tooltips and basic HelpDrawer with a unified contextual help system:
