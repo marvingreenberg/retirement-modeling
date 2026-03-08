@@ -69,3 +69,86 @@ describe('HelpPanel', () => {
       expect(screen.getByText('Related Topics')).toBeInTheDocument();
    });
 });
+
+describe('HelpPanel search', () => {
+   beforeEach(() => {
+      closeHelp();
+   });
+
+   it('shows search input in header', () => {
+      openHelp('getting-started');
+      render(HelpPanel);
+      expect(screen.getByPlaceholderText('Search help...')).toBeInTheDocument();
+   });
+
+   it('shows search button with aria-label', () => {
+      openHelp('getting-started');
+      render(HelpPanel);
+      expect(screen.getByLabelText('Search')).toBeInTheDocument();
+   });
+
+   it('submitting search replaces accordion with results', async () => {
+      openHelp('getting-started');
+      render(HelpPanel);
+      const input = screen.getByPlaceholderText('Search help...');
+      await fireEvent.input(input, { target: { value: 'portfolio' } });
+      await fireEvent.submit(input.closest('form')!);
+      expect(screen.getByText(/results? for/)).toBeInTheDocument();
+      expect(screen.queryByText('App Basics')).not.toBeInTheDocument();
+   });
+
+   it('clicking a search result navigates to that topic', async () => {
+      openHelp('getting-started');
+      render(HelpPanel);
+      const input = screen.getByPlaceholderText('Search help...');
+      await fireEvent.input(input, { target: { value: 'portfolio' } });
+      await fireEvent.submit(input.closest('form')!);
+      const results = screen.getByRole('navigation', { name: 'Search results' });
+      const firstLink = results.querySelector('button');
+      expect(firstLink).not.toBeNull();
+      await fireEvent.click(firstLink!);
+      expect(helpState.topic).toBeTruthy();
+   });
+
+   it('search bar stays populated after clicking result', async () => {
+      openHelp('getting-started');
+      render(HelpPanel);
+      const input = screen.getByPlaceholderText('Search help...') as HTMLInputElement;
+      await fireEvent.input(input, { target: { value: 'portfolio' } });
+      await fireEvent.submit(input.closest('form')!);
+      const results = screen.getByRole('navigation', { name: 'Search results' });
+      const firstLink = results.querySelector('button');
+      await fireEvent.click(firstLink!);
+      expect(input.value).toBe('portfolio');
+   });
+
+   it('clear button restores accordion nav', async () => {
+      openHelp('getting-started');
+      render(HelpPanel);
+      const input = screen.getByPlaceholderText('Search help...');
+      await fireEvent.input(input, { target: { value: 'portfolio' } });
+      await fireEvent.submit(input.closest('form')!);
+      expect(screen.queryByText('App Basics')).not.toBeInTheDocument();
+      await fireEvent.click(screen.getByLabelText('Clear search'));
+      expect(screen.getByText('App Basics')).toBeInTheDocument();
+   });
+
+   it('shows "No results" for nonsense query', async () => {
+      openHelp('getting-started');
+      render(HelpPanel);
+      const input = screen.getByPlaceholderText('Search help...');
+      await fireEvent.input(input, { target: { value: 'xyzzyplugh' } });
+      await fireEvent.submit(input.closest('form')!);
+      expect(screen.getByText(/no results/i)).toBeInTheDocument();
+   });
+
+   it('highlights search terms in content', async () => {
+      openHelp('getting-started');
+      render(HelpPanel);
+      const input = screen.getByPlaceholderText('Search help...');
+      await fireEvent.input(input, { target: { value: 'portfolio' } });
+      await fireEvent.submit(input.closest('form')!);
+      const content = screen.getByRole('complementary', { name: 'Help' });
+      expect(content.querySelector('mark')).not.toBeNull();
+   });
+});
