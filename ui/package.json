@@ -32,6 +32,7 @@
       "@tailwindcss/vite": "^4.1.18",
       "@testing-library/jest-dom": "^6.9.1",
       "@testing-library/svelte": "^5.3.1",
+      "@types/lunr": "^2.3.7",
       "@types/node": "^25.3.3",
       "eslint": "^10.0.1",
       "eslint-config-prettier": "^10.1.8",
@@ -52,6 +53,7 @@
       "chart.js": "^4.5.1",
       "chartjs-plugin-annotation": "^3.1.0",
       "lucide-svelte": "^0.563.0",
+      "lunr": "^2.3.9",
       "marked": "^17.0.3",
       "svelte-chartjs": "^3.1.5",
       "zod": "^4.3.6"
