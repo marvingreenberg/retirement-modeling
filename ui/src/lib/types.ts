@@ -55,17 +55,61 @@ export const ACCOUNT_TYPE_DEFAULTS: Record<
       default_stock_pct: number;
    }
 > = {
-   brokerage: { cost_basis_ratio: 0.4, default_available_age: 0, default_stock_pct: 60 },
-   cash_cd: { cost_basis_ratio: 1.0, default_available_age: 0, default_stock_pct: 0 },
-   roth_ira: { cost_basis_ratio: 1.0, default_available_age: 60, default_stock_pct: 80 },
-   roth_401k: { cost_basis_ratio: 1.0, default_available_age: 60, default_stock_pct: 80 },
-   roth_conversion: { cost_basis_ratio: 1.0, default_available_age: 60, default_stock_pct: 80 },
-   '401k': { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
-   '403b': { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
-   '457b': { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
-   ira: { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
-   sep_ira: { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
-   simple_ira: { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
+   brokerage: {
+      cost_basis_ratio: 0.4,
+      default_available_age: 0,
+      default_stock_pct: 60,
+   },
+   cash_cd: {
+      cost_basis_ratio: 1.0,
+      default_available_age: 0,
+      default_stock_pct: 0,
+   },
+   roth_ira: {
+      cost_basis_ratio: 1.0,
+      default_available_age: 60,
+      default_stock_pct: 80,
+   },
+   roth_401k: {
+      cost_basis_ratio: 1.0,
+      default_available_age: 60,
+      default_stock_pct: 80,
+   },
+   roth_conversion: {
+      cost_basis_ratio: 1.0,
+      default_available_age: 60,
+      default_stock_pct: 80,
+   },
+   '401k': {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
+   '403b': {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
+   '457b': {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
+   ira: {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
+   sep_ira: {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
+   simple_ira: {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
 };
 
 // Account types that are individual-only (no joint ownership)

@@ -275,7 +275,9 @@
                      <input
                         type="number"
                         class="input w-24 no-spinner"
-                        value={Math.round((account.cost_basis_ratio ?? 0) * 100)}
+                        value={Math.round(
+                           (account.cost_basis_ratio ?? 0) * 100,
+                        )}
                         onfocus={(e) => e.currentTarget.select()}
                         onchange={(e) => {
                            const pct = Math.max(
