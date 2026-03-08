@@ -21,3 +21,14 @@ input::placeholder {
    opacity: 0.7;
    font-style: italic;
 }
+
+/* Help search term highlights */
+.prose-help mark {
+   background-color: rgb(250 204 21 / 0.4);
+   color: inherit;
+   padding: 0 1px;
+   border-radius: 2px;
+}
+:is(.dark) .prose-help mark {
+   background-color: rgb(250 204 21 / 0.25);
+}
