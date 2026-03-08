@@ -133,8 +133,12 @@ export function searchHelp(query: string): SearchResult[] {
       .filter((r): r is SearchResult => r !== null);
 }
 
+const stemPipeline = new lunr.Pipeline();
+stemPipeline.add(lunr.stemmer);
+
 function stemWord(word: string): string {
-   return lunr.stemmer(new lunr.Token(word.toLowerCase())).toString();
+   const results = stemPipeline.run([new lunr.Token(word.toLowerCase(), {})]);
+   return results.length > 0 ? results[0].toString() : word.toLowerCase();
 }
 
 export function highlightTerms(html: string, query: string): string {
