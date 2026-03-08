@@ -6,7 +6,11 @@
       getCategoryForTopic,
    } from '$lib/helpTopics';
    import { getTopicHtml } from '$lib/helpContent';
-   import { searchHelp, highlightTerms, type SearchResult } from '$lib/helpSearch';
+   import {
+      searchHelp,
+      highlightTerms,
+      type SearchResult,
+   } from '$lib/helpSearch';
    import {
       X,
       Maximize2,
@@ -125,7 +129,10 @@
             </h2>
             <form
                class="flex items-center gap-1 flex-1 max-w-[200px]"
-               onsubmit={(e) => { e.preventDefault(); submitSearch(); }}
+               onsubmit={(e) => {
+                  e.preventDefault();
+                  submitSearch();
+               }}
             >
                <div class="relative flex-1">
                   <input
@@ -145,7 +152,11 @@
                      </button>
                   {/if}
                </div>
-               <button type="submit" class="btn btn-sm preset-ghost p-1" aria-label="Search">
+               <button
+                  type="submit"
+                  class="btn btn-sm preset-ghost p-1"
+                  aria-label="Search"
+               >
                   <Search size={16} />
                </button>
             </form>
@@ -176,14 +187,20 @@
                aria-label="Search results"
             >
                {#if searchResults.length === 0}
-                  <p class="text-sm text-surface-500 italic">No results for "{searchQuery}"</p>
+                  <p class="text-sm text-surface-500 italic">
+                     No results for "{searchQuery}"
+                  </p>
                {:else}
                   <p class="text-xs text-surface-500 mb-2">
-                     {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'} for "{searchQuery}"
+                     {searchResults.length}
+                     {searchResults.length === 1 ? 'result' : 'results'} for "{searchQuery}"
                   </p>
                   {#each searchResults as result (result.topicId + ':' + result.headingId)}
                      <button
-                        class="block w-full text-left text-sm py-1 px-2 rounded hover:bg-surface-200 dark:hover:bg-surface-800 {helpState.topic === result.topicId ? 'text-primary-600 dark:text-primary-400' : 'text-surface-700 dark:text-surface-300'}"
+                        class="block w-full text-left text-sm py-1 px-2 rounded hover:bg-surface-200 dark:hover:bg-surface-800 {helpState.topic ===
+                        result.topicId
+                           ? 'text-primary-600 dark:text-primary-400'
+                           : 'text-surface-700 dark:text-surface-300'}"
                         onclick={async () => {
                            helpState.topic = result.topicId;
                            helpState.anchor = result.headingId;

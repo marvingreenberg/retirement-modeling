@@ -103,7 +103,9 @@ describe('HelpPanel search', () => {
       const input = screen.getByPlaceholderText('Search help...');
       await fireEvent.input(input, { target: { value: 'portfolio' } });
       await fireEvent.submit(input.closest('form')!);
-      const results = screen.getByRole('navigation', { name: 'Search results' });
+      const results = screen.getByRole('navigation', {
+         name: 'Search results',
+      });
       const firstLink = results.querySelector('button');
       expect(firstLink).not.toBeNull();
       await fireEvent.click(firstLink!);
@@ -113,10 +115,14 @@ describe('HelpPanel search', () => {
    it('search bar stays populated after clicking result', async () => {
       openHelp('getting-started');
       render(HelpPanel);
-      const input = screen.getByPlaceholderText('Search help...') as HTMLInputElement;
+      const input = screen.getByPlaceholderText(
+         'Search help...',
+      ) as HTMLInputElement;
       await fireEvent.input(input, { target: { value: 'portfolio' } });
       await fireEvent.submit(input.closest('form')!);
-      const results = screen.getByRole('navigation', { name: 'Search results' });
+      const results = screen.getByRole('navigation', {
+         name: 'Search results',
+      });
       const firstLink = results.querySelector('button');
       await fireEvent.click(firstLink!);
       expect(input.value).toBe('portfolio');

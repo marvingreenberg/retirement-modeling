@@ -50,7 +50,9 @@ describe('helpSearch', () => {
          const broader = searchHelp('withdrawal');
          expect(results.length).toBeGreaterThan(0);
          expect(results.length).toBeLessThan(broader.length);
-         const broaderKeys = new Set(broader.map((r) => `${r.topicId}:${r.headingId}`));
+         const broaderKeys = new Set(
+            broader.map((r) => `${r.topicId}:${r.headingId}`),
+         );
          for (const r of results) {
             expect(broaderKeys.has(`${r.topicId}:${r.headingId}`)).toBe(true);
          }
