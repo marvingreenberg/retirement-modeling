@@ -77,9 +77,11 @@ dev:
 	  $(ACTIVATE) && uvicorn retirement_model.api:app --reload & API_PID=$$!; \
 	  sleep 1; \
 	  kill -0 $$API_PID 2>/dev/null || { echo "ERROR: API server failed to start (port 8000 in use?)"; exit 1; }; \
-	  (cd ui && npx vite dev) & \
-	  for i in 1 2 3 4 5 6 7 8 9 10; do curl -s http://localhost:5173 >/dev/null && break; sleep 1; done; \
-	  open http://localhost:5173; \
+	  VITE_PORT=$$(( (RANDOM % 16384) + 49152 )); \
+	  (cd ui && npx vite dev --port $$VITE_PORT --strictPort) & \
+	  for i in 1 2 3 4 5 6 7 8 9 10; do curl -s http://localhost:$$VITE_PORT >/dev/null && break; sleep 1; done; \
+	  echo "Vite dev server on port $$VITE_PORT"; \
+	  open http://localhost:$$VITE_PORT; \
 	  wait
 
 docker-run: build-image
