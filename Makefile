@@ -6,6 +6,8 @@
 VERSION := $(shell git describe --tags --always 2>/dev/null | sed 's/^v//' || echo "0.0.0")
 MAJOR_VERSION := $(shell echo $(VERSION) | cut -d. -f1)
 IS_STABLE := $(shell echo $(VERSION) | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$$' && echo true || echo false)
+PREV_TAG := $(shell git tag --sort=-v:refname 2>/dev/null | grep -E '^v$(MAJOR_VERSION)\.[0-9]+\.[0-9]+$$' | grep -v '^v$(VERSION)$$' | head -1)
+PREV_VERSION := $(shell echo $(PREV_TAG) | sed 's/^v//')
 
 PKG_NAME := retirement-model
 ACTIVATE := if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi
@@ -95,31 +97,45 @@ build-image:
 	  -t $(GH_IMAGE):$(VERSION) \
 	  -t $(GCP_IMAGE):$(VERSION) $(STABLE_TAGS) .
 
-DEPLOY_CMD = gcloud run deploy $(1) \
-	    --image=$(GCP_IMAGE):$(VERSION) \
+GCP_DEPLOY = gcloud run deploy $(1) \
+	    --image=$(GCP_IMAGE):$(2) \
 	    --platform=managed \
 	    --allow-unauthenticated \
 	    --port=8000 --memory=512Mi --cpu=1 \
 	    --min-instances=0 --max-instances=3 \
-	    --set-env-vars="PYTHONUNBUFFERED=1"
+	    --set-env-vars
 
 deploy: build-image
 	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
 	docker buildx build --push --progress plain --build-arg VERSION=$(VERSION) \
 	  -t $(GH_IMAGE):$(VERSION) \
-	  -t $(GCP_IMAGE):$(VERSION) $(STABLE_TAGS) . && \
-	  $(call DEPLOY_CMD,$(SERVICE_NAME)) && \
+	  -t $(GCP_IMAGE):$(VERSION) $(STABLE_TAGS) .
+	@ENV_VARS="PYTHONUNBUFFERED=1"; \
+	  if [ "$(IS_STABLE)" = "true" ] && [ -n "$(PREV_TAG)" ]; then \
+	    echo "Deploying previous version $(PREV_VERSION) to $(SERVICE_NAME)-v$(MAJOR_VERSION)-prev..."; \
+	    $(call GCP_DEPLOY,$(SERVICE_NAME)-v$(MAJOR_VERSION)-prev,$(PREV_VERSION)) \
+	      "PYTHONUNBUFFERED=1,PREVIOUS_VERSION_URL=,PREVIOUS_VERSION=" && \
+	    PREV_URL=$$(gcloud run services describe $(SERVICE_NAME)-v$(MAJOR_VERSION)-prev --format='value(status.url)') && \
+	    echo "Previous version deployed: $$PREV_URL" && \
+	    ENV_VARS="PYTHONUNBUFFERED=1,PREVIOUS_VERSION_URL=$$PREV_URL,PREVIOUS_VERSION=$(PREV_VERSION)"; \
+	  fi && \
+	  $(call GCP_DEPLOY,$(SERVICE_NAME),$(VERSION)) "$$ENV_VARS" && \
 	  echo "Deployed: $$(gcloud run services describe $(SERVICE_NAME) --format='value(status.url)')"
 	@if [ "$(IS_STABLE)" = "true" ]; then \
-	  echo "Deploying major-version service $(SERVICE_NAME)-v$(MAJOR_VERSION)..."; \
-	  $(call DEPLOY_CMD,$(SERVICE_NAME)-v$(MAJOR_VERSION)) && \
+	  ENV_VARS="PYTHONUNBUFFERED=1"; \
+	  if [ -n "$(PREV_TAG)" ]; then \
+	    PREV_URL=$$(gcloud run services describe $(SERVICE_NAME)-v$(MAJOR_VERSION)-prev --format='value(status.url)') && \
+	    ENV_VARS="PYTHONUNBUFFERED=1,PREVIOUS_VERSION_URL=$$PREV_URL,PREVIOUS_VERSION=$(PREV_VERSION)"; \
+	  fi && \
+	  echo "Deploying major-version service $(SERVICE_NAME)-v$(MAJOR_VERSION)..." && \
+	  $(call GCP_DEPLOY,$(SERVICE_NAME)-v$(MAJOR_VERSION),$(VERSION)) "$$ENV_VARS" && \
 	  echo "Deployed: $$(gcloud run services describe $(SERVICE_NAME)-v$(MAJOR_VERSION) --format='value(status.url)')"; \
 	fi
 
 deploy-version:
 	@[ -n "$(GCP_PROJECT)" ] || { echo "Error: set GCP_PROJECT or run 'gcloud config set project <id>'"; exit 1; }
 	@[ "$(IS_STABLE)" = "true" ] || { echo "Error: VERSION=$(VERSION) is not a stable release; skipping version deploy"; exit 1; }
-	$(call DEPLOY_CMD,$(SERVICE_NAME)-v$(MAJOR_VERSION))
+	$(call GCP_DEPLOY,$(SERVICE_NAME)-v$(MAJOR_VERSION),$(VERSION)) "PYTHONUNBUFFERED=1"
 	@echo "Deployed: $$(gcloud run services describe $(SERVICE_NAME)-v$(MAJOR_VERSION) --format='value(status.url)')"
 
 e2e:
@@ -141,7 +157,7 @@ format: format-api format-ui
 setup-api:
 	python3 -m venv .venv && \
 	  $(ACTIVATE) && \
-	  pip  -q -e ".[dev]"
+	  pip install -q -e ".[dev]"
 
 setup-ui:
 	cd ui && pnpm install
