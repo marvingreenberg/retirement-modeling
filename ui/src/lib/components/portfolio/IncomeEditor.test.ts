@@ -66,6 +66,7 @@ describe('IncomeEditor', () => {
             spouse_start_age: null,
             fra_age: 67,
          },
+         salary_auto: null,
       });
       // age 67 for primary age 65 in 2026 = year 2028
       expect(screen.getByText('(age 67)')).toBeInTheDocument();
@@ -83,6 +84,7 @@ describe('IncomeEditor', () => {
                spouse_start_age: null,
                fra_age: 67,
             },
+            salary_auto: null,
          },
          [
             {

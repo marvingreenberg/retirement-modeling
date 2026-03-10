@@ -300,6 +300,21 @@ class IncomeStream(BaseModel):
         return self
 
 
+class SalaryAutoConfig(BaseModel):
+    """UI-driven current salary configuration, synced to income_streams by the frontend."""
+
+    primary_salary: float = Field(default=0, ge=0)
+    primary_growth: float = Field(default=0.03, ge=0.0, le=0.20)
+    primary_end_age: int | None = Field(default=None, ge=0, le=120)
+    spouse_salary: float | None = Field(default=None, ge=0)
+    spouse_growth: float | None = Field(default=None, ge=0.0, le=0.20)
+    spouse_end_age: int | None = Field(default=None, ge=0, le=120)
+    primary_pretax_401k: float = Field(default=0, ge=0)
+    primary_roth_401k: float = Field(default=0, ge=0)
+    spouse_pretax_401k: float = Field(default=0, ge=0)
+    spouse_roth_401k: float = Field(default=0, ge=0)
+
+
 class SSAutoConfig(BaseModel):
     """Auto-generate Social Security income streams from profile data."""
 
@@ -345,6 +360,7 @@ class SimulationConfig(BaseModel):
     income_streams: list[IncomeStream] = Field(default_factory=list)
 
     ss_auto: SSAutoConfig | None = None
+    salary_auto: SalaryAutoConfig | None = None
 
     retirement_age: int | None = Field(default=None, ge=0, le=120)
     excess_income_routing: ExcessIncomeRouting = ExcessIncomeRouting.BROKERAGE

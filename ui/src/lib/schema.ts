@@ -92,6 +92,19 @@ export const incomeStreamSchema = z.object({
    roth_401k: z.number().min(0).default(0),
 });
 
+export const salaryAutoConfigSchema = z.object({
+   primary_salary: z.number().min(0).default(0),
+   primary_growth: z.number().min(0).max(0.2).default(0.03),
+   primary_end_age: z.number().int().min(0).max(120).nullable().default(null),
+   spouse_salary: z.number().min(0).nullable().default(null),
+   spouse_growth: z.number().min(0).max(0.2).nullable().default(null),
+   spouse_end_age: z.number().int().min(0).max(120).nullable().default(null),
+   primary_pretax_401k: z.number().min(0).default(0),
+   primary_roth_401k: z.number().min(0).default(0),
+   spouse_pretax_401k: z.number().min(0).default(0),
+   spouse_roth_401k: z.number().min(0).default(0),
+});
+
 export const ssAutoConfigSchema = z.object({
    primary_fra_amount: z.number().min(0),
    primary_start_age: z.number().int().min(62).max(70),
@@ -137,6 +150,7 @@ export const simulationConfigSchema = z
       planned_expenses: z.array(plannedExpenseSchema).default([]),
       income_streams: z.array(incomeStreamSchema).default([]),
       ss_auto: ssAutoConfigSchema.nullable().default(null),
+      salary_auto: salaryAutoConfigSchema.nullable().default(null),
       retirement_age: z.number().int().min(0).max(120).nullable().default(null),
       excess_income_routing: excessIncomeRoutingSchema.default('brokerage'),
       withdrawal_order: z

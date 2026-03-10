@@ -11,6 +11,19 @@ Income streams represent recurring money flowing into the portfolio during the s
 
 Social Security is configured separately through its own dedicated section, not as a generic income stream.
 
+### Current Salary
+
+When a retirement age is set and is more than one year away, a **Current Salary** section appears above Other Income. This provides a compact way to enter working-years salary for the primary earner (and spouse, if applicable) without manually creating income streams.
+
+Fields per earner:
+
+- **Salary ($/yr)** — current annual gross salary
+- **Growth %** — expected annual salary growth (default 3%)
+- **End Year** — when salary stops (defaults to retirement year)
+- **Pre-tax 401k / Roth 401k** — annual contribution amounts, routed to retirement accounts
+
+The salary section automatically creates employment income streams behind the scenes. These are hidden from the Other Income list to avoid duplication.
+
 ### COLA (Cost of Living Adjustment)
 
 Each income stream can have its own COLA rate, representing annual increases to keep pace with inflation. The effective amount in any year is:

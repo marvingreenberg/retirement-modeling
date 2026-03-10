@@ -55,17 +55,61 @@ export const ACCOUNT_TYPE_DEFAULTS: Record<
       default_stock_pct: number;
    }
 > = {
-   brokerage: { cost_basis_ratio: 0.4, default_available_age: 0, default_stock_pct: 60 },
-   cash_cd: { cost_basis_ratio: 1.0, default_available_age: 0, default_stock_pct: 0 },
-   roth_ira: { cost_basis_ratio: 1.0, default_available_age: 60, default_stock_pct: 80 },
-   roth_401k: { cost_basis_ratio: 1.0, default_available_age: 60, default_stock_pct: 80 },
-   roth_conversion: { cost_basis_ratio: 1.0, default_available_age: 60, default_stock_pct: 80 },
-   '401k': { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
-   '403b': { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
-   '457b': { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
-   ira: { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
-   sep_ira: { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
-   simple_ira: { cost_basis_ratio: 0.0, default_available_age: 60, default_stock_pct: 60 },
+   brokerage: {
+      cost_basis_ratio: 0.4,
+      default_available_age: 0,
+      default_stock_pct: 60,
+   },
+   cash_cd: {
+      cost_basis_ratio: 1.0,
+      default_available_age: 0,
+      default_stock_pct: 0,
+   },
+   roth_ira: {
+      cost_basis_ratio: 1.0,
+      default_available_age: 60,
+      default_stock_pct: 80,
+   },
+   roth_401k: {
+      cost_basis_ratio: 1.0,
+      default_available_age: 60,
+      default_stock_pct: 80,
+   },
+   roth_conversion: {
+      cost_basis_ratio: 1.0,
+      default_available_age: 60,
+      default_stock_pct: 80,
+   },
+   '401k': {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
+   '403b': {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
+   '457b': {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
+   ira: {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
+   sep_ira: {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
+   simple_ira: {
+      cost_basis_ratio: 0.0,
+      default_available_age: 60,
+      default_stock_pct: 60,
+   },
 };
 
 // Account types that are individual-only (no joint ownership)
@@ -167,6 +211,19 @@ export interface IncomeStream {
    roth_401k: number;
 }
 
+export interface SalaryAutoConfig {
+   primary_salary: number;
+   primary_growth: number;
+   primary_end_age: number | null;
+   spouse_salary: number | null;
+   spouse_growth: number | null;
+   spouse_end_age: number | null;
+   primary_pretax_401k: number;
+   primary_roth_401k: number;
+   spouse_pretax_401k: number;
+   spouse_roth_401k: number;
+}
+
 export interface SSAutoConfig {
    primary_fra_amount: number;
    primary_start_age: number;
@@ -206,6 +263,7 @@ export interface SimulationConfig {
    planned_expenses: PlannedExpense[];
    income_streams: IncomeStream[];
    ss_auto: SSAutoConfig | null;
+   salary_auto: SalaryAutoConfig | null;
    retirement_age: number | null;
    excess_income_routing: ExcessIncomeRouting;
    withdrawal_order: WithdrawalCategory[];

@@ -27,6 +27,7 @@ function makeConfig(
       planned_expenses: [],
       income_streams: [],
       ss_auto: null,
+      salary_auto: null,
       retirement_age: null,
       excess_income_routing: 'brokerage',
       withdrawal_order: ['cash', 'brokerage', 'pretax', 'roth'],

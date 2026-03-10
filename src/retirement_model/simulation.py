@@ -59,6 +59,9 @@ from retirement_model.withdrawals import (
 
 EXCESS_INCOME_ACCOUNT_ID = "excess_income"
 
+# Pre-retirement tax shortfall: only withdraw from liquid accounts
+_TAX_ONLY_CATEGORIES = frozenset({WithdrawalCategory.CASH, WithdrawalCategory.BROKERAGE})
+
 
 def _collect_details(
     result: WithdrawalResult,
@@ -400,6 +403,8 @@ def run_simulation(
         remaining_spend = max(0, total_spend_needed - cash_in_hand)
         surplus_cash = max(0, cash_in_hand - total_spend_needed)
 
+        is_retired = cfg.retirement_age is None or age_primary >= cfg.retirement_age
+
         brokerage_withdrawn = 0.0
         roth_withdrawn = 0.0
         voluntary_pretax = 0.0
@@ -408,8 +413,8 @@ def run_simulation(
         conversion_tax_from_brokerage = 0.0
         brokerage_gains_tax = 0.0
 
-        # Spending withdrawals in configurable order
-        if remaining_spend > 0:
+        # Spending withdrawals in configurable order (skip pre-retirement: salary covers spending)
+        if remaining_spend > 0 and is_retired:
             agi_headroom = max(0, conversion_ceiling - current_agi) if conversion_ceiling > 0 else 0
 
             for cat in cfg.withdrawal_order:
@@ -469,8 +474,8 @@ def run_simulation(
                     net_from_pretax = result.amount_withdrawn * (1 - est_tax_rate)
                     remaining_spend = max(0, remaining_spend - net_from_pretax)
 
-        # Roth conversion logic (from IRA-eligible accounts, any age)
-        if conversion_ceiling > 0:
+        # Roth conversion logic (from IRA-eligible accounts, skip pre-retirement)
+        if conversion_ceiling > 0 and is_retired:
             agi_headroom = max(0, conversion_ceiling - current_agi)
 
             if agi_headroom > 5000:
@@ -562,7 +567,13 @@ def run_simulation(
             0, income_tax + irmaa_cost - estimated_withholding - conversion_tax_from_brokerage
         )
         if tax_shortfall > 1.0:
-            for cat in cfg.withdrawal_order:
+            # Pre-retirement: only withdraw from cash/brokerage for taxes
+            tax_order = (
+                cfg.withdrawal_order
+                if is_retired
+                else [c for c in cfg.withdrawal_order if c in _TAX_ONLY_CATEGORIES]
+            )
+            for cat in tax_order:
                 if tax_shortfall <= 1.0:
                     break
                 if cat == WithdrawalCategory.CASH:

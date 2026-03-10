@@ -2,6 +2,7 @@
    import type { SimulationConfig, IncomeStream, IncomeKind } from '$lib/types';
    import { INCOME_KIND_LABELS } from '$lib/types';
    import { Trash2 } from 'lucide-svelte';
+   import CurrentSalaryEditor from './CurrentSalaryEditor.svelte';
    import SocialSecurityEditor from './SocialSecurityEditor.svelte';
 
    let {
@@ -15,6 +16,13 @@
    let hasSpouse = $derived(config.current_age_spouse > 0);
    let simEndAge = $derived(
       config.current_age_primary + config.simulation_years,
+   );
+
+   const SALARY_SENTINELS = new Set(['__salary_primary', '__salary_spouse']);
+   let visibleStreams = $derived(
+      incomeStreams
+         .map((s, i) => ({ stream: s, origIdx: i }))
+         .filter((x) => !SALARY_SENTINELS.has(x.stream.name)),
    );
 
    const editableKinds: IncomeKind[] = [
@@ -91,6 +99,7 @@
 
 <div class="flex flex-col gap-4">
    <SocialSecurityEditor bind:config />
+   <CurrentSalaryEditor bind:config />
 
    <div>
       <h4
@@ -98,7 +107,7 @@
       >
          Other Income
       </h4>
-      {#if incomeStreams.length > 0}
+      {#if visibleStreams.length > 0}
          <div
             class="flex gap-3 items-end px-3 mb-1 text-xs font-medium text-surface-500 dark:text-surface-400"
          >
@@ -112,7 +121,7 @@
             {#if hasSpouse}<span class="w-24">Owner</span>{/if}
          </div>
       {/if}
-      {#each incomeStreams as stream, idx (idx)}
+      {#each visibleStreams as { stream, origIdx: idx } (idx)}
          {@const oa = ownerAge(stream.owner)}
          {@const warning = streamWarning(stream)}
          <div

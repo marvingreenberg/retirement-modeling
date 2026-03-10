@@ -20,7 +20,7 @@ The cost basis ratio represents what fraction of a brokerage account's value is 
 
 **What should you set it to?** Check your brokerage statements for the actual cost basis. For accounts funded entirely with after-tax savings, the basis may be high (say 80%), meaning withdrawals are mostly tax-free. For accounts that have grown significantly over many years, the basis may be low (say 10–20%), meaning nearly every dollar withdrawn triggers capital gains tax.
 
-This field is only shown for brokerage accounts. Pre-tax account withdrawals are taxed as ordinary income, and Roth withdrawals are tax-free — neither uses cost basis for tax purposes. (Non-deductible IRA contributions tracked on IRS Form 8606 can reduce the taxable portion of withdrawals via the pro-rata rule, but this is typically a small amount and is not currently modeled.  If you have significant non-deductible IRA basis, this will slightly overstate your tax liability.)
+This field is only shown for brokerage accounts. Pre-tax account withdrawals are taxed as ordinary income, and Roth withdrawals are tax-free — neither uses cost basis for tax purposes. (Non-deductible IRA contributions tracked on IRS Form 8606 can reduce the taxable portion of withdrawals via the pro-rata rule, but this is typically a small amount and is not currently modeled. If you have significant non-deductible IRA basis, this will slightly overstate your tax liability.)
 
 ### Stock Allocation {#stock-allocation}
 

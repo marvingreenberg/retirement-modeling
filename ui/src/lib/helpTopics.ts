@@ -42,6 +42,11 @@ export const helpCategories: HelpCategory[] = [
             name: 'Social Security',
             related: ['income-cola', 'spending-strategies'],
          },
+         {
+            id: 'pre-retirement',
+            name: 'Pre-Retirement Modeling',
+            related: ['income-cola', 'roth-conversions', 'withdrawal-order'],
+         },
       ],
    },
    {

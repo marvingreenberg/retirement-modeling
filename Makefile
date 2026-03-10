@@ -141,7 +141,7 @@ format: format-api format-ui
 setup-api:
 	python3 -m venv .venv && \
 	  $(ACTIVATE) && \
-	  pip  -q -e ".[dev]"
+	  pip install -q -e ".[dev]"
 
 setup-ui:
 	cd ui && pnpm install
