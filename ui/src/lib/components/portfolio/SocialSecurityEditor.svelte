@@ -1,20 +1,21 @@
 <script lang="ts">
    import type { SimulationConfig } from '$lib/types';
+   import {
+      ageToYear as _ageToYear,
+      yearToAge as _yearToAge,
+      ageHint,
+   } from './incomeUtils';
 
    let { config = $bindable() }: { config: SimulationConfig } = $props();
 
    let hasSpouse = $derived(config.current_age_spouse > 0);
 
    function ageToYear(age: number, ownerAge: number): number {
-      return config.start_year + (age - ownerAge);
+      return _ageToYear(age, ownerAge, config.start_year);
    }
 
    function yearToAge(year: number, ownerAge: number): number {
-      return ownerAge + (year - config.start_year);
-   }
-
-   function ageHint(age: number | null): string {
-      return age != null ? `age ${age}` : '';
+      return _yearToAge(year, ownerAge, config.start_year);
    }
 
    function ensureSSAuto() {

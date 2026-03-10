@@ -307,24 +307,31 @@
             <label
                class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
             >
-               Retirement Age
+               Retirement Year
                <input
                   type="number"
                   class="input text-sm"
-                  value={portfolio.value.config.retirement_age ?? ''}
+                  value={portfolio.value.config.retirement_age != null
+                     ? portfolio.value.config.start_year +
+                        (portfolio.value.config.retirement_age -
+                           portfolio.value.config.current_age_primary)
+                     : ''}
                   onchange={(e) => {
                      const v = e.currentTarget.value;
                      portfolio.value.config.retirement_age = v
-                        ? Number(v)
+                        ? portfolio.value.config.current_age_primary +
+                           (Number(v) - portfolio.value.config.start_year)
                         : null;
                   }}
-                  min="0"
-                  max="120"
-                  placeholder="Not set"
+                  min={portfolio.value.config.start_year}
+                  max={portfolio.value.config.start_year + 55}
+                  placeholder="Not set (already retired)"
                />
-               <span class="text-xs text-surface-400"
-                  >Shown as marker on charts</span
-               >
+               {#if portfolio.value.config.retirement_age != null}
+                  <span class="text-xs text-surface-400"
+                     >age {portfolio.value.config.retirement_age}</span
+                  >
+               {/if}
             </label>
 
             {#if setupError}

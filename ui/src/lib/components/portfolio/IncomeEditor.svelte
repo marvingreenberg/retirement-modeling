@@ -4,6 +4,12 @@
    import { Trash2 } from 'lucide-svelte';
    import CurrentSalaryEditor from './CurrentSalaryEditor.svelte';
    import SocialSecurityEditor from './SocialSecurityEditor.svelte';
+   import {
+      ageToYear as _ageToYear,
+      yearToAge as _yearToAge,
+      ageHint,
+      SALARY_SENTINEL_NAMES,
+   } from './incomeUtils';
 
    let {
       config = $bindable(),
@@ -18,11 +24,10 @@
       config.current_age_primary + config.simulation_years,
    );
 
-   const SALARY_SENTINELS = new Set(['__salary_primary', '__salary_spouse']);
    let visibleStreams = $derived(
       incomeStreams
          .map((s, i) => ({ stream: s, origIdx: i }))
-         .filter((x) => !SALARY_SENTINELS.has(x.stream.name)),
+         .filter((x) => !SALARY_SENTINEL_NAMES.has(x.stream.name)),
    );
 
    const editableKinds: IncomeKind[] = [
@@ -34,21 +39,17 @@
    ];
 
    function ageToYear(age: number, ownerAge: number): number {
-      return config.start_year + (age - ownerAge);
+      return _ageToYear(age, ownerAge, config.start_year);
    }
 
    function yearToAge(year: number, ownerAge: number): number {
-      return ownerAge + (year - config.start_year);
+      return _yearToAge(year, ownerAge, config.start_year);
    }
 
    function ownerAge(owner: string): number {
       return owner === 'spouse'
          ? config.current_age_spouse
          : config.current_age_primary;
-   }
-
-   function ageHint(age: number | null): string {
-      return age != null ? `age ${age}` : '';
    }
 
    function streamWarning(stream: IncomeStream): string {

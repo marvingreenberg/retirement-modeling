@@ -1,9 +1,13 @@
 <script lang="ts">
    import { untrack } from 'svelte';
    import type { SimulationConfig, IncomeStream } from '$lib/types';
-
-   const SALARY_PRIMARY = '__salary_primary';
-   const SALARY_SPOUSE = '__salary_spouse';
+   import {
+      ageToYear as _ageToYear,
+      yearToAge as _yearToAge,
+      ageHint,
+      SALARY_PRIMARY,
+      SALARY_SPOUSE,
+   } from './incomeUtils';
 
    let { config = $bindable() }: { config: SimulationConfig } = $props();
 
@@ -14,15 +18,11 @@
    );
 
    function ageToYear(age: number, ownerAge: number): number {
-      return config.start_year + (age - ownerAge);
+      return _ageToYear(age, ownerAge, config.start_year);
    }
 
    function yearToAge(year: number, ownerAge: number): number {
-      return ownerAge + (year - config.start_year);
-   }
-
-   function ageHint(age: number | null): string {
-      return age != null ? `age ${age}` : '';
+      return _yearToAge(year, ownerAge, config.start_year);
    }
 
    function defaultEndAge(): number {
