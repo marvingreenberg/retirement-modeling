@@ -25,10 +25,10 @@ jobs:
         with:
           fetch-depth: 0  # full history for git describe
 
-      - name: Derive version from git tags
+      - name: Derive version from git tag
         id: version
         run: |
-          VERSION=$(git describe --tags --always | sed 's/^v//')
+          VERSION="${GITHUB_REF#refs/tags/v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Version: $VERSION"
 
