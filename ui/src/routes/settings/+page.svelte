@@ -313,14 +313,14 @@
                   class="input text-sm"
                   value={portfolio.value.config.retirement_age != null
                      ? portfolio.value.config.start_year +
-                        (portfolio.value.config.retirement_age -
-                           portfolio.value.config.current_age_primary)
+                       (portfolio.value.config.retirement_age -
+                          portfolio.value.config.current_age_primary)
                      : ''}
                   onchange={(e) => {
                      const v = e.currentTarget.value;
                      portfolio.value.config.retirement_age = v
                         ? portfolio.value.config.current_age_primary +
-                           (Number(v) - portfolio.value.config.start_year)
+                          (Number(v) - portfolio.value.config.start_year)
                         : null;
                   }}
                   min={portfolio.value.config.start_year}
