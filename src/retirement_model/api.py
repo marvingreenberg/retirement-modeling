@@ -7,6 +7,7 @@ assets when available.
 
 import importlib.metadata
 import logging
+import os
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -68,7 +69,12 @@ class SimulationResponse(BaseModel):
 @router.get("/status")
 async def status() -> dict[str, Any]:
     """Health check endpoint."""
-    return {"status": "ok", "version": APP_VERSION}
+    return {
+        "status": "ok",
+        "version": APP_VERSION,
+        "previous_version_url": os.environ.get("PREVIOUS_VERSION_URL", ""),
+        "previous_version": os.environ.get("PREVIOUS_VERSION", ""),
+    }
 
 
 @router.get("/")

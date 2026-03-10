@@ -12,6 +12,7 @@
       Table,
       CircleHelp,
       LineChart,
+      History,
    } from 'lucide-svelte';
    import { onMount } from 'svelte';
 
@@ -28,11 +29,18 @@
 
    let dropdownOpen = $state(false);
    let appVersion = $state('');
+   let previousVersionUrl = $state('');
+   let previousVersion = $state('');
 
    onMount(async () => {
       try {
          const res = await fetch('/api/v1/status');
-         if (res.ok) appVersion = (await res.json()).version ?? '';
+         if (res.ok) {
+            const data = await res.json();
+            appVersion = data.version ?? '';
+            previousVersionUrl = data.previous_version_url ?? '';
+            previousVersion = data.previous_version ?? '';
+         }
       } catch {
          /* dev mode without backend */
       }
@@ -51,6 +59,18 @@
                   >{/if}</span
             ></a
          >
+         {#if previousVersionUrl && previousVersion}
+            <a
+               href={previousVersionUrl}
+               target="_blank"
+               rel="noopener noreferrer"
+               class="btn btn-sm preset-tonal flex items-center gap-1 ml-2"
+               title="Run previous version {previousVersion}"
+            >
+               <History size={14} />
+               <span class="text-xs">v{previousVersion}</span>
+            </a>
+         {/if}
       </SkAppBar.Lead>
       <SkAppBar.Headline>
          <nav class="flex items-center justify-center gap-1">

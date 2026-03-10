@@ -42,9 +42,14 @@ jobs:
           else
             STABLE=false
           fi
+          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
+          PREV_TAG=$(git tag --sort=-v:refname | grep -E "^v${MAJOR}\.[0-9]+\.[0-9]+$" | grep -v "^${CURRENT_TAG}$" | head -1)
+          PREV_VERSION=$(echo "$PREV_TAG" | sed 's/^v//')
           echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
           echo "stable=$STABLE" >> "$GITHUB_OUTPUT"
-          echo "Major: $MAJOR, Stable: $STABLE"
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+          echo "prev_version=$PREV_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Major: $MAJOR, Stable: $STABLE, PrevTag: $PREV_TAG"
 
       - uses: google-github-actions/auth@v2
         with:
@@ -90,12 +95,39 @@ jobs:
           cache-to: type=gha,mode=max
           tags: ${{ steps.tags.outputs.tags }}
 
+      - name: Deploy previous version service
+        id: prev_deploy
+        if: steps.classify.outputs.stable == 'true' && steps.classify.outputs.prev_tag != ''
+        env:
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+        run: |
+          MAJOR="${{ steps.classify.outputs.major }}"
+          PREV_VERSION="${{ steps.classify.outputs.prev_version }}"
+          GCP_IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GCP_REPOSITORY}/${SERVICE_NAME}"
+          gcloud run deploy "${SERVICE_NAME}-v${MAJOR}-prev" \
+            --image="${GCP_IMAGE}:${PREV_VERSION}" \
+            --platform=managed \
+            --region="${GCP_REGION}" \
+            --allow-unauthenticated \
+            --port=8000 --memory=512Mi --cpu=1 \
+            --min-instances=0 --max-instances=3 \
+            --set-env-vars="PYTHONUNBUFFERED=1,PREVIOUS_VERSION_URL=,PREVIOUS_VERSION="
+          PREV_URL=$(gcloud run services describe "${SERVICE_NAME}-v${MAJOR}-prev" --region="${GCP_REGION}" --format='value(status.url)')
+          echo "prev_url=$PREV_URL" >> "$GITHUB_OUTPUT"
+          echo "Previous version deployed: $PREV_URL"
+
       - name: Deploy to Cloud Run
         env:
           VERSION: ${{ steps.version.outputs.version }}
           GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
         run: |
           GCP_IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GCP_REPOSITORY}/${SERVICE_NAME}"
+          PREV_URL="${{ steps.prev_deploy.outputs.prev_url }}"
+          PREV_VERSION="${{ steps.classify.outputs.prev_version }}"
+          ENV_VARS="PYTHONUNBUFFERED=1"
+          if [ -n "$PREV_URL" ]; then
+            ENV_VARS="${ENV_VARS},PREVIOUS_VERSION_URL=${PREV_URL},PREVIOUS_VERSION=${PREV_VERSION}"
+          fi
           gcloud run deploy "${SERVICE_NAME}" \
             --image="${GCP_IMAGE}:${VERSION}" \
             --platform=managed \
@@ -103,7 +135,7 @@ jobs:
             --allow-unauthenticated \
             --port=8000 --memory=512Mi --cpu=1 \
             --min-instances=0 --max-instances=3 \
-            --set-env-vars="PYTHONUNBUFFERED=1"
+            --set-env-vars="${ENV_VARS}"
           echo "Deployed: $(gcloud run services describe ${SERVICE_NAME} --region=${GCP_REGION} --format='value(status.url)')"
 
       - name: Deploy major-version service
@@ -114,6 +146,12 @@ jobs:
         run: |
           MAJOR="${{ steps.classify.outputs.major }}"
           GCP_IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GCP_REPOSITORY}/${SERVICE_NAME}"
+          PREV_URL="${{ steps.prev_deploy.outputs.prev_url }}"
+          PREV_VERSION="${{ steps.classify.outputs.prev_version }}"
+          ENV_VARS="PYTHONUNBUFFERED=1"
+          if [ -n "$PREV_URL" ]; then
+            ENV_VARS="${ENV_VARS},PREVIOUS_VERSION_URL=${PREV_URL},PREVIOUS_VERSION=${PREV_VERSION}"
+          fi
           gcloud run deploy "${SERVICE_NAME}-v${MAJOR}" \
             --image="${GCP_IMAGE}:${VERSION}" \
             --platform=managed \
@@ -121,5 +159,5 @@ jobs:
             --allow-unauthenticated \
             --port=8000 --memory=512Mi --cpu=1 \
             --min-instances=0 --max-instances=3 \
-            --set-env-vars="PYTHONUNBUFFERED=1"
+            --set-env-vars="${ENV_VARS}"
           echo "Deployed: $(gcloud run services describe ${SERVICE_NAME}-v${MAJOR} --region=${GCP_REGION} --format='value(status.url)')"

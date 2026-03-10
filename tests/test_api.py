@@ -63,6 +63,24 @@ class TestStatusEndpoint:
         assert data["status"] == "ok"
         assert data["version"] == APP_VERSION
 
+    def test_status_includes_previous_version_fields(self, client: TestClient):
+        """Status includes previous_version fields (empty by default)."""
+        response = client.get("/api/v1/status")
+        data = response.json()
+        assert data["previous_version_url"] == ""
+        assert data["previous_version"] == ""
+
+    def test_status_reflects_previous_version_env_vars(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Status reflects PREVIOUS_VERSION_* env vars when set."""
+        monkeypatch.setenv("PREVIOUS_VERSION_URL", "https://example.com/prev")
+        monkeypatch.setenv("PREVIOUS_VERSION", "2.1")
+        response = client.get("/api/v1/status")
+        data = response.json()
+        assert data["previous_version_url"] == "https://example.com/prev"
+        assert data["previous_version"] == "2.1"
+
 
 class TestRootEndpoint:
     def test_root_returns_health_info_without_static(self, client: TestClient):
