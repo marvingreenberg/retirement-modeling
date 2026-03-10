@@ -10,14 +10,14 @@
    import { onMount } from 'svelte';
    import { Monitor } from 'lucide-svelte';
 
+   function checkNarrow() {
+      narrow = window.innerWidth < window.innerHeight;
+   }
+
    onMount(() => {
-      const mql = window.matchMedia('(max-width: 767px)');
-      narrow = mql.matches;
-      const onChange = (e: MediaQueryListEvent) => {
-         narrow = e.matches;
-      };
-      mql.addEventListener('change', onChange);
-      return () => mql.removeEventListener('change', onChange);
+      checkNarrow();
+      window.addEventListener('resize', checkNarrow);
+      return () => window.removeEventListener('resize', checkNarrow);
    });
 </script>
 
