@@ -108,6 +108,44 @@ describe('AppBar', () => {
       expect(helpState.topic).toBe('getting-started');
    });
 
+   it('does not show previous version link when status has no prev info', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+         ok: true,
+         json: async () => ({
+            version: '2.3.0',
+            previous_version_url: '',
+            previous_version: '',
+         }),
+      } as Response);
+      render(AppBar);
+      await vi.waitFor(() => {
+         expect(screen.getByText('v2.3.0')).toBeInTheDocument();
+      });
+      expect(
+         screen.queryByRole('link', { name: /previous version/i }),
+      ).not.toBeInTheDocument();
+   });
+
+   it('shows previous version link when status returns prev info', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+         ok: true,
+         json: async () => ({
+            version: '2.3.0',
+            previous_version_url: 'https://prev.example.com',
+            previous_version: '2.2.0',
+         }),
+      } as Response);
+      render(AppBar);
+      await vi.waitFor(() => {
+         expect(screen.getByText('v2.3.0')).toBeInTheDocument();
+      });
+      const link = screen.getByTitle('Run previous version 2.2.0');
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', 'https://prev.example.com');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(screen.getByText('v2.2.0')).toBeInTheDocument();
+   });
+
    it('avatar click opens dropdown with section links', async () => {
       profile.value = { primaryName: 'Mike', spouseName: '' };
       render(AppBar);
