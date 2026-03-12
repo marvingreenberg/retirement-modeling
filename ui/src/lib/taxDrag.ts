@@ -20,4 +20,3 @@ export function computeEffectiveGrowth(
    const drag = taxDragOverride ?? estimateTaxDrag(stockPct);
    return nominal - drag;
 }
-

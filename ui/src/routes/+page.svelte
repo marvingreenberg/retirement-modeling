@@ -87,10 +87,11 @@
          spendingStrategy: spendingLabel(),
          conversionStrategy: conversionLabels[c.strategy_target],
          taxRateState: c.tax_rate_state,
-         withdrawalOrder: (c.withdrawal_order ?? []).indexOf('brokerage') <
+         withdrawalOrder:
+            (c.withdrawal_order ?? []).indexOf('brokerage') <
             (c.withdrawal_order ?? []).indexOf('pretax')
-            ? 'brk-first'
-            : 'ira-first',
+               ? 'brk-first'
+               : 'ira-first',
       };
    }
 

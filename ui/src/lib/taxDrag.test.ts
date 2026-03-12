@@ -53,4 +53,3 @@ describe('computeEffectiveGrowth', () => {
       expect(computeEffectiveGrowth(0, false)).toBeCloseTo(0.04, 4);
    });
 });
-

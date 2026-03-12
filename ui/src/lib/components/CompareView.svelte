@@ -87,7 +87,9 @@
                               <div>{snap.spendingStrategy}</div>
                               {#if snap.withdrawalOrder}
                                  <div class="text-xs opacity-70">
-                                    {snap.withdrawalOrder === 'brk-first' ? 'Brokerage first' : 'IRA/401k first'}
+                                    {snap.withdrawalOrder === 'brk-first'
+                                       ? 'Brokerage first'
+                                       : 'IRA/401k first'}
                                  </div>
                               {/if}
                            </td>
@@ -167,7 +169,9 @@
                               <div>{snap.spendingStrategy}</div>
                               {#if snap.withdrawalOrder}
                                  <div class="text-xs opacity-70">
-                                    {snap.withdrawalOrder === 'brk-first' ? 'Brokerage first' : 'IRA/401k first'}
+                                    {snap.withdrawalOrder === 'brk-first'
+                                       ? 'Brokerage first'
+                                       : 'IRA/401k first'}
                                  </div>
                               {/if}
                            </td>

@@ -401,7 +401,6 @@
          {#if showWithdrawalOrder}
             <WithdrawalOrderEditor
                bind:order={portfolio.value.config.withdrawal_order}
-               accounts={portfolio.value.accounts}
             />
          {/if}
       </div>

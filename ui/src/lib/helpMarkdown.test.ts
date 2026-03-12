@@ -89,7 +89,9 @@ describe('renderMarkdown', () => {
    });
 
    it('uses explicit {#id} anchor and strips it from text', () => {
-      const html = renderMarkdown('### Conservative Growth {#conservative-growth}');
+      const html = renderMarkdown(
+         '### Conservative Growth {#conservative-growth}',
+      );
       expect(html).toContain('id="conservative-growth"');
       expect(html).toContain('>Conservative Growth</h3>');
       expect(html).not.toContain('{#');

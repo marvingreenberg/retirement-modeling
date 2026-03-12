@@ -1,13 +1,11 @@
 <script lang="ts">
-   import type { WithdrawalCategory, Account } from '$lib/types';
+   import type { WithdrawalCategory } from '$lib/types';
    import HelpButton from '$lib/components/HelpButton.svelte';
 
    let {
       order = $bindable(),
-      accounts = [],
    }: {
       order: WithdrawalCategory[];
-      accounts?: Account[];
    } = $props();
 
    let isBrokerageFirst = $derived(
@@ -48,7 +46,8 @@
    </label>
    {#if isBrokerageFirst}
       <p class="text-xs text-warning-600">
-         Withdrawing from brokerage first MAY allow more Roth conversion, which MAY be advantageous
+         Withdrawing from brokerage first MAY allow more Roth conversion, which
+         MAY be advantageous
          <HelpButton topic="withdrawal-order" />
       </p>
    {/if}
