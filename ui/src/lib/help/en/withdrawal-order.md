@@ -1,22 +1,27 @@
 ## Withdrawal Order
 
-When spending exceeds income in a given year, the simulation draws down accounts in a configured order. The withdrawal order determines which accounts are tapped first.
+When spending exceeds income in a given year, the simulation draws down accounts in a configured order.
 
-### Default Order
+### How It Works
 
-The default sequence is designed to maximize the time that tax-advantaged accounts benefit from compounding:
+Cash and CD accounts are always withdrawn first — they earn minimal returns and have no tax advantage. Roth accounts are always withdrawn last — tax-free compounding is the most powerful benefit to preserve.
 
-1. **Cash** — Savings and CDs, used first since they earn minimal returns. There's no tax advantage to keeping cash invested, so spend it first.
-2. **Brokerage** — Taxable investment accounts, withdrawn next. Only gains are taxed (at favorable capital gains rates), so the tax cost is moderate. These accounts suffer tax drag every year, making them less efficient to hold long-term.
-3. **Pre-tax** (IRA/401k) — Traditional retirement accounts. Withdrawals are fully taxed as ordinary income. Keeping these invested longer allows more tax-deferred compounding — every year of deferral saves you a year of tax on dividends and gains.
-4. **Roth** — Tax-free accounts, withdrawn last. Roth grows tax-free and withdrawals are untaxed, so every extra year of Roth compounding is a year of completely untaxed growth. This is the most powerful account type to preserve.
+The choice you make is which account type comes next: **brokerage** or **IRA/401k**.
 
-### Customizing the Order
+### IRA/401k First (Default)
 
-The withdrawal order can be rearranged by dragging categories. Some situations where a different order makes sense:
+Withdraws from traditional IRA and 401k accounts before brokerage. This is the conventional approach:
 
-- **Large pre-tax balances** — Withdrawing pre-tax earlier (before Social Security starts) may keep the overall tax bill lower by filling lower brackets in early retirement years.
-- **Legacy planning** — If leaving Roth assets to heirs is a priority, drawing Roth last preserves those tax-free balances.
+- **Tax-deferred compounding** — keeps brokerage assets (taxed only on gains at favorable capital gains rates) growing while spending down fully-taxed pre-tax accounts
+- **Simpler tax picture** — pre-tax withdrawals are ordinary income, easy to predict
+
+### Brokerage First
+
+Withdraws from taxable brokerage accounts before IRA/401k. This can be advantageous in specific situations:
+
+- **Roth conversion headroom** — by not drawing down IRA/401k for spending, the taxable income stays lower, leaving room to convert IRA/401k assets to Roth at lower tax brackets. Over time, this can shift more wealth into tax-free Roth accounts.
+- **Reduces tax drag** — brokerage accounts generate taxable dividends and capital gains distributions every year whether you withdraw or not. Spending these assets first eliminates that ongoing tax drag.
+- **Best when conversions are active** — if you're running a Roth conversion strategy (filling a bracket each year), brokerage-first ensures the conversion has maximum headroom.
 
 ### Excess Income Routing
 
