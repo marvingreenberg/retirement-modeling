@@ -47,6 +47,11 @@ export const helpCategories: HelpCategory[] = [
             name: 'Pre-Retirement Modeling',
             related: ['income-cola', 'roth-conversions', 'withdrawal-order'],
          },
+         {
+            id: 'planned-expenses',
+            name: 'Planned Expenses',
+            related: ['spending-strategies', 'spending-chart'],
+         },
       ],
    },
    {
@@ -109,6 +114,16 @@ export const helpCategories: HelpCategory[] = [
             name: 'Outcome Distribution',
             related: ['monte-carlo', 'spending-strategies'],
          },
+         {
+            id: 'details-page',
+            name: 'Details View',
+            related: ['balance-chart', 'spending-chart'],
+         },
+         {
+            id: 'compare-page',
+            name: 'Compare View',
+            related: ['details-page', 'monte-carlo'],
+         },
       ],
    },
 ];
@@ -136,8 +151,8 @@ export function getCategoryForTopic(id: string): HelpCategory | undefined {
 const routeTopicMap: Record<string, string> = {
    '/': 'getting-started',
    '/spending': 'spending-strategies',
-   '/compare': 'spending-strategies',
-   '/details': 'tax-bracket-indexing',
+   '/compare': 'compare-page',
+   '/details': 'details-page',
 };
 
 export function getDefaultTopicId(pathname: string): string {

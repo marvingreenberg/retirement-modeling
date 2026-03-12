@@ -19,8 +19,8 @@ describe('helpTopics', () => {
       ]);
    });
 
-   it('defines 16 topics total', () => {
-      expect(allTopicIds).toHaveLength(16);
+   it('defines 19 topics total', () => {
+      expect(allTopicIds).toHaveLength(19);
    });
 
    it('getTopicMeta returns metadata for known topic', () => {
@@ -42,8 +42,8 @@ describe('helpTopics', () => {
 
    it('getDefaultTopicId maps routes to topics', () => {
       expect(getDefaultTopicId('/')).toBe('getting-started');
-      expect(getDefaultTopicId('/details')).toBe('tax-bracket-indexing');
-      expect(getDefaultTopicId('/compare')).toBe('spending-strategies');
+      expect(getDefaultTopicId('/details')).toBe('details-page');
+      expect(getDefaultTopicId('/compare')).toBe('compare-page');
       expect(getDefaultTopicId('/spending')).toBe('spending-strategies');
    });
 
