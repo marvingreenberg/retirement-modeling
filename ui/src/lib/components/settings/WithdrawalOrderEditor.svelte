@@ -1,133 +1,55 @@
 <script lang="ts">
-   import {
-      WITHDRAWAL_CATEGORY_LABELS,
-      TAX_CATEGORY_MAP,
-      type Account,
-      type ConversionStrategy,
-      type WithdrawalCategory,
-   } from '$lib/types';
-   import { recommendWithdrawalOrder } from '$lib/taxDrag';
+   import type { WithdrawalCategory, Account } from '$lib/types';
    import HelpButton from '$lib/components/HelpButton.svelte';
 
    let {
       order = $bindable(),
-      accounts,
-      conversionStrategy,
+      accounts = [],
    }: {
       order: WithdrawalCategory[];
       accounts?: Account[];
-      conversionStrategy?: ConversionStrategy;
    } = $props();
 
-   let activeCategories = $derived.by(() => {
-      if (!accounts || accounts.length === 0) return null;
-      return new Set(accounts.map((a) => TAX_CATEGORY_MAP[a.type]));
-   });
-
-   let displayOrder = $derived(
-      activeCategories ? order.filter((c) => activeCategories.has(c)) : order,
+   let isBrokerageFirst = $derived(
+      order.indexOf('brokerage') < order.indexOf('pretax'),
    );
 
-   $effect(() => {
-      if (!activeCategories) return;
-      const filtered = order.filter((c) => activeCategories.has(c));
-      const inactive = order.filter((c) => !activeCategories.has(c));
-      const newCats = [...activeCategories].filter((c) => !order.includes(c));
-      const updated = [...filtered, ...newCats, ...inactive];
-      if (JSON.stringify(updated) !== JSON.stringify(order)) {
-         order = updated;
-      }
-   });
-
-   let dragIdx = $state<number | null>(null);
-
-   function handleDragStart(idx: number, e: DragEvent) {
-      dragIdx = idx;
-      if (e.dataTransfer) {
-         e.dataTransfer.effectAllowed = 'move';
-         e.dataTransfer.setData('text/plain', String(idx));
-      }
-   }
-
-   function handleDragOver(e: DragEvent) {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-   }
-
-   function handleDrop(targetIdx: number, e: DragEvent) {
-      e.preventDefault();
-      if (dragIdx == null || dragIdx === targetIdx) return;
-      const displayed = [...displayOrder];
-      const [moved] = displayed.splice(dragIdx, 1);
-      displayed.splice(targetIdx, 0, moved);
-      // Preserve any inactive categories in their original positions aren't shown
-      const inactive = order.filter(
-         (c) => !activeCategories || !activeCategories.has(c),
-      );
-      order = [...displayed, ...inactive];
-      dragIdx = null;
-   }
-
-   function handleDragEnd() {
-      dragIdx = null;
-   }
-
-   let recommendation = $derived.by(() => {
-      if (!accounts || !conversionStrategy) return null;
-      return recommendWithdrawalOrder(accounts, conversionStrategy);
-   });
-
-   let orderDiffers = $derived(
-      recommendation != null &&
-         JSON.stringify(order) !== JSON.stringify(recommendation.recommended),
-   );
-
-   function applyRecommendation() {
-      if (recommendation) {
-         order = [...recommendation.recommended];
-      }
+   function setOrder(brokerageFirst: boolean) {
+      order = brokerageFirst
+         ? ['cash', 'brokerage', 'pretax', 'roth']
+         : ['cash', 'pretax', 'brokerage', 'roth'];
    }
 </script>
 
-<div class="flex flex-col gap-0.5">
-   <span
-      class="text-xs font-medium text-surface-600 dark:text-surface-400 flex items-center gap-1"
-   >
+<fieldset class="flex flex-col gap-2">
+   <legend class="text-sm font-medium text-surface-700-200">
       Withdrawal Order
       <HelpButton topic="withdrawal-order" />
-   </span>
-   <div class="flex gap-1 items-center">
-      {#each displayOrder as cat, i (cat)}
-         {#if i > 0}
-            <span class="text-surface-400 text-xs select-none">→</span>
-         {/if}
-         <button
-            class="px-2 py-0.5 text-xs rounded cursor-grab border
-               {dragIdx === i
-               ? 'border-primary-500 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-               : 'border-surface-300 dark:border-surface-600 bg-surface-50 dark:bg-surface-700 text-surface-700 dark:text-surface-300'}"
-            draggable="true"
-            role="listitem"
-            ondragstart={(e) => handleDragStart(i, e)}
-            ondragover={handleDragOver}
-            ondrop={(e) => handleDrop(i, e)}
-            ondragend={handleDragEnd}
-         >
-            {WITHDRAWAL_CATEGORY_LABELS[cat]}
-         </button>
-      {/each}
-   </div>
-   {#if recommendation && orderDiffers}
-      <div
-         class="text-xs text-warning-600 dark:text-warning-400 flex items-center gap-1 flex-wrap"
-      >
-         <span>{recommendation.reason}</span>
-         <button
-            class="btn btn-sm preset-tonal text-xs px-1.5 py-0"
-            onclick={applyRecommendation}
-         >
-            Apply
-         </button>
-      </div>
+   </legend>
+   <label class="flex items-center gap-2 text-sm">
+      <input
+         type="radio"
+         name="withdrawal-order"
+         checked={!isBrokerageFirst}
+         onchange={() => setOrder(false)}
+         class="radio"
+      />
+      IRA/401k first
+   </label>
+   <label class="flex items-center gap-2 text-sm">
+      <input
+         type="radio"
+         name="withdrawal-order"
+         checked={isBrokerageFirst}
+         onchange={() => setOrder(true)}
+         class="radio"
+      />
+      Brokerage first
+   </label>
+   {#if isBrokerageFirst}
+      <p class="text-xs text-warning-600">
+         Withdrawing from brokerage first MAY allow more Roth conversion, which MAY be advantageous
+         <HelpButton topic="withdrawal-order" />
+      </p>
    {/if}
-</div>
+</fieldset>
