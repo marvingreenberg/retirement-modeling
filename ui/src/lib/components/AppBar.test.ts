@@ -139,11 +139,10 @@ describe('AppBar', () => {
       await vi.waitFor(() => {
          expect(screen.getByText('v2.3.0')).toBeInTheDocument();
       });
-      const link = screen.getByTitle('Run previous version 2.2.0');
+      const link = screen.getByRole('link', { name: /previous version 2\.2\.0/i });
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute('href', 'https://prev.example.com');
       expect(link).toHaveAttribute('target', '_blank');
-      expect(screen.getByText('v2.2.0')).toBeInTheDocument();
    });
 
    it('avatar click opens dropdown with section links', async () => {

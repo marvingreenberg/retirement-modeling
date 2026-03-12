@@ -12,7 +12,6 @@
       Table,
       CircleHelp,
       LineChart,
-      History,
    } from 'lucide-svelte';
    import { onMount } from 'svelte';
 
@@ -50,27 +49,28 @@
 <SkAppBar>
    <SkAppBar.Toolbar class="grid-cols-[auto_1fr_auto]">
       <SkAppBar.Lead>
-         <a href="/" class="flex items-center gap-2 text-lg font-bold"
-            ><LineChart size={22} />
-            <span
-               >Retirement Planner{#if appVersion}<span
-                     class="block text-[9px] font-normal text-surface-400 leading-none"
-                     >v{appVersion}</span
-                  >{/if}</span
-            ></a
-         >
-         {#if previousVersionUrl && previousVersion}
-            <a
-               href={previousVersionUrl}
-               target="_blank"
-               rel="noopener noreferrer"
-               class="btn btn-sm preset-tonal flex items-center gap-1 ml-2"
-               title="Run previous version {previousVersion}"
+         <div class="flex flex-col">
+            <a href="/" class="flex items-center gap-2 text-lg font-bold"
+               ><LineChart size={22} />
+               <span>Retirement Planner</span></a
             >
-               <History size={14} />
-               <span class="text-xs">v{previousVersion}</span>
-            </a>
-         {/if}
+            {#if appVersion}
+               <div class="flex items-center gap-2 text-sm">
+                  <span class="font-medium text-surface-600">v{appVersion}</span>
+                  {#if previousVersionUrl && previousVersion}
+                     <a
+                        href={previousVersionUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-sm preset-tonal px-2 py-0.5 text-xs"
+                        aria-label="Previous version {previousVersion}"
+                     >
+                        &#x1F551; v{previousVersion}
+                     </a>
+                  {/if}
+               </div>
+            {/if}
+         </div>
       </SkAppBar.Lead>
       <SkAppBar.Headline>
          <nav class="flex items-center justify-center gap-1">
