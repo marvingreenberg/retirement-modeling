@@ -31,12 +31,7 @@
       config ? buildChartEvents(config) : [],
    );
    let desiredSpending: number[] = $derived.by(() => {
-      if (
-         !config ||
-         !singleResult ||
-         config.spending_strategy === 'fixed_dollar'
-      )
-         return [];
+      if (!config || !singleResult) return [];
       const base = config.annual_spend_net ?? 0;
       const inf = config.inflation_rate ?? 0.03;
       return singleResult.result.years.map((y, i) => {
