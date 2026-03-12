@@ -83,7 +83,14 @@
                                  ? 'Conserv.'
                                  : 'Normal'}</td
                            >
-                           <td class="text-left">{snap.spendingStrategy}</td>
+                           <td class="text-left">
+                              <div>{snap.spendingStrategy}</div>
+                              {#if snap.withdrawalOrder}
+                                 <div class="text-xs opacity-70">
+                                    {snap.withdrawalOrder === 'brk-first' ? 'Brokerage first' : 'IRA/401k first'}
+                                 </div>
+                              {/if}
+                           </td>
                            <td class="text-left">{snap.conversionStrategy}</td>
                            <td
                               class:font-bold={snap.finalBalance ===
@@ -156,7 +163,14 @@
                   <tbody>
                      {#each mcRuns as snap (snap.id)}
                         <tr>
-                           <td class="text-left">{snap.spendingStrategy}</td>
+                           <td class="text-left">
+                              <div>{snap.spendingStrategy}</div>
+                              {#if snap.withdrawalOrder}
+                                 <div class="text-xs opacity-70">
+                                    {snap.withdrawalOrder === 'brk-first' ? 'Brokerage first' : 'IRA/401k first'}
+                                 </div>
+                              {/if}
+                           </td>
                            <td class="text-left">{snap.conversionStrategy}</td>
                            <td>{snap.numSimulations}</td>
                            <td
