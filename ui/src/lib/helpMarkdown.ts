@@ -15,11 +15,20 @@ const parser = new Marked();
 parser.use({
    renderer: {
       heading({ text, depth }: Tokens.Heading): string {
-         const id = text
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, '');
-         return `<h${depth} id="${id}">${text}</h${depth}>\n`;
+         const anchorMatch = text.match(/\s*\{#([a-z0-9-]+)\}\s*$/);
+         let id: string;
+         let displayText: string;
+         if (anchorMatch) {
+            id = anchorMatch[1];
+            displayText = text.slice(0, anchorMatch.index!).trim();
+         } else {
+            id = text
+               .toLowerCase()
+               .replace(/[^a-z0-9]+/g, '-')
+               .replace(/(^-|-$)/g, '');
+            displayText = text;
+         }
+         return `<h${depth} id="${id}">${displayText}</h${depth}>\n`;
       },
    },
 });

@@ -82,4 +82,22 @@ describe('renderMarkdown', () => {
       const html = renderMarkdown('`inline code`');
       expect(html).toContain('<code>inline code</code>');
    });
+
+   it('generates id from heading text', () => {
+      const html = renderMarkdown('### Some Heading');
+      expect(html).toContain('<h3 id="some-heading">Some Heading</h3>');
+   });
+
+   it('uses explicit {#id} anchor and strips it from text', () => {
+      const html = renderMarkdown('### Conservative Growth {#conservative-growth}');
+      expect(html).toContain('id="conservative-growth"');
+      expect(html).toContain('>Conservative Growth</h3>');
+      expect(html).not.toContain('{#');
+   });
+
+   it('handles explicit anchor with different text slug', () => {
+      const html = renderMarkdown('## My Section {#custom-id}');
+      expect(html).toContain('id="custom-id"');
+      expect(html).toContain('>My Section</h2>');
+   });
 });
