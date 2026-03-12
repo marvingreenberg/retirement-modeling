@@ -5,6 +5,7 @@
    import type { YearResult, ChartEvent } from '$lib/types';
    import ChartEventOverlay from './ChartEventOverlay.svelte';
    import HelpButton from '$lib/components/HelpButton.svelte';
+   import { formatTick } from './formatTick';
 
    let {
       years,
@@ -147,7 +148,7 @@
                   stacked: true,
                   position: 'left',
                   ticks: {
-                     callback: (v) => `$${(Number(v) / 1000).toFixed(0)}K`,
+                     callback: (v) => formatTick(v as number),
                   },
                },
             },

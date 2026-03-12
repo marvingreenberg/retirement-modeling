@@ -5,6 +5,7 @@
    import type { YearResult, ChartEvent } from '$lib/types';
    import ChartEventOverlay from './ChartEventOverlay.svelte';
    import HelpButton from '$lib/components/HelpButton.svelte';
+   import { formatTick } from './formatTick';
 
    function totalAvailableForYear(y: YearResult): number {
       return y.spending_target + y.surplus + y.total_tax + y.irmaa_cost;
@@ -193,7 +194,7 @@
                y: {
                   stacked: true,
                   ticks: {
-                     callback: (v) => `$${(Number(v) / 1000).toFixed(0)}K`,
+                     callback: (v) => formatTick(v as number),
                   },
                },
             },

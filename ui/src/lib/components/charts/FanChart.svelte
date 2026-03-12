@@ -4,6 +4,7 @@
    import annotationPlugin from 'chartjs-plugin-annotation';
    import type { YearlyResultPercentiles } from '$lib/types';
    import HelpButton from '$lib/components/HelpButton.svelte';
+   import { formatTick } from './formatTick';
 
    type FanMetric = 'balance' | 'spending';
 
@@ -143,7 +144,7 @@
             scales: {
                y: {
                   ticks: {
-                     callback: (v) => `$${(Number(v) / 1000).toFixed(0)}K`,
+                     callback: (v) => formatTick(v as number),
                   },
                },
             },
