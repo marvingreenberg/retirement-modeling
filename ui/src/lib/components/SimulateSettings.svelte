@@ -5,7 +5,7 @@
       formTouched,
       markFormTouched,
    } from '$lib/stores';
-   import { hasPretaxAccounts } from '$lib/types';
+   import { hasPretaxAccounts, TAX_CATEGORY_MAP } from '$lib/types';
    import { currency } from '$lib/format';
    import HelpButton from './HelpButton.svelte';
    import WithdrawalOrderEditor from './settings/WithdrawalOrderEditor.svelte';
@@ -102,6 +102,17 @@
    });
 
    let showConversion = $derived(hasPretaxAccounts(portfolio.value.accounts));
+
+   let showWithdrawalOrder = $derived.by(() => {
+      const accounts = portfolio.value.accounts;
+      const hasBrokerage = accounts.some(
+         (a) => TAX_CATEGORY_MAP[a.type] === 'brokerage',
+      );
+      const hasPretax = accounts.some(
+         (a) => TAX_CATEGORY_MAP[a.type] === 'pretax',
+      );
+      return hasBrokerage && hasPretax;
+   });
 
    $effect(() => {
       if (
@@ -387,11 +398,12 @@
                {strategyDiagnostic.text}
             </div>
          {/if}
-         <WithdrawalOrderEditor
-            bind:order={portfolio.value.config.withdrawal_order}
-            accounts={portfolio.value.accounts}
-            conversionStrategy={portfolio.value.config.strategy_target}
-         />
+         {#if showWithdrawalOrder}
+            <WithdrawalOrderEditor
+               bind:order={portfolio.value.config.withdrawal_order}
+               accounts={portfolio.value.accounts}
+            />
+         {/if}
       </div>
    {/if}
 </div>
