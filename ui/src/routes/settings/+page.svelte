@@ -294,19 +294,6 @@
             <label
                class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
             >
-               Start Year
-               <input
-                  type="number"
-                  class="input text-sm"
-                  bind:value={portfolio.value.config.start_year}
-                  min="2000"
-                  max="2100"
-               />
-            </label>
-
-            <label
-               class="flex flex-col gap-1 text-sm font-medium text-surface-700 dark:text-surface-300"
-            >
                Retirement Year
                <input
                   type="number"

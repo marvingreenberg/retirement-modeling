@@ -1,5 +1,6 @@
 """Pydantic models for retirement simulation data structures."""
 
+from datetime import date
 from enum import Enum
 from typing import Literal
 
@@ -332,7 +333,7 @@ class SimulationConfig(BaseModel):
     current_age_primary: int = Field(ge=0, le=120)
     current_age_spouse: int = Field(ge=0, le=120)
     simulation_years: int = Field(default=DEFAULT_SIMULATION_YEARS, ge=1, le=100)
-    start_year: int = Field(ge=2000, le=2100)
+    start_year: int = Field(default_factory=lambda: date.today().year, ge=2000, le=2100)
 
     annual_spend_net: float = Field(gt=0)
     inflation_rate: float = Field(default=DEFAULT_INFLATION_RATE, ge=0, le=0.5)

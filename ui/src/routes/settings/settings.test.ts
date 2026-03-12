@@ -67,7 +67,6 @@ describe('Settings Page', () => {
          expect(screen.getByText('Your Name')).toBeInTheDocument();
          expect(screen.getByText('Your Age')).toBeInTheDocument();
          expect(screen.getByText('Simulation Years')).toBeInTheDocument();
-         expect(screen.getByText('Start Year')).toBeInTheDocument();
       });
 
       it('shows context banner when needs setup', () => {
