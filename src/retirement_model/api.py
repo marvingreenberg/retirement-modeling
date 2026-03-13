@@ -291,15 +291,25 @@ def mount_static_or_root() -> None:
         from starlette.types import Scope
 
         class SPAStaticFiles(StaticFiles):
-            """StaticFiles with SPA fallback — serves index.html for unknown routes."""
+            """StaticFiles with SPA fallback and cache headers.
+
+            Hashed assets under _app/immutable/ get long cache; index.html
+            and other mutable files get no-cache so browsers always revalidate.
+            """
 
             async def get_response(self, path: str, scope: Scope) -> Response:
                 try:
-                    return await super().get_response(path, scope)
+                    resp = await super().get_response(path, scope)
                 except StarletteHTTPException as exc:
                     if exc.status_code == 404 and not Path(path).suffix:
-                        return await super().get_response("index.html", scope)
-                    raise
+                        resp = await super().get_response("index.html", scope)
+                    else:
+                        raise
+                if "/_app/immutable/" in path:
+                    resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+                elif path == "." or path.endswith(".html") or not Path(path).suffix:
+                    resp.headers["Cache-Control"] = "no-cache"
+                return resp
 
         app.mount("/", SPAStaticFiles(directory=str(STATIC_DIR), html=True), name="static")
         logger.info("Static asset serving: ACTIVE (serving from %s)", STATIC_DIR)
