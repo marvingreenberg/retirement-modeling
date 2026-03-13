@@ -804,7 +804,7 @@ class TestTaxWithdrawals:
         # Cash balance: non-conversion withdrawals = spending + tax + surplus
         non_conv = sum(d.amount for d in yr0.withdrawal_details if d.purpose != "conversion")
         total_sources = yr0.total_income + non_conv
-        total_uses = yr0.spending_target + yr0.total_tax + yr0.surplus
+        total_uses = yr0.spending_target + yr0.total_tax + yr0.irmaa_cost + yr0.surplus
 
         gap = abs(total_sources - total_uses)
         assert gap < 500, f"Sources={total_sources}, Uses={total_uses}, gap={gap}"
@@ -1422,3 +1422,42 @@ class TestTaxDragIntegration:
         r_brk = run_simulation(brk_heavy)
         r_ira = run_simulation(ira_heavy)
         assert r_brk.years[-1].total_balance < r_ira.years[-1].total_balance
+
+
+class TestBrokerageGainsTax:
+    """brokerage_gains_tax is exposed as a separate field; total_tax excludes IRMAA."""
+
+    def test_brokerage_gains_tax_exposed(self):
+        """brokerage_gains_tax is a separate field; total_tax excludes irmaa."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=65,
+                current_age_spouse=63,
+                simulation_years=1,
+                start_year=2026,
+                annual_spend_net=60000,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brok",
+                    name="Brokerage",
+                    balance=500000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.2,  # Low basis → high capital gains
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr = result.years[0]
+
+        assert yr.brokerage_gains_tax >= 0
+        # total_tax = income_tax + brokerage_gains_tax (IRMAA excluded)
+        assert yr.total_tax == yr.income_tax + yr.brokerage_gains_tax

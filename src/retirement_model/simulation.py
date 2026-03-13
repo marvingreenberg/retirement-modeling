@@ -560,7 +560,7 @@ def run_simulation(
         taxable_income = max(0, current_agi - adj_deduction)
         income_tax = calculate_income_tax(taxable_income, adj_fed_brackets, cfg.tax_rate_state)
         irmaa_cost = calculate_irmaa_cost(current_agi, adj_irmaa_tiers)
-        total_tax = income_tax + brokerage_gains_tax + irmaa_cost
+        total_tax = income_tax + brokerage_gains_tax
 
         # Withdraw for tax shortfall: actual tax minus amounts already covered.
         # - Income/RMD/pretax withholding: deducted from cash_in_hand or grossed up
@@ -632,6 +632,7 @@ def run_simulation(
                 roth_withdrawal=round(roth_withdrawn),
                 brokerage_withdrawal=round(brokerage_withdrawn),
                 total_tax=round(total_tax),
+                brokerage_gains_tax=round(brokerage_gains_tax),
                 irmaa_cost=irmaa_cost,
                 total_balance=round(total_balance),
                 spending_target=round(total_spend_needed),

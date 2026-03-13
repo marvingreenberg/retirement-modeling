@@ -519,7 +519,7 @@ class TestWithdrawalDetailsSumBalance:
             details = yr.get("withdrawal_details", [])
             non_conv_withdrawn = sum(d["amount"] for d in details if d["purpose"] != "conversion")
             total_sources = yr["total_income"] + non_conv_withdrawn
-            total_uses = yr["spending_target"] + yr["total_tax"] + yr["surplus"]
+            total_uses = yr["spending_target"] + yr["total_tax"] + yr["irmaa_cost"] + yr["surplus"]
             gap = abs(total_sources - total_uses)
             assert (
                 gap < 500
