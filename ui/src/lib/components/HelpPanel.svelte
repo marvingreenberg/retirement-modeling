@@ -7,18 +7,39 @@
    } from '$lib/helpTopics';
    import { getTopicHtml } from '$lib/helpContent';
    import {
+      searchHelp,
+      highlightTerms,
+      type SearchResult,
+   } from '$lib/helpSearch';
+   import {
       X,
       Maximize2,
       Minimize2,
       BookOpen,
       ChevronDown,
       ChevronRight,
+      Search,
+      XCircle,
    } from 'lucide-svelte';
    import { tick } from 'svelte';
    import { SvelteSet } from 'svelte/reactivity';
 
    let maximized = $state(false);
    let contentEl: HTMLDivElement | undefined = $state();
+   let searchInput = $state('');
+   let searchQuery = $state('');
+   let searchResults: SearchResult[] = $state([]);
+
+   function submitSearch() {
+      searchQuery = searchInput.trim();
+      searchResults = searchHelp(searchQuery);
+   }
+
+   function clearSearch() {
+      searchInput = '';
+      searchQuery = '';
+      searchResults = [];
+   }
 
    const expandedCategories = new SvelteSet<string>();
 
@@ -31,7 +52,16 @@
       }
    });
 
-   let topicHtml = $derived(getTopicHtml(helpState.topic));
+   $effect(() => {
+      if (helpState.open) {
+         clearSearch();
+      }
+   });
+
+   let topicHtml = $derived.by(() => {
+      const html = getTopicHtml(helpState.topic);
+      return searchQuery ? highlightTerms(html, searchQuery) : html;
+   });
    let topicMeta = $derived(getTopicMeta(helpState.topic));
    let relatedTopics = $derived(
       (topicMeta?.related ?? [])
@@ -55,7 +85,7 @@
       if (!helpState.anchor || !contentEl) return;
       await tick();
       const el = contentEl.querySelector(`#${CSS.escape(helpState.anchor)}`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
       helpState.anchor = undefined;
    }
 
@@ -90,14 +120,47 @@
       >
          <!-- Header -->
          <div
-            class="flex items-center justify-between p-4 border-b border-surface-200 dark:border-surface-700 shrink-0"
+            class="flex items-center justify-between p-4 border-b border-surface-200 dark:border-surface-700 shrink-0 gap-2"
          >
             <h2
-               class="text-lg font-semibold text-surface-900 dark:text-surface-50 flex items-center gap-2"
+               class="text-lg font-semibold text-surface-900 dark:text-surface-50 flex items-center gap-2 shrink-0"
             >
                <BookOpen size={20} class="text-primary-500" /> Help
             </h2>
-            <div class="flex items-center gap-1">
+            <form
+               class="flex items-center gap-1 flex-1 max-w-[200px]"
+               onsubmit={(e) => {
+                  e.preventDefault();
+                  submitSearch();
+               }}
+            >
+               <div class="relative flex-1">
+                  <input
+                     type="text"
+                     placeholder="Search help..."
+                     class="input w-full text-xs pr-6 py-1"
+                     bind:value={searchInput}
+                  />
+                  {#if searchInput}
+                     <button
+                        type="button"
+                        class="absolute right-1 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
+                        onclick={clearSearch}
+                        aria-label="Clear search"
+                     >
+                        <XCircle size={14} />
+                     </button>
+                  {/if}
+               </div>
+               <button
+                  type="submit"
+                  class="btn btn-sm preset-ghost p-1"
+                  aria-label="Search"
+               >
+                  <Search size={16} />
+               </button>
+            </form>
+            <div class="flex items-center gap-1 shrink-0">
                <button
                   class="btn btn-sm preset-ghost"
                   onclick={() => (maximized = !maximized)}
@@ -117,40 +180,76 @@
             </div>
          </div>
 
-         <!-- Accordion nav -->
-         <nav
-            class="shrink-0 border-b border-surface-200 dark:border-surface-700 p-3 overflow-y-auto max-h-[30%]"
-            aria-label="Help topics"
-         >
-            {#each helpCategories as cat (cat.id)}
-               <div class="mb-1">
-                  <button
-                     class="flex items-center gap-1 w-full text-left text-sm font-medium text-surface-700 dark:text-surface-300 hover:text-surface-900 dark:hover:text-surface-100 py-0.5"
-                     onclick={() => toggleCategory(cat.id)}
-                  >
-                     {#if expandedCategories.has(cat.id)}<ChevronDown
-                           size={14}
-                        />{:else}<ChevronRight size={14} />{/if}
-                     {cat.name}
-                  </button>
-                  {#if expandedCategories.has(cat.id)}
-                     <div class="flex gap-1 flex-wrap pl-5 py-1">
-                        {#each cat.topics as topic (topic.id)}
-                           <button
-                              class="px-2 py-0.5 text-xs rounded {helpState.topic ===
-                              topic.id
-                                 ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 font-medium'
-                                 : 'text-surface-600 dark:text-surface-400 hover:bg-surface-200 dark:hover:bg-surface-800'}"
-                              onclick={() => selectTopic(topic.id)}
-                           >
-                              {topic.name}
-                           </button>
-                        {/each}
-                     </div>
-                  {/if}
-               </div>
-            {/each}
-         </nav>
+         <!-- Nav: search results or accordion -->
+         {#if searchQuery}
+            <nav
+               class="shrink-0 border-b border-surface-200 dark:border-surface-700 p-3 overflow-y-auto max-h-[30%]"
+               aria-label="Search results"
+            >
+               {#if searchResults.length === 0}
+                  <p class="text-sm text-surface-500 italic">
+                     No results for "{searchQuery}"
+                  </p>
+               {:else}
+                  <p class="text-xs text-surface-500 mb-2">
+                     {searchResults.length}
+                     {searchResults.length === 1 ? 'result' : 'results'} for "{searchQuery}"
+                  </p>
+                  {#each searchResults as result (result.topicId + ':' + result.headingId)}
+                     <button
+                        class="block w-full text-left text-sm py-1 px-2 rounded hover:bg-surface-200 dark:hover:bg-surface-800 {helpState.topic ===
+                        result.topicId
+                           ? 'text-primary-600 dark:text-primary-400'
+                           : 'text-surface-700 dark:text-surface-300'}"
+                        onclick={async () => {
+                           helpState.topic = result.topicId;
+                           helpState.anchor = result.headingId;
+                           await tick();
+                           scrollToAnchor();
+                        }}
+                     >
+                        <span class="font-medium">{result.topicName}</span>
+                        <span class="text-surface-400 mx-1">&rsaquo;</span>
+                        <span>{result.sectionTitle}</span>
+                     </button>
+                  {/each}
+               {/if}
+            </nav>
+         {:else}
+            <nav
+               class="shrink-0 border-b border-surface-200 dark:border-surface-700 p-3 overflow-y-auto max-h-[30%]"
+               aria-label="Help topics"
+            >
+               {#each helpCategories as cat (cat.id)}
+                  <div class="mb-1">
+                     <button
+                        class="flex items-center gap-1 w-full text-left text-sm font-medium text-surface-700 dark:text-surface-300 hover:text-surface-900 dark:hover:text-surface-100 py-0.5"
+                        onclick={() => toggleCategory(cat.id)}
+                     >
+                        {#if expandedCategories.has(cat.id)}<ChevronDown
+                              size={14}
+                           />{:else}<ChevronRight size={14} />{/if}
+                        {cat.name}
+                     </button>
+                     {#if expandedCategories.has(cat.id)}
+                        <div class="flex gap-1 flex-wrap pl-5 py-1">
+                           {#each cat.topics as topic (topic.id)}
+                              <button
+                                 class="px-2 py-0.5 text-xs rounded {helpState.topic ===
+                                 topic.id
+                                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 font-medium'
+                                    : 'text-surface-600 dark:text-surface-400 hover:bg-surface-200 dark:hover:bg-surface-800'}"
+                                 onclick={() => selectTopic(topic.id)}
+                              >
+                                 {topic.name}
+                              </button>
+                           {/each}
+                        </div>
+                     {/if}
+                  </div>
+               {/each}
+            </nav>
+         {/if}
 
          <!-- Content -->
          <div bind:this={contentEl} class="flex-1 overflow-y-auto p-5">
