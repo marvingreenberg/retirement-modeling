@@ -1539,3 +1539,116 @@ class TestPreRetirementWithdrawals:
         yr = result.years[0]
         assert yr.spending_limited is True, "Spending should be limited with no available accounts"
         assert yr.spending_target < 50000, "Spending target should be capped below desired amount"
+
+
+class TestRothConversionEmploymentGating:
+    def test_roth_conversions_suppressed_during_employment(self):
+        """Roth conversions suppressed while employment income exists, resume after."""
+        streams = [
+            IncomeStream(
+                name="Salary",
+                kind="employment",
+                amount=80000,
+                start_age=60,
+                end_age=64,
+                taxable_pct=1.0,
+            )
+        ]
+        accounts = [
+            Account(
+                id="brokerage",
+                name="Brokerage",
+                balance=500_000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=0.5,
+            ),
+            Account(
+                id="ira",
+                name="IRA",
+                balance=500_000,
+                type=AccountType.IRA,
+                owner=Owner.PRIMARY,
+            ),
+        ]
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=60,
+                current_age_spouse=60,
+                simulation_years=10,
+                start_year=2026,
+                annual_spend_net=50000,
+                strategy_target="irmaa_tier_1",
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+                income_streams=streams,
+            ),
+            accounts=accounts,
+        )
+        result = run_simulation(portfolio)
+
+        # Ages 60-64: employment income → no conversions
+        for i in range(5):
+            yr = result.years[i]
+            assert yr.roth_conversion == 0, (
+                f"Age {yr.age_primary}: unexpected conversion {yr.roth_conversion}"
+            )
+
+        # Ages 65+: no employment → conversions should happen
+        any_conversion = any(
+            result.years[i].roth_conversion > 0 for i in range(5, len(result.years))
+        )
+        assert any_conversion, "Expected Roth conversions after employment ends"
+
+    def test_roth_conversion_deposits_to_correct_owner(self):
+        """Conversion from spouse's IRA deposits to spouse's Roth Conversion account."""
+        accounts = [
+            Account(
+                id="brokerage",
+                name="Brokerage",
+                balance=500_000,
+                type=AccountType.BROKERAGE,
+                owner=Owner.JOINT,
+                cost_basis_ratio=0.5,
+            ),
+            Account(
+                id="spouse_ira",
+                name="Spouse IRA",
+                balance=300_000,
+                type=AccountType.IRA,
+                owner=Owner.SPOUSE,
+            ),
+        ]
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=65,
+                current_age_spouse=65,
+                simulation_years=3,
+                start_year=2026,
+                annual_spend_net=30000,
+                strategy_target="irmaa_tier_1",
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=accounts,
+        )
+        result = run_simulation(portfolio)
+
+        # Should have conversions from spouse IRA
+        yr = result.years[0]
+        assert yr.roth_conversion > 0, "Expected Roth conversion in year 0"
+
+        # Check withdrawal_details: conversion source should be spouse's IRA
+        conv_details = [d for d in yr.withdrawal_details if d.purpose == "conversion"]
+        assert len(conv_details) > 0, "Expected conversion withdrawal details"
+        assert any(
+            d.account_name == "Spouse IRA" for d in conv_details
+        ), "Conversion should come from Spouse IRA"

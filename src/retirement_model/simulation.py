@@ -482,9 +482,8 @@ def run_simulation(
             total_spend_needed = actual_spend
             surplus_cash = 0.0
 
-        # Roth conversion logic (from IRA-eligible accounts, skip pre-retirement)
-        is_retired = cfg.retirement_age is None or age_primary >= cfg.retirement_age
-        if conversion_ceiling > 0 and is_retired:
+        # Roth conversion logic (from IRA-eligible accounts, skip when employed)
+        if conversion_ceiling > 0 and not has_employment_income:
             agi_headroom = max(0, conversion_ceiling - current_agi)
 
             if agi_headroom > 5000:
@@ -542,9 +541,17 @@ def run_simulation(
                     else:
                         net_deposit = conv_result.amount_withdrawn
 
-                    deposit_to_account(
-                        net_deposit, accounts, AccountType.ROTH_CONVERSION, Owner.PRIMARY
-                    )
+                    # Deposit net amount proportionally to each owner's Roth Conversion
+                    owner_amounts: dict[Owner, float] = {}
+                    for pa_id, pa_amt in conv_result.per_account.items():
+                        acc = next(a for a in accounts if a.id == pa_id)
+                        owner_amounts[acc.owner] = owner_amounts.get(acc.owner, 0.0) + pa_amt
+                    for owner, amt in owner_amounts.items():
+                        if conv_result.amount_withdrawn > 0:
+                            owner_net = net_deposit * (amt / conv_result.amount_withdrawn)
+                            deposit_to_account(
+                                owner_net, accounts, AccountType.ROTH_CONVERSION, owner
+                            )
                     converted_amount += conv_result.amount_withdrawn
                     current_agi += conv_result.amount_withdrawn
 

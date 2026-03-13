@@ -183,7 +183,7 @@ class TestRetirementGating:
         assert total_wd > 0, "Expected withdrawals at retirement age"
 
     def test_roth_conversions_suppressed_pre_retirement(self) -> None:
-        """Roth conversions should not occur pre-retirement, but should post-retirement."""
+        """Roth conversions suppressed while employment income exists, resume after."""
         streams = [
             IncomeStream(
                 name="Salary",
@@ -221,14 +221,14 @@ class TestRetirementGating:
         )
         result = run_simulation(portfolio)
 
-        # Pre-retirement: no Roth conversions
+        # Employment years (ages 60-64): no Roth conversions
         for i in range(5):
             yr = result.years[i]
             assert (
                 yr.roth_conversion == 0
             ), f"Year {i} (age {yr.age_primary}): unexpected Roth conversion {yr.roth_conversion}"
 
-        # Post-retirement: conversions should happen (IRA has money, strategy allows it)
+        # Post-employment (ages 65+): conversions should happen
         any_conversion = any(
             result.years[i].roth_conversion > 0 for i in range(5, len(result.years))
         )
