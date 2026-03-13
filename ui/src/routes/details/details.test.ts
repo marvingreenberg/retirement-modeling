@@ -35,6 +35,10 @@ const mockSingleResult: SimulationResponse = {
             roth_balance: 80000,
             roth_conversion_balance: 0,
             brokerage_balance: 55000,
+            brokerage_gains_tax: 1500,
+            pretax_401k_deposit: 5000,
+            roth_401k_deposit: 3000,
+            spending_limited: false,
             withdrawal_details: [],
             income_details: [],
          },
@@ -104,6 +108,22 @@ describe('Details page', () => {
       expect(screen.getByText('2026')).toBeInTheDocument();
       expect(screen.getByText('65')).toBeInTheDocument();
       expect(screen.getByText('22%')).toBeInTheDocument();
+   });
+
+   it('renders Cap Gains Tax and 401k Dep column headers', () => {
+      simulationResults.value = { singleResult: mockSingleResult, mcResult: null };
+      render(DetailsPage);
+      expect(screen.getByText('Cap Gains Tax')).toBeInTheDocument();
+      expect(screen.getByText('401k Dep')).toBeInTheDocument();
+   });
+
+   it('renders Cap Gains Tax and 401k Dep values for each row', () => {
+      simulationResults.value = { singleResult: mockSingleResult, mcResult: null };
+      render(DetailsPage);
+      // brokerage_gains_tax = 1500 → "$1,500" (may appear in WithdrawalPlan too)
+      expect(screen.getAllByText('$1,500').length).toBeGreaterThanOrEqual(1);
+      // pretax_401k_deposit (5000) + roth_401k_deposit (3000) = 8000 → "$8,000"
+      expect(screen.getByText('$8,000')).toBeInTheDocument();
    });
 
    it('shows Monte Carlo percentile table on MC tab', async () => {

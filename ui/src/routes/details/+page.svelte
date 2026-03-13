@@ -91,7 +91,7 @@
                         ><th>Brokerage WD</th>
                         <th>Roth Conv</th><th>Conv Tax</th><th>Total Tax</th><th
                            >IRMAA</th
-                        ><th>Total Balance</th>
+                        ><th>Cap Gains Tax</th><th>401k Dep</th><th>Total Balance</th>
                      </tr>
                   </thead>
                   <tbody>
@@ -118,6 +118,8 @@
                               >{currency(yr.total_tax)}</td
                            >
                            <td>{currency(yr.irmaa_cost)}</td><td
+                              >{currency(yr.brokerage_gains_tax)}</td
+                           ><td>{currency(yr.pretax_401k_deposit + yr.roth_401k_deposit)}</td><td
                               >{currency(yr.total_balance)}</td
                            >
                         </tr>
