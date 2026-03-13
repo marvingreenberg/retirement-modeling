@@ -172,8 +172,12 @@
                >
                   Sources
                </div>
-               <div class="text-xs text-surface-500 dark:text-surface-400 italic">
-                  Withdrawals + Income = {currency(yr.total_income + totalWithdrawals + yr.rmd)}
+               <div
+                  class="text-xs text-surface-500 dark:text-surface-400 italic"
+               >
+                  Withdrawals + Income = {currency(
+                     yr.total_income + totalWithdrawals + yr.rmd,
+                  )}
                </div>
 
                <!-- RMD -->
@@ -259,8 +263,12 @@
                >
                   Uses
                </div>
-               <div class="text-xs text-surface-500 dark:text-surface-400 italic">
-                  Spending + Taxes + Deposits = {currency(yr.total_income + totalWithdrawals + yr.rmd)}
+               <div
+                  class="text-xs text-surface-500 dark:text-surface-400 italic"
+               >
+                  Spending + Taxes + Deposits = {currency(
+                     yr.total_income + totalWithdrawals + yr.rmd,
+                  )}
                </div>
 
                <!-- Spending -->
@@ -277,7 +285,9 @@
                      </div>
                   {/if}
                   {#if yr.spending_limited}
-                     <div class="text-xs text-warning-600 dark:text-warning-400 pl-3">
+                     <div
+                        class="text-xs text-warning-600 dark:text-warning-400 pl-3"
+                     >
                         (!) Spending limited to available income
                      </div>
                   {/if}

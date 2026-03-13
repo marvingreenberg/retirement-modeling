@@ -53,3 +53,4 @@ conversation.txt
 example_pyproject.toml
 output_results.txt
 PLAN.md
+uv.lock

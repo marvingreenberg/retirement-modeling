@@ -111,14 +111,20 @@ describe('Details page', () => {
    });
 
    it('renders Cap Gains Tax and 401k Dep column headers', () => {
-      simulationResults.value = { singleResult: mockSingleResult, mcResult: null };
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
       render(DetailsPage);
       expect(screen.getByText('Cap Gains Tax')).toBeInTheDocument();
       expect(screen.getByText('401k Dep')).toBeInTheDocument();
    });
 
    it('renders Cap Gains Tax and 401k Dep values for each row', () => {
-      simulationResults.value = { singleResult: mockSingleResult, mcResult: null };
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
       render(DetailsPage);
       // brokerage_gains_tax = 1500 → "$1,500" (may appear in WithdrawalPlan too)
       expect(screen.getAllByText('$1,500').length).toBeGreaterThanOrEqual(1);

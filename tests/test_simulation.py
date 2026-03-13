@@ -803,13 +803,20 @@ class TestTaxWithdrawals:
 
         # Cash balance: sources = uses per the accounting identity
         sources = (
-            yr0.total_income + yr0.rmd + yr0.pretax_withdrawal
-            + yr0.roth_withdrawal + yr0.brokerage_withdrawal
+            yr0.total_income
+            + yr0.rmd
+            + yr0.pretax_withdrawal
+            + yr0.roth_withdrawal
+            + yr0.brokerage_withdrawal
         )
         uses = (
-            yr0.spending_target + yr0.total_tax + yr0.irmaa_cost
-            + yr0.pretax_401k_deposit + yr0.roth_401k_deposit
-            + yr0.surplus + yr0.conversion_tax
+            yr0.spending_target
+            + yr0.total_tax
+            + yr0.irmaa_cost
+            + yr0.pretax_401k_deposit
+            + yr0.roth_401k_deposit
+            + yr0.surplus
+            + yr0.conversion_tax
         )
         gap = abs(sources - uses)
         assert gap < 2, f"Sources={sources}, Uses={uses}, gap={gap}"
@@ -1599,9 +1606,9 @@ class TestRothConversionEmploymentGating:
         # Ages 60-64: employment income → no conversions
         for i in range(5):
             yr = result.years[i]
-            assert yr.roth_conversion == 0, (
-                f"Age {yr.age_primary}: unexpected conversion {yr.roth_conversion}"
-            )
+            assert (
+                yr.roth_conversion == 0
+            ), f"Age {yr.age_primary}: unexpected conversion {yr.roth_conversion}"
 
         # Ages 65+: no employment → conversions should happen
         any_conversion = any(
@@ -1665,13 +1672,20 @@ def _assert_sources_equal_uses(result, tolerance=2.0):
         if yr.total_balance <= 0 and yr.spending_limited:
             continue  # depleted portfolio, balance equation breaks down
         sources = (
-            yr.total_income + yr.rmd + yr.pretax_withdrawal
-            + yr.roth_withdrawal + yr.brokerage_withdrawal
+            yr.total_income
+            + yr.rmd
+            + yr.pretax_withdrawal
+            + yr.roth_withdrawal
+            + yr.brokerage_withdrawal
         )
         uses = (
-            yr.spending_target + yr.total_tax + yr.irmaa_cost
-            + yr.pretax_401k_deposit + yr.roth_401k_deposit
-            + yr.surplus + yr.conversion_tax
+            yr.spending_target
+            + yr.total_tax
+            + yr.irmaa_cost
+            + yr.pretax_401k_deposit
+            + yr.roth_401k_deposit
+            + yr.surplus
+            + yr.conversion_tax
         )
         assert abs(sources - uses) < tolerance, (
             f"Year {yr.year} age {yr.age_primary}: sources={sources:.0f} != uses={uses:.0f}, "
@@ -1718,20 +1732,33 @@ class TestSourcesEqualUses:
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=300000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=300000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
                 ),
                 Account(
-                    id="ira", name="IRA", balance=400000,
-                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                    id="ira",
+                    name="IRA",
+                    balance=400000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
                 ),
                 Account(
-                    id="401k", name="401k", balance=200000,
-                    type=AccountType.TRADITIONAL_401K, owner=Owner.PRIMARY,
+                    id="401k",
+                    name="401k",
+                    balance=200000,
+                    type=AccountType.TRADITIONAL_401K,
+                    owner=Owner.PRIMARY,
                 ),
                 Account(
-                    id="roth", name="Roth IRA", balance=100000,
-                    type=AccountType.ROTH_IRA, owner=Owner.PRIMARY,
+                    id="roth",
+                    name="Roth IRA",
+                    balance=100000,
+                    type=AccountType.ROTH_IRA,
+                    owner=Owner.PRIMARY,
                 ),
             ],
         )
@@ -1757,8 +1784,12 @@ class TestSourcesEqualUses:
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=800000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.4,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=800000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.4,
                 ),
             ],
         )
@@ -1793,12 +1824,19 @@ class TestSourcesEqualUses:
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=600000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=600000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
                 ),
                 Account(
-                    id="ira", name="IRA", balance=300000,
-                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                    id="ira",
+                    name="IRA",
+                    balance=300000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
                 ),
             ],
         )
@@ -1825,16 +1863,26 @@ class TestSourcesEqualUses:
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=500000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=500000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
                 ),
                 Account(
-                    id="ira", name="IRA", balance=800000,
-                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                    id="ira",
+                    name="IRA",
+                    balance=800000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
                 ),
                 Account(
-                    id="roth", name="Roth IRA", balance=100000,
-                    type=AccountType.ROTH_IRA, owner=Owner.PRIMARY,
+                    id="roth",
+                    name="Roth IRA",
+                    balance=100000,
+                    type=AccountType.ROTH_IRA,
+                    owner=Owner.PRIMARY,
                 ),
             ],
         )
@@ -1862,12 +1910,19 @@ class TestSourcesEqualUses:
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=300000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.6,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=300000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.6,
                 ),
                 Account(
-                    id="ira", name="IRA", balance=1000000,
-                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                    id="ira",
+                    name="IRA",
+                    balance=1000000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
                 ),
             ],
         )
@@ -1896,16 +1951,26 @@ class TestSourcesEqualUses:
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=400000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=400000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
                 ),
                 Account(
-                    id="ira", name="IRA", balance=900000,
-                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                    id="ira",
+                    name="IRA",
+                    balance=900000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
                 ),
                 Account(
-                    id="roth", name="Roth IRA", balance=200000,
-                    type=AccountType.ROTH_IRA, owner=Owner.PRIMARY,
+                    id="roth",
+                    name="Roth IRA",
+                    balance=200000,
+                    type=AccountType.ROTH_IRA,
+                    owner=Owner.PRIMARY,
                 ),
             ],
         )
@@ -1944,8 +2009,12 @@ class TestSourcesEqualUses:
             ),
             accounts=[
                 Account(
-                    id="brokerage", name="Brokerage", balance=100000,
-                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.8,
+                    id="brokerage",
+                    name="Brokerage",
+                    balance=100000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.8,
                 ),
             ],
         )

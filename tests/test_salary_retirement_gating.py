@@ -126,12 +126,12 @@ class TestRetirementGating:
         # is available but unnecessary since salary > spending.
         for i in range(5):
             yr = result.years[i]
-            assert yr.pretax_withdrawal == 0, (
-                f"Year {i} (age {yr.age_primary}): unexpected pretax withdrawal"
-            )
-            assert yr.roth_withdrawal == 0, (
-                f"Year {i} (age {yr.age_primary}): unexpected roth withdrawal"
-            )
+            assert (
+                yr.pretax_withdrawal == 0
+            ), f"Year {i} (age {yr.age_primary}): unexpected pretax withdrawal"
+            assert (
+                yr.roth_withdrawal == 0
+            ), f"Year {i} (age {yr.age_primary}): unexpected roth withdrawal"
 
         # Years 5+ (ages 65+): no income, withdrawals should occur to cover spending
         has_withdrawal = False

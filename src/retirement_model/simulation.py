@@ -546,7 +546,7 @@ def run_simulation(
 
                     # Deposit net amount proportionally to each owner's Roth Conversion
                     owner_amounts: dict[Owner, float] = {}
-                    for pa_id, pa_amt in conv_result.per_account.items():
+                    for pa_id, pa_amt in (conv_result.per_account or {}).items():
                         acc = next(a for a in accounts if a.id == pa_id)
                         owner_amounts[acc.owner] = owner_amounts.get(acc.owner, 0.0) + pa_amt
                     for owner, amt in owner_amounts.items():

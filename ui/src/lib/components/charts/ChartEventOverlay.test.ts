@@ -38,6 +38,10 @@ function makeYears(count: number, startYear = 2026): YearResult[] {
       roth_balance: 300_000,
       roth_conversion_balance: 0,
       brokerage_balance: 300_000,
+      pretax_401k_deposit: 0,
+      roth_401k_deposit: 0,
+      brokerage_gains_tax: 0,
+      spending_limited: false,
       withdrawal_details: [],
       income_details: [],
    }));

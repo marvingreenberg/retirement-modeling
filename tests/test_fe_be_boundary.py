@@ -517,13 +517,20 @@ class TestWithdrawalDetailsSumBalance:
             if yr["total_balance"] <= 0:
                 break
             total_sources = (
-                yr["total_income"] + yr["rmd"] + yr["pretax_withdrawal"]
-                + yr["roth_withdrawal"] + yr["brokerage_withdrawal"]
+                yr["total_income"]
+                + yr["rmd"]
+                + yr["pretax_withdrawal"]
+                + yr["roth_withdrawal"]
+                + yr["brokerage_withdrawal"]
             )
             total_uses = (
-                yr["spending_target"] + yr["total_tax"] + yr["irmaa_cost"]
-                + yr.get("pretax_401k_deposit", 0) + yr.get("roth_401k_deposit", 0)
-                + yr["surplus"] + yr.get("conversion_tax", 0)
+                yr["spending_target"]
+                + yr["total_tax"]
+                + yr["irmaa_cost"]
+                + yr.get("pretax_401k_deposit", 0)
+                + yr.get("roth_401k_deposit", 0)
+                + yr["surplus"]
+                + yr.get("conversion_tax", 0)
             )
             gap = abs(total_sources - total_uses)
             assert (
