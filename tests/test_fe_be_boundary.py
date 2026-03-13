@@ -508,27 +508,33 @@ class TestWithdrawalDetailsSumBalance:
     def test_sources_approximate_uses(self, client, base_portfolio):
         """Cash sources ~ cash uses each year.
 
-        Sources: income + non-conversion withdrawals.
-        Uses: spending + total_tax + surplus.
+        Sources: income + rmd + pretax/roth/brokerage withdrawals.
+        Uses: spending + total_tax + irmaa + 401k deposits + surplus + conversion_tax.
         """
         base_portfolio["config"]["annual_spend_net"] = 60000
         result = _simulate(client, base_portfolio)
         for yr in result["result"]["years"]:
             if yr["total_balance"] <= 0:
                 break
-            details = yr.get("withdrawal_details", [])
-            non_conv_withdrawn = sum(d["amount"] for d in details if d["purpose"] != "conversion")
-            total_sources = yr["total_income"] + non_conv_withdrawn
-            total_uses = yr["spending_target"] + yr["total_tax"] + yr["irmaa_cost"] + yr["surplus"]
+            total_sources = (
+                yr["total_income"] + yr["rmd"] + yr["pretax_withdrawal"]
+                + yr["roth_withdrawal"] + yr["brokerage_withdrawal"]
+            )
+            total_uses = (
+                yr["spending_target"] + yr["total_tax"] + yr["irmaa_cost"]
+                + yr.get("pretax_401k_deposit", 0) + yr.get("roth_401k_deposit", 0)
+                + yr["surplus"] + yr.get("conversion_tax", 0)
+            )
             gap = abs(total_sources - total_uses)
             assert (
-                gap < 500
+                gap < 2
             ), f"Year {yr['year']}: sources={total_sources}, uses={total_uses}, gap={gap}"
 
     def test_tax_purpose_withdrawals_exist_when_taxes_positive(self, client, base_portfolio):
         """Years with positive taxes should have 'tax' purpose withdrawal entries."""
         result = _simulate(client, base_portfolio)
-        years_with_tax = [yr for yr in result["result"]["years"] if yr["total_tax"] > 1000]
+        total_tax_amount = lambda yr: yr["total_tax"] + yr.get("conversion_tax", 0)
+        years_with_tax = [yr for yr in result["result"]["years"] if total_tax_amount(yr) > 1000]
         assert len(years_with_tax) > 0, "Expected some years with significant taxes"
         years_with_tax_details = [
             yr

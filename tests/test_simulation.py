@@ -801,13 +801,18 @@ class TestTaxWithdrawals:
         result = run_simulation(portfolio)
         yr0 = result.years[0]
 
-        # Cash balance: non-conversion withdrawals = spending + tax + surplus
-        non_conv = sum(d.amount for d in yr0.withdrawal_details if d.purpose != "conversion")
-        total_sources = yr0.total_income + non_conv
-        total_uses = yr0.spending_target + yr0.total_tax + yr0.irmaa_cost + yr0.surplus
-
-        gap = abs(total_sources - total_uses)
-        assert gap < 500, f"Sources={total_sources}, Uses={total_uses}, gap={gap}"
+        # Cash balance: sources = uses per the accounting identity
+        sources = (
+            yr0.total_income + yr0.rmd + yr0.pretax_withdrawal
+            + yr0.roth_withdrawal + yr0.brokerage_withdrawal
+        )
+        uses = (
+            yr0.spending_target + yr0.total_tax + yr0.irmaa_cost
+            + yr0.pretax_401k_deposit + yr0.roth_401k_deposit
+            + yr0.surplus + yr0.conversion_tax
+        )
+        gap = abs(sources - uses)
+        assert gap < 2, f"Sources={sources}, Uses={uses}, gap={gap}"
 
     def test_no_tax_withdrawals_when_withholding_covers_tax(self):
         """When income withholding covers taxes, no 'tax' purpose withdrawals appear."""
@@ -1652,3 +1657,298 @@ class TestRothConversionEmploymentGating:
         assert any(
             d.account_name == "Spouse IRA" for d in conv_details
         ), "Conversion should come from Spouse IRA"
+
+
+def _assert_sources_equal_uses(result, tolerance=2.0):
+    """Assert sources == uses for every year in a simulation result."""
+    for yr in result.years:
+        if yr.total_balance <= 0 and yr.spending_limited:
+            continue  # depleted portfolio, balance equation breaks down
+        sources = (
+            yr.total_income + yr.rmd + yr.pretax_withdrawal
+            + yr.roth_withdrawal + yr.brokerage_withdrawal
+        )
+        uses = (
+            yr.spending_target + yr.total_tax + yr.irmaa_cost
+            + yr.pretax_401k_deposit + yr.roth_401k_deposit
+            + yr.surplus + yr.conversion_tax
+        )
+        assert abs(sources - uses) < tolerance, (
+            f"Year {yr.year} age {yr.age_primary}: sources={sources:.0f} != uses={uses:.0f}, "
+            f"diff={sources - uses:.0f}\n"
+            f"  income={yr.total_income:.0f} rmd={yr.rmd:.0f} pretax_wd={yr.pretax_withdrawal:.0f} "
+            f"roth_wd={yr.roth_withdrawal:.0f} brk_wd={yr.brokerage_withdrawal:.0f}\n"
+            f"  spending={yr.spending_target:.0f} tax={yr.total_tax:.0f} irmaa={yr.irmaa_cost:.0f} "
+            f"401k={yr.pretax_401k_deposit:.0f} roth401k={yr.roth_401k_deposit:.0f} "
+            f"surplus={yr.surplus:.0f} conv_tax={yr.conversion_tax:.0f}"
+        )
+
+
+class TestSourcesEqualUses:
+    """Verify the accounting identity: sources == uses for every simulated year."""
+
+    def test_sources_equal_uses_employment_with_401k(self):
+        """Employment income with 401k contributions."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=55,
+                current_age_spouse=53,
+                simulation_years=10,
+                start_year=2026,
+                annual_spend_net=80000,
+                strategy_target=ConversionStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=30000,
+                    primary_start_age=70,
+                    spouse_benefit=20000,
+                    spouse_start_age=70,
+                ),
+                income_streams=[
+                    IncomeStream(
+                        name="Salary",
+                        amount=150000,
+                        start_age=55,
+                        end_age=64,
+                        owner=Owner.PRIMARY,
+                        kind=IncomeKind.EMPLOYMENT,
+                        pretax_401k=23500,
+                        roth_401k=7500,
+                    ),
+                ],
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=300000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                ),
+                Account(
+                    id="ira", name="IRA", balance=400000,
+                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="401k", name="401k", balance=200000,
+                    type=AccountType.TRADITIONAL_401K, owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="roth", name="Roth IRA", balance=100000,
+                    type=AccountType.ROTH_IRA, owner=Owner.PRIMARY,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        _assert_sources_equal_uses(result)
+
+    def test_sources_equal_uses_post_retirement_brokerage(self):
+        """Post-retirement with brokerage withdrawals, no income."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=67,
+                current_age_spouse=65,
+                simulation_years=10,
+                start_year=2026,
+                annual_spend_net=60000,
+                strategy_target=ConversionStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=30000,
+                    primary_start_age=70,
+                    spouse_benefit=15000,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=800000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.4,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        _assert_sources_equal_uses(result)
+
+    def test_sources_equal_uses_mixed_income_and_withdrawals(self):
+        """Mixed income + withdrawals (pension + SS + brokerage)."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=68,
+                current_age_spouse=66,
+                simulation_years=10,
+                start_year=2026,
+                annual_spend_net=90000,
+                strategy_target=ConversionStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=36000,
+                    primary_start_age=70,
+                    spouse_benefit=18000,
+                    spouse_start_age=70,
+                ),
+                income_streams=[
+                    IncomeStream(
+                        name="Pension",
+                        amount=24000,
+                        start_age=65,
+                        owner=Owner.PRIMARY,
+                        kind=IncomeKind.PENSION,
+                    ),
+                ],
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=600000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                ),
+                Account(
+                    id="ira", name="IRA", balance=300000,
+                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        _assert_sources_equal_uses(result)
+
+    def test_sources_equal_uses_with_roth_conversions(self):
+        """Roth conversions active (IRMAA tier 1 strategy)."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=65,
+                current_age_spouse=63,
+                simulation_years=10,
+                start_year=2026,
+                annual_spend_net=70000,
+                strategy_target=ConversionStrategy.IRMAA_TIER_1,
+                irmaa_limit_tier_1=206000,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=30000,
+                    primary_start_age=70,
+                    spouse_benefit=15000,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=500000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                ),
+                Account(
+                    id="ira", name="IRA", balance=800000,
+                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="roth", name="Roth IRA", balance=100000,
+                    type=AccountType.ROTH_IRA, owner=Owner.PRIMARY,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        # Verify conversions actually happened
+        assert any(yr.roth_conversion > 0 for yr in result.years), "Expected Roth conversions"
+        _assert_sources_equal_uses(result)
+
+    def test_sources_equal_uses_with_rmds(self):
+        """RMD years (age >= 73) with large pretax balance."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=72,
+                current_age_spouse=70,
+                simulation_years=10,
+                start_year=2026,
+                annual_spend_net=60000,
+                strategy_target=ConversionStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=36000,
+                    primary_start_age=70,
+                    spouse_benefit=18000,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=300000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.6,
+                ),
+                Account(
+                    id="ira", name="IRA", balance=1000000,
+                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        # Verify RMDs actually occurred
+        assert any(yr.rmd > 0 for yr in result.years), "Expected RMDs starting at age 73"
+        _assert_sources_equal_uses(result)
+
+    def test_sources_equal_uses_rmd_plus_conversions(self):
+        """RMDs and Roth conversions together (age 73+, IRMAA strategy)."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=73,
+                current_age_spouse=71,
+                simulation_years=8,
+                start_year=2026,
+                annual_spend_net=50000,
+                strategy_target=ConversionStrategy.IRMAA_TIER_1,
+                irmaa_limit_tier_1=206000,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=36000,
+                    primary_start_age=70,
+                    spouse_benefit=18000,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=400000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.5,
+                ),
+                Account(
+                    id="ira", name="IRA", balance=900000,
+                    type=AccountType.IRA, owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="roth", name="Roth IRA", balance=200000,
+                    type=AccountType.ROTH_IRA, owner=Owner.PRIMARY,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        assert any(yr.rmd > 0 for yr in result.years), "Expected RMDs"
+        _assert_sources_equal_uses(result)
+
+    def test_sources_equal_uses_surplus_routed_to_brokerage(self):
+        """High income with surplus routed to brokerage."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=60,
+                current_age_spouse=58,
+                simulation_years=5,
+                start_year=2026,
+                annual_spend_net=40000,
+                strategy_target=ConversionStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+                income_streams=[
+                    IncomeStream(
+                        name="Consulting",
+                        amount=200000,
+                        start_age=55,
+                        end_age=64,
+                        owner=Owner.PRIMARY,
+                        kind=IncomeKind.EMPLOYMENT,
+                        pretax_401k=0,
+                        roth_401k=0,
+                    ),
+                ],
+            ),
+            accounts=[
+                Account(
+                    id="brokerage", name="Brokerage", balance=100000,
+                    type=AccountType.BROKERAGE, owner=Owner.JOINT, cost_basis_ratio=0.8,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        assert any(yr.surplus > 0 for yr in result.years), "Expected surplus years"
+        _assert_sources_equal_uses(result)

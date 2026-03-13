@@ -413,6 +413,7 @@ def run_simulation(
         conversion_tax_paid = 0.0
         conversion_tax_from_brokerage = 0.0
         brokerage_gains_tax = 0.0
+        brokerage_gains_total = 0.0
 
         # Spending withdrawals in configurable order
         if remaining_spend > 0:
@@ -445,6 +446,7 @@ def run_simulation(
                             _collect_details(result, "spending", account_names)
                         )
                         gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
+                        brokerage_gains_total += gains
                         brokerage_gains_tax += calculate_capital_gains_tax(
                             gains, current_agi, adj_capgains_brackets
                         )
@@ -500,7 +502,6 @@ def run_simulation(
                         cfg.tax_rate_state,
                     )
                     tax_bill = tax_after - tax_before
-                    conversion_tax_paid = tax_bill
 
                     # Pay tax from brokerage/cash
                     tax_from_cash = withdraw_from_accounts(
@@ -513,6 +514,7 @@ def run_simulation(
                     total_tax_withdrawn = (
                         tax_from_cash.amount_withdrawn + tax_result.amount_withdrawn
                     )
+                    conversion_tax_paid = total_tax_withdrawn
                     brokerage_withdrawn += total_tax_withdrawn
                     conversion_tax_from_brokerage += total_tax_withdrawn
                     withdrawal_details.extend(_collect_details(tax_from_cash, "tax", account_names))
@@ -520,6 +522,7 @@ def run_simulation(
 
                     # AGI impact from brokerage gains (cash has no gains)
                     tax_gains = tax_result.amount_withdrawn * (1 - tax_result.average_basis_ratio)
+                    brokerage_gains_total += tax_gains
                     brokerage_gains_tax += calculate_capital_gains_tax(
                         tax_gains, current_agi, adj_capgains_brackets
                     )
@@ -566,22 +569,39 @@ def run_simulation(
                 has_employment_income,
             )
 
-        # Total tax calculation using progressive brackets
-        taxable_income = max(0, current_agi - adj_deduction)
+        # Total tax calculation using progressive brackets.
+        # Exclude brokerage gains (taxed separately via brokerage_gains_tax)
+        # and conversion income (taxed separately via conversion_tax) from
+        # ordinary income to avoid double-counting in the balance equation.
+        ordinary_agi = current_agi - brokerage_gains_total - converted_amount
+        taxable_income = max(0, ordinary_agi - adj_deduction)
         income_tax = calculate_income_tax(taxable_income, adj_fed_brackets, cfg.tax_rate_state)
         irmaa_cost = calculate_irmaa_cost(current_agi, adj_irmaa_tiers)
         total_tax = income_tax + brokerage_gains_tax
 
-        # Withdraw for tax shortfall: actual tax minus amounts already covered.
-        # - Income/RMD/pretax withholding: deducted from cash_in_hand or grossed up
-        # - conversion_tax_from_brokerage: explicitly paid from brokerage during conversions
-        # - brokerage_gains_tax: embedded in basis-ratio accounting
+        # Withdraw for tax shortfall: non-conversion tax minus amounts already covered.
+        # income_tax excludes conversion income (tracked separately as conversion_tax).
+        # brokerage_gains_tax is added since gains require additional tax payment.
         estimated_withholding = (
             ss_taxable + stream_taxable + rmd_withdrawn + voluntary_pretax
-        ) * est_tax_rate + brokerage_gains_tax
-        tax_shortfall = max(
-            0, income_tax + irmaa_cost - estimated_withholding - conversion_tax_from_brokerage
-        )
+        ) * est_tax_rate
+        actual_tax_owed = income_tax + brokerage_gains_tax + irmaa_cost
+        tax_shortfall = max(0, actual_tax_owed - estimated_withholding)
+
+        # Over-withholding refund: estimated withholding exceeded actual tax liability.
+        # Return the excess to surplus so the cash balance equation stays balanced.
+        tax_refund = max(0, estimated_withholding - actual_tax_owed)
+        if tax_refund > 1.0:
+            surplus_cash += tax_refund
+            _route_surplus(
+                tax_refund,
+                accounts,
+                cfg.excess_income_routing,
+                age_primary,
+                current_agi,
+                has_employment_income,
+            )
+
         if tax_shortfall > 1.0:
             tax_order = cfg.withdrawal_order
             for cat in tax_order:
