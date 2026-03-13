@@ -438,6 +438,10 @@ class YearResult(BaseModel):
     planned_expense: float = 0.0
     total_income: float = 0.0
     income_tax: float = 0.0
+    pretax_401k_deposit: float = 0.0
+    roth_401k_deposit: float = 0.0
+    brokerage_gains_tax: float = 0.0
+    spending_limited: bool = False
 
     # Account balances by type
     pretax_balance: float = 0.0
