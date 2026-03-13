@@ -172,6 +172,9 @@
                >
                   Sources
                </div>
+               <div class="text-xs text-surface-500 dark:text-surface-400 italic">
+                  Withdrawals + Income = {currency(yr.total_income + totalWithdrawals + yr.rmd)}
+               </div>
 
                <!-- RMD -->
                {#if hasRmd}
@@ -256,6 +259,9 @@
                >
                   Uses
                </div>
+               <div class="text-xs text-surface-500 dark:text-surface-400 italic">
+                  Spending + Taxes + Deposits = {currency(yr.total_income + totalWithdrawals + yr.rmd)}
+               </div>
 
                <!-- Spending -->
                <div>
@@ -268,6 +274,11 @@
                         class="text-xs text-warning-600 dark:text-warning-400 pl-3"
                      >
                         Below desired {currency(annualSpendNet)}
+                     </div>
+                  {/if}
+                  {#if yr.spending_limited}
+                     <div class="text-xs text-warning-600 dark:text-warning-400 pl-3">
+                        (!) Spending limited to available income
                      </div>
                   {/if}
                </div>
@@ -294,9 +305,9 @@
                <div>
                   <div class="flex justify-between font-medium">
                      <span>Taxes</span>
-                     <span>{currency(yr.total_tax + yr.irmaa_cost)}</span>
+                     <span>{currency(yr.total_tax)}</span>
                   </div>
-                  {#if yr.income_tax > 0 && (yr.irmaa_cost > 0 || yr.conversion_tax > 0)}
+                  {#if yr.income_tax > 0 && (yr.brokerage_gains_tax > 0 || yr.irmaa_cost > 0 || yr.conversion_tax > 0)}
                      <div
                         class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                      >
@@ -304,12 +315,12 @@
                         <span>{currency(yr.income_tax)}</span>
                      </div>
                   {/if}
-                  {#if yr.irmaa_cost > 0}
+                  {#if yr.brokerage_gains_tax > 0}
                      <div
                         class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                      >
-                        <span>IRMAA</span>
-                        <span>{currency(yr.irmaa_cost)}</span>
+                        <span>Capital Gains Tax</span>
+                        <span>{currency(yr.brokerage_gains_tax)}</span>
                      </div>
                   {/if}
                   {#if yr.conversion_tax > 0}
@@ -321,6 +332,34 @@
                      </div>
                   {/if}
                </div>
+
+               <!-- IRMAA Surcharge -->
+               {#if yr.irmaa_cost > 0}
+                  <div>
+                     <div class="flex justify-between font-medium">
+                        <span>IRMAA Surcharge</span>
+                        <span>{currency(yr.irmaa_cost)}</span>
+                     </div>
+                  </div>
+               {/if}
+
+               <!-- 401k Deposits -->
+               {#if yr.pretax_401k_deposit > 0}
+                  <div>
+                     <div class="flex justify-between font-medium">
+                        <span>Emp. 401k Deposit</span>
+                        <span>{currency(yr.pretax_401k_deposit)}</span>
+                     </div>
+                  </div>
+               {/if}
+               {#if yr.roth_401k_deposit > 0}
+                  <div>
+                     <div class="flex justify-between font-medium">
+                        <span>Emp. Roth 401k Deposit</span>
+                        <span>{currency(yr.roth_401k_deposit)}</span>
+                     </div>
+                  </div>
+               {/if}
 
                <!-- Surplus -->
                {#if yr.surplus > 0}

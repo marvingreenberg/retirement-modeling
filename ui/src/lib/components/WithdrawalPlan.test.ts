@@ -35,6 +35,10 @@ function makeYear(overrides: Partial<YearResult> = {}): YearResult {
       roth_balance: 200000,
       roth_conversion_balance: 0,
       brokerage_balance: 300000,
+      brokerage_gains_tax: 0,
+      pretax_401k_deposit: 0,
+      roth_401k_deposit: 0,
+      spending_limited: false,
       withdrawal_details: [],
       income_details: [],
       ...overrides,
@@ -187,18 +191,19 @@ describe('WithdrawalPlan', () => {
       expect(screen.getByText('$15,000')).toBeTruthy();
    });
 
-   it('shows IRMAA when present', () => {
+   it('shows IRMAA surcharge as its own line when present', () => {
       render(WithdrawalPlan, {
          props: { years: [makeYear({ irmaa_cost: 2400 })] },
       });
-      expect(screen.getByText('IRMAA')).toBeTruthy();
+      expect(screen.getByText('IRMAA Surcharge')).toBeTruthy();
+      expect(screen.getByText('$2,400')).toBeTruthy();
    });
 
-   it('hides IRMAA when zero', () => {
+   it('hides IRMAA surcharge when zero', () => {
       render(WithdrawalPlan, {
          props: { years: [makeYear({ irmaa_cost: 0 })] },
       });
-      expect(screen.queryByText('IRMAA')).toBeNull();
+      expect(screen.queryByText('IRMAA Surcharge')).toBeNull();
    });
 
    it('shows surplus as reinvested', () => {
@@ -234,7 +239,7 @@ describe('WithdrawalPlan', () => {
       expect(screen.getByText(/desired/)).toBeInTheDocument();
    });
 
-   it('shows income tax breakdown when IRMAA or conv tax present', () => {
+   it('shows income tax breakdown when multiple tax types present', () => {
       const yr = makeYear({
          total_tax: 18000,
          income_tax: 12000,
@@ -243,7 +248,7 @@ describe('WithdrawalPlan', () => {
       });
       render(WithdrawalPlan, { props: { years: [yr] } });
       expect(screen.getByText('Income Tax')).toBeInTheDocument();
-      expect(screen.getByText('IRMAA')).toBeInTheDocument();
+      expect(screen.getByText('IRMAA Surcharge')).toBeInTheDocument();
       expect(screen.getByText('Conversion Tax')).toBeInTheDocument();
    });
 
@@ -314,5 +319,78 @@ describe('WithdrawalPlan', () => {
       render(WithdrawalPlan, { props: { years: [yr] } });
       expect(screen.getByText('Planned Expenses')).toBeInTheDocument();
       expect(screen.getByText('Kitchen')).toBeInTheDocument();
+   });
+
+   it('shows capital gains tax when present', () => {
+      const yr = makeYear({
+         total_tax: 15000,
+         income_tax: 12000,
+         brokerage_gains_tax: 3000,
+      });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(screen.getByText('Capital Gains Tax')).toBeInTheDocument();
+      expect(screen.getByText('$3,000')).toBeInTheDocument();
+   });
+
+   it('hides capital gains tax when zero', () => {
+      render(WithdrawalPlan, {
+         props: { years: [makeYear({ brokerage_gains_tax: 0 })] },
+      });
+      expect(screen.queryByText('Capital Gains Tax')).toBeNull();
+   });
+
+   it('shows income tax sub-item when capital gains tax is present', () => {
+      const yr = makeYear({
+         total_tax: 15000,
+         income_tax: 12000,
+         brokerage_gains_tax: 3000,
+      });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(screen.getByText('Income Tax')).toBeInTheDocument();
+   });
+
+   it('shows pretax 401k deposit when present', () => {
+      const yr = makeYear({ pretax_401k_deposit: 23000 });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(screen.getByText('Emp. 401k Deposit')).toBeInTheDocument();
+      expect(screen.getByText('$23,000')).toBeInTheDocument();
+   });
+
+   it('hides pretax 401k deposit when zero', () => {
+      render(WithdrawalPlan, {
+         props: { years: [makeYear({ pretax_401k_deposit: 0 })] },
+      });
+      expect(screen.queryByText('Emp. 401k Deposit')).toBeNull();
+   });
+
+   it('shows roth 401k deposit when present', () => {
+      const yr = makeYear({ roth_401k_deposit: 10000 });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(screen.getByText('Emp. Roth 401k Deposit')).toBeInTheDocument();
+      expect(screen.getByText('$10,000')).toBeInTheDocument();
+   });
+
+   it('hides roth 401k deposit when zero', () => {
+      render(WithdrawalPlan, {
+         props: { years: [makeYear({ roth_401k_deposit: 0 })] },
+      });
+      expect(screen.queryByText('Emp. Roth 401k Deposit')).toBeNull();
+   });
+
+   it('shows spending limited warning when spending_limited is true', () => {
+      const yr = makeYear({ spending_limited: true });
+      render(WithdrawalPlan, { props: { years: [yr] } });
+      expect(
+         screen.getByText('(!) Spending limited to available income'),
+      ).toBeInTheDocument();
+   });
+
+   it('hides spending limited warning when spending_limited is false', () => {
+      render(WithdrawalPlan, {
+         props: { years: [makeYear({ spending_limited: false })] },
+      });
+      expect(
+         screen.queryByText('(!) Spending limited to available income'),
+      ).toBeNull();
    });
 });
