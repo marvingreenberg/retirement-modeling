@@ -106,8 +106,8 @@ class TestSalaryAutoModel:
 
 
 class TestRetirementGating:
-    def test_no_spending_withdrawals_pre_retirement(self) -> None:
-        """Pre-retirement years with salary covering expenses should have no spending withdrawals."""
+    def test_no_spending_withdrawals_pre_retirement_when_income_covers(self) -> None:
+        """Pre-retirement years with salary covering expenses need no spending withdrawals."""
         streams = [
             IncomeStream(
                 name="Salary",
@@ -121,17 +121,19 @@ class TestRetirementGating:
         portfolio = _make_portfolio(age=60, years=10, streams=streams, retirement_age=65)
         result = run_simulation(portfolio)
 
-        # Years 0-4 (ages 60-64): pre-retirement, salary covers expenses
+        # Years 0-4 (ages 60-64): salary covers spending, so no pretax/roth withdrawals needed.
+        # Age-restricted accounts (IRA) should not be touched; brokerage (available_at_age=0)
+        # is available but unnecessary since salary > spending.
         for i in range(5):
             yr = result.years[i]
-            assert (
-                yr.pretax_withdrawal == 0
-            ), f"Year {i} (age {yr.age_primary}): unexpected pretax withdrawal"
-            assert (
-                yr.roth_withdrawal == 0
-            ), f"Year {i} (age {yr.age_primary}): unexpected roth withdrawal"
+            assert yr.pretax_withdrawal == 0, (
+                f"Year {i} (age {yr.age_primary}): unexpected pretax withdrawal"
+            )
+            assert yr.roth_withdrawal == 0, (
+                f"Year {i} (age {yr.age_primary}): unexpected roth withdrawal"
+            )
 
-        # Years 5+ (ages 65+): retired, withdrawals should occur to cover spending
+        # Years 5+ (ages 65+): no income, withdrawals should occur to cover spending
         has_withdrawal = False
         for i in range(5, len(result.years)):
             yr = result.years[i]
@@ -139,6 +141,25 @@ class TestRetirementGating:
                 has_withdrawal = True
                 break
         assert has_withdrawal, "Expected spending withdrawals after retirement"
+
+    def test_age_restricted_accounts_blocked_pre_retirement(self) -> None:
+        """IRA with available_at_age=60 should not be used at age 55 even without income."""
+        accounts = [
+            Account(
+                id="ira",
+                name="IRA",
+                balance=500_000,
+                type=AccountType.IRA,
+                owner=Owner.PRIMARY,
+                available_at_age=60,
+            ),
+        ]
+        portfolio = _make_portfolio(age=55, years=2, retirement_age=None, accounts=accounts)
+        result = run_simulation(portfolio)
+
+        yr = result.years[0]
+        assert yr.pretax_withdrawal == 0, "IRA should be blocked at age 55 (available_at_age=60)"
+        assert yr.spending_limited, "Spending should be limited when only account is age-restricted"
 
     def test_withdrawals_start_at_retirement(self) -> None:
         """The first year at retirement age should have withdrawals if needed."""
@@ -253,16 +274,16 @@ class TestRetirementGating:
                 len(salary_income) == 0
             ), f"Year {i} (age {yr.age_primary}): salary should not appear after end_age"
 
-    def test_tax_shortfall_uses_only_liquid_pre_retirement(self) -> None:
-        """Pre-retirement tax shortfall should be covered from brokerage only, not pretax/roth."""
-        # High employment income to generate a tax liability, with pretax and roth accounts
+    def test_tax_shortfall_uses_available_accounts(self) -> None:
+        """Tax shortfall withdrawals respect account age availability."""
+        # High employment income to generate tax liability; IRA age-restricted, brokerage available
         streams = [
             IncomeStream(
                 name="Salary",
                 kind="employment",
                 amount=200000,
-                start_age=60,
-                end_age=64,
+                start_age=55,
+                end_age=59,
                 taxable_pct=1.0,
             )
         ]
@@ -281,6 +302,7 @@ class TestRetirementGating:
                 balance=500_000,
                 type=AccountType.IRA,
                 owner=Owner.PRIMARY,
+                available_at_age=60,
             ),
             Account(
                 id="roth",
@@ -288,25 +310,26 @@ class TestRetirementGating:
                 balance=200_000,
                 type=AccountType.ROTH_IRA,
                 owner=Owner.PRIMARY,
+                available_at_age=60,
             ),
         ]
         portfolio = _make_portfolio(
-            age=60,
+            age=55,
             years=10,
             streams=streams,
-            retirement_age=65,
+            retirement_age=60,
             accounts=accounts,
         )
         result = run_simulation(portfolio)
 
-        # Pre-retirement years: no pretax or roth withdrawals for tax shortfall
+        # Ages 55-59: IRA/Roth age-restricted (available_at_age=60), so no pretax/roth withdrawals
         for i in range(5):
             yr = result.years[i]
             assert yr.pretax_withdrawal == 0, (
                 f"Year {i} (age {yr.age_primary}): pretax withdrawal {yr.pretax_withdrawal} "
-                "should be 0 pre-retirement"
+                "should be 0 when IRA is age-restricted"
             )
             assert yr.roth_withdrawal == 0, (
                 f"Year {i} (age {yr.age_primary}): roth withdrawal {yr.roth_withdrawal} "
-                "should be 0 pre-retirement"
+                "should be 0 when Roth is age-restricted"
             )

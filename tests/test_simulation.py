@@ -1461,3 +1461,81 @@ class TestBrokerageGainsTax:
         assert yr.brokerage_gains_tax >= 0
         # total_tax = income_tax + brokerage_gains_tax (IRMAA excluded)
         assert yr.total_tax == yr.income_tax + yr.brokerage_gains_tax
+
+
+class TestPreRetirementWithdrawals:
+    """Withdrawals are gated by account available_at_age, not retirement_age."""
+
+    def test_pre_retirement_withdraws_from_brokerage_when_income_insufficient(self):
+        """Age 55, no income, brokerage available → brokerage used, IRA blocked."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=55,
+                current_age_spouse=55,
+                simulation_years=1,
+                start_year=2026,
+                annual_spend_net=50000,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brok",
+                    name="Brokerage",
+                    balance=500_000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
+                ),
+                Account(
+                    id="ira",
+                    name="IRA",
+                    balance=500_000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
+                    available_at_age=60,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr = result.years[0]
+        assert yr.brokerage_withdrawal > 0, "Brokerage should fund spending at age 55"
+        assert yr.pretax_withdrawal == 0, "IRA (available_at_age=60) should be blocked at age 55"
+
+    def test_spending_limited_when_no_accounts_available(self):
+        """Age 55, only IRA (available_at_age=60), no income → spending_limited."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=55,
+                current_age_spouse=55,
+                simulation_years=1,
+                start_year=2026,
+                annual_spend_net=50000,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="ira",
+                    name="IRA",
+                    balance=500_000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
+                    available_at_age=60,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr = result.years[0]
+        assert yr.spending_limited is True, "Spending should be limited with no available accounts"
+        assert yr.spending_target < 50000, "Spending target should be capped below desired amount"
