@@ -1069,6 +1069,32 @@ class Test401kContributions:
                 pretax_401k=10000,
             )
 
+    def test_total_income_is_gross_of_401k(self):
+        """total_income should be gross salary, not net of 401k deductions."""
+        portfolio = self._make_portfolio(pretax_401k=22000)
+        result = run_simulation(portfolio)
+        yr0 = result.years[0]
+        # Gross salary is 150000; net would be 128000
+        assert yr0.total_income == 150000
+        assert yr0.pretax_401k_deposit == 22000
+
+    def test_401k_deposits_tracked_separately(self):
+        """Both pretax and roth 401k deposits should be populated in YearResult."""
+        portfolio = self._make_portfolio(pretax_401k=15000, roth_401k=5000)
+        result = run_simulation(portfolio)
+        yr0 = result.years[0]
+        assert yr0.pretax_401k_deposit == 15000
+        assert yr0.roth_401k_deposit == 5000
+
+    def test_total_income_gross_no_401k(self):
+        """When no 401k contributions, total_income equals gross salary."""
+        portfolio = self._make_portfolio(pretax_401k=0, roth_401k=0)
+        result = run_simulation(portfolio)
+        yr0 = result.years[0]
+        assert yr0.total_income == 150000
+        assert yr0.pretax_401k_deposit == 0
+        assert yr0.roth_401k_deposit == 0
+
 
 class TestSurplusRouting:
     """Tests for excess income routing waterfall."""

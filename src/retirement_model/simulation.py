@@ -327,6 +327,9 @@ def run_simulation(
 
         # Additional income streams (pensions, annuities, rental income, etc.)
         stream_income = 0.0
+        gross_stream_income = 0.0
+        total_pretax_401k = 0.0
+        total_roth_401k = 0.0
         stream_taxable = 0.0
         has_employment_income = False
         for stream in working_streams:
@@ -348,6 +351,8 @@ def run_simulation(
                     contrib_pretax = min(stream.pretax_401k, limit)
                     remaining_limit = limit - contrib_pretax
                     contrib_roth = min(stream.roth_401k, remaining_limit)
+                    total_pretax_401k += contrib_pretax
+                    total_roth_401k += contrib_roth
                     if contrib_pretax > 0:
                         deposit_to_account(
                             contrib_pretax, accounts, AccountType.TRADITIONAL_401K, stream.owner
@@ -360,6 +365,7 @@ def run_simulation(
                 net_income = adjusted - contrib_pretax - contrib_roth
                 net_taxable = adjusted * stream.taxable_pct - contrib_pretax
                 stream_income += net_income
+                gross_stream_income += adjusted
                 stream_taxable += max(0, net_taxable)
                 income_details.append(IncomeDetail(name=stream.name, amount=round(adjusted)))
 
@@ -630,7 +636,9 @@ def run_simulation(
                 total_balance=round(total_balance),
                 spending_target=round(total_spend_needed),
                 planned_expense=round(planned_expense_amount),
-                total_income=round(ss_income + stream_income),
+                total_income=round(ss_income + gross_stream_income),
+                pretax_401k_deposit=round(total_pretax_401k),
+                roth_401k_deposit=round(total_roth_401k),
                 income_tax=round(income_tax),
                 pretax_balance=round(get_total_balance_by_category(accounts, TaxCategory.PRETAX)),
                 roth_balance=round(
