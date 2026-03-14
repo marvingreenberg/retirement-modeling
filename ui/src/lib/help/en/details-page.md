@@ -14,6 +14,26 @@ Each row is one simulation year. Key columns include:
 - **Balances** — end-of-year balance for each account type
 - **Roth Conversions** — amount converted from pre-tax to Roth that year
 
+### Effective Tax Rate
+
+The **Eff Tax %** column replaces the old bracket column. It shows the overall tax burden for the year as a percentage:
+
+> (income tax + cap gains tax + conversion tax) ÷ (all income + all withdrawals)
+
+Color coding gives a quick read on tax efficiency: green below 18%, blending to red at 23% and above.
+
+### ∑ Tax PV (Cumulative Tax Present Value)
+
+This column accumulates the present value of taxes paid through each year. Each year's taxes are discounted back to today's dollars using the inflation rate, then added to the running total. It's most useful when comparing strategies on the Compare page — a lower final value means less total tax cost in real terms.
+
+### Conditional Columns
+
+Some columns are hidden when their values are zero across all simulated years: 401k deposits, cap gains tax, conversion tax, Roth conversions, IRMAA, income, and per-account withdrawal columns. This keeps the table readable for simpler scenarios. All columns are always included in CSV exports.
+
+### Row Selection
+
+Click any row to see that year's detailed withdrawal plan displayed above the table. The breakdown shows exactly how spending was covered — which accounts were tapped and in what order.
+
 ### When to Use Details
 
 The charts show trends — Details shows exact numbers. Use it when you want to:
@@ -21,4 +41,4 @@ The charts show trends — Details shows exact numbers. Use it when you want to:
 - Check a specific year's tax bill or withdrawal amount
 - Understand why a chart shows an unusual spike or dip
 - Verify that income streams start and stop at the right ages
-- See how Roth conversions interact with tax brackets year by year
+- See how Roth conversions interact with tax rates year by year
