@@ -124,6 +124,11 @@ export const helpCategories: HelpCategory[] = [
             name: 'Compare View',
             related: ['details-page', 'monte-carlo'],
          },
+         {
+            id: 'present-value',
+            name: 'Present Value (PV $)',
+            related: ['details-page', 'compare-page'],
+         },
       ],
    },
 ];
