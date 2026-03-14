@@ -11,6 +11,8 @@
       ChartEvent,
    } from '$lib/types';
    import { BarChart3, TrendingUp, ShieldCheck } from 'lucide-svelte';
+   import { pvMode, portfolio } from '$lib/stores';
+   import { toPV } from '$lib/presentValue';
 
    let {
       singleResult = null,
@@ -39,6 +41,29 @@
          return inflated + y.planned_expense;
       });
    });
+
+   let inflationRate = $derived(portfolio.value.config.inflation_rate ?? 0.03);
+
+   let pvTotalTaxes = $derived.by(() => {
+      if (!singleResult) return 0;
+      return singleResult.result.years.reduce(
+         (sum, yr, i) => sum + toPV(yr.total_tax, inflationRate, i),
+         0,
+      );
+   });
+
+   let pvTotalIrmaa = $derived.by(() => {
+      if (!singleResult) return 0;
+      return singleResult.result.years.reduce(
+         (sum, yr, i) => sum + toPV(yr.irmaa_cost, inflationRate, i),
+         0,
+      );
+   });
+
+   let taxLabel = $derived(pvMode.value ? 'Total Taxes (PV $)' : 'Total Taxes');
+   let irmaaLabel = $derived(
+      pvMode.value ? 'Total IRMAA (PV $)' : 'Total IRMAA',
+   );
 </script>
 
 <div class="space-y-4">
@@ -89,6 +114,15 @@
    <!-- Single run tab -->
    {#if activeTab === 'single'}
       {#if singleResult}
+         <label class="flex items-center gap-2 text-sm">
+            <input
+               type="checkbox"
+               class="checkbox"
+               bind:checked={pvMode.value}
+            />
+            Present Value $
+         </label>
+
          <div class="card bg-surface-100 dark:bg-surface-800 p-4">
             <h3
                class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"
@@ -124,17 +158,25 @@
                   >
                </div>
                <div class="flex flex-col gap-0.5">
-                  <span class="text-xs text-surface-500">Total Taxes</span>
+                  <span class="text-xs text-surface-500">{taxLabel}</span>
                   <span
                      class="text-base font-bold text-surface-900 dark:text-surface-50"
-                     >{currency(singleResult.summary.total_taxes_paid)}</span
+                     >{currency(
+                        pvMode.value
+                           ? pvTotalTaxes
+                           : singleResult.summary.total_taxes_paid,
+                     )}</span
                   >
                </div>
                <div class="flex flex-col gap-0.5">
-                  <span class="text-xs text-surface-500">Total IRMAA</span>
+                  <span class="text-xs text-surface-500">{irmaaLabel}</span>
                   <span
                      class="text-base font-bold text-surface-900 dark:text-surface-50"
-                     >{currency(singleResult.summary.total_irmaa_paid)}</span
+                     >{currency(
+                        pvMode.value
+                           ? pvTotalIrmaa
+                           : singleResult.summary.total_irmaa_paid,
+                     )}</span
                   >
                </div>
                <div class="flex flex-col gap-0.5">
