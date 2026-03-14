@@ -6,6 +6,8 @@
    import ChartEventOverlay from './ChartEventOverlay.svelte';
    import HelpButton from '$lib/components/HelpButton.svelte';
    import { formatTick } from './formatTick';
+   import { pvDivisor } from '$lib/presentValue';
+   import { pvMode, portfolio } from '$lib/stores';
 
    function totalAvailableForYear(y: YearResult): number {
       return y.spending_target + y.surplus + y.total_tax + y.irmaa_cost;
@@ -38,6 +40,8 @@
    function buildChart() {
       chart?.destroy();
       const labels = years.map((y) => `${y.year}`);
+      const isPv = pvMode.value;
+      const inflationRate = portfolio.value.config.inflation_rate;
 
       const areaStyle = {
          borderWidth: 1.5,
@@ -47,16 +51,19 @@
          stack: 'spending',
       };
 
-      const baseSpendingData = years.map(
-         (y) => y.spending_target - y.planned_expense,
+      const pv = (v: number, idx: number) =>
+         isPv ? v / pvDivisor(inflationRate, idx) : v;
+
+      const baseSpendingData = years.map((y, idx) =>
+         pv(y.spending_target - y.planned_expense, idx),
       );
-      const expenseData = years.map((y) => y.planned_expense);
-      const incomeTaxData = years.map((y) =>
-         Math.max(0, y.total_tax - y.conversion_tax - y.irmaa_cost),
+      const expenseData = years.map((y, idx) => pv(y.planned_expense, idx));
+      const incomeTaxData = years.map((y, idx) =>
+         pv(Math.max(0, y.total_tax - y.conversion_tax - y.irmaa_cost), idx),
       );
-      const irmaaData = years.map((y) => y.irmaa_cost);
-      const convTaxData = years.map((y) => y.conversion_tax);
-      const surplusData = years.map((y) => y.surplus);
+      const irmaaData = years.map((y, idx) => pv(y.irmaa_cost, idx));
+      const convTaxData = years.map((y, idx) => pv(y.conversion_tax, idx));
+      const surplusData = years.map((y, idx) => pv(y.surplus, idx));
 
       // Bottom to top: spending, expenses, income tax, conv tax, IRMAA, surplus
       // order controls legend sorting (lower = listed first) and draw z-order
@@ -115,7 +122,7 @@
          ? [
               {
                  label: 'Desired Spending',
-                 data: desiredSpending,
+                 data: desiredSpending.map((v, idx) => pv(v, idx)),
                  borderColor: '#6366f1',
                  borderDash: [6, 3],
                  borderWidth: 2,
@@ -193,6 +200,10 @@
                x: { stacked: true },
                y: {
                   stacked: true,
+                  title: {
+                     display: isPv,
+                     text: 'Annual Spending (PV $)',
+                  },
                   ticks: {
                      callback: (v) => formatTick(v as number),
                   },
@@ -205,7 +216,10 @@
    onMount(() => buildChart());
 
    $effect(() => {
+      // Read pvMode.value outside untrack so chart rebuilds on PV toggle
+      const _pv = pvMode.value;
       if (canvas && years) untrack(() => buildChart());
+      void _pv;
    });
 </script>
 
