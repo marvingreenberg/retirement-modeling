@@ -67,6 +67,47 @@ def register_loader(loader: PortfolioLoader) -> None:
     _loaders.insert(0, loader)
 
 
+def scale_portfolio(portfolio: Portfolio, factor: float) -> Portfolio:
+    """Scale all dollar-denominated values in a portfolio by the given factor.
+
+    Scales balances, spending, income, SS benefits, and planned expenses.
+    Does NOT scale tax brackets, IRMAA limits, or rates/percentages.
+    """
+    portfolio = portfolio.model_copy(deep=True)
+    for acc in portfolio.accounts:
+        acc.balance = round(acc.balance * factor, 2)
+
+    cfg = portfolio.config
+    cfg.annual_spend_net = round(cfg.annual_spend_net * factor, 2)
+
+    cfg.social_security.primary_benefit = round(cfg.social_security.primary_benefit * factor, 2)
+    cfg.social_security.spouse_benefit = round(cfg.social_security.spouse_benefit * factor, 2)
+
+    for expense in cfg.planned_expenses:
+        expense.amount = round(expense.amount * factor, 2)
+
+    for stream in cfg.income_streams:
+        stream.amount = round(stream.amount * factor, 2)
+        stream.pretax_401k = round(stream.pretax_401k * factor, 2)
+        stream.roth_401k = round(stream.roth_401k * factor, 2)
+
+    if cfg.ss_auto:
+        cfg.ss_auto.primary_fra_amount = round(cfg.ss_auto.primary_fra_amount * factor, 2)
+        if cfg.ss_auto.spouse_fra_amount is not None:
+            cfg.ss_auto.spouse_fra_amount = round(cfg.ss_auto.spouse_fra_amount * factor, 2)
+
+    if cfg.salary_auto:
+        cfg.salary_auto.primary_salary = round(cfg.salary_auto.primary_salary * factor, 2)
+        cfg.salary_auto.primary_pretax_401k = round(cfg.salary_auto.primary_pretax_401k * factor, 2)
+        cfg.salary_auto.primary_roth_401k = round(cfg.salary_auto.primary_roth_401k * factor, 2)
+        if cfg.salary_auto.spouse_salary is not None:
+            cfg.salary_auto.spouse_salary = round(cfg.salary_auto.spouse_salary * factor, 2)
+        cfg.salary_auto.spouse_pretax_401k = round(cfg.salary_auto.spouse_pretax_401k * factor, 2)
+        cfg.salary_auto.spouse_roth_401k = round(cfg.salary_auto.spouse_roth_401k * factor, 2)
+
+    return portfolio
+
+
 def load_portfolio(source: str) -> Portfolio:
     """Load a portfolio from the given source.
 

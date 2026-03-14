@@ -250,7 +250,7 @@ def run_simulation(
         year_return = (
             returns_sequence[year_idx]
             if returns_sequence and year_idx < len(returns_sequence)
-            else None
+            else cfg.growth_rate_override
         )
 
         # Calculate current total balance for spending strategies that need it
@@ -693,5 +693,6 @@ def run_simulation(
     return SimulationResult(
         strategy=cfg.strategy_target,
         spending_strategy=cfg.spending_strategy,
+        withdrawal_order=cfg.withdrawal_order,
         years=results,
     )

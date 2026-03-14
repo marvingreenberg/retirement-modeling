@@ -2,7 +2,6 @@
 
 import pytest
 
-from retirement_model.models import TaxBracket
 from retirement_model.taxes import (
     calculate_capital_gains_tax,
     calculate_income_tax,
@@ -36,7 +35,7 @@ class TestGetMarginalTaxRate:
         assert get_marginal_tax_rate(1000000) == 0.37
 
     def test_custom_brackets(self):
-        custom = [TaxBracket(limit=50000, rate=0.15), TaxBracket(limit=100000, rate=0.25)]
+        custom = [{"limit": 50000, "rate": 0.15}, {"limit": 100000, "rate": 0.25}]
         assert get_marginal_tax_rate(30000, custom) == 0.15
         assert get_marginal_tax_rate(75000, custom) == 0.25
 

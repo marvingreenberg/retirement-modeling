@@ -1108,6 +1108,62 @@ class Test401kContributions:
         assert yr0.roth_401k_deposit == 0
 
 
+class TestEffectiveRateWithholding:
+    """Effective tax rate should minimize spurious surplus from over-withholding."""
+
+    def test_salary_covering_spending_minimal_surplus(self):
+        """When salary covers spending, brokerage withdrawal for taxes should not
+        create large surplus — effective rate withholding should be close to actual tax."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=64,
+                current_age_spouse=62,
+                simulation_years=1,
+                start_year=2026,
+                annual_spend_net=200000,
+                strategy_target=ConversionStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+                income_streams=[
+                    IncomeStream(
+                        name="Salary",
+                        kind=IncomeKind.EMPLOYMENT,
+                        amount=200000,
+                        start_age=60,
+                        end_age=65,
+                        pretax_401k=22000,
+                    ),
+                ],
+            ),
+            accounts=[
+                Account(
+                    id="brk",
+                    name="Brokerage",
+                    balance=500000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.25,
+                ),
+                Account(
+                    id="ira",
+                    name="IRA",
+                    balance=500000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
+                ),
+            ],
+        )
+
+        result = run_simulation(portfolio)
+        yr = result.years[0]
+        # Surplus should be small — under $2K — since effective rate closely matches actual tax
+        assert yr.surplus < 2000, f"Surplus too large: ${yr.surplus:,.0f}"
+
+
 class TestSurplusRouting:
     """Tests for excess income routing waterfall."""
 

@@ -166,6 +166,112 @@ class TestCompareCommand:
         assert result.exit_code == 0
 
 
+class TestRunOverrideFlags:
+    def test_growth_rate_override(self, runner: CliRunner, sample_portfolio_file: Path):
+        result = runner.invoke(
+            main,
+            ["run", str(sample_portfolio_file), "-f", "summary", "--growth-rate", "0.04"],
+        )
+        assert result.exit_code == 0
+        assert "Final Balance" in result.output
+
+    def test_spending_override(self, runner: CliRunner, sample_portfolio_file: Path):
+        result = runner.invoke(
+            main,
+            ["run", str(sample_portfolio_file), "-f", "summary", "--spending", "80000"],
+        )
+        assert result.exit_code == 0
+        assert "Final Balance" in result.output
+
+    def test_scale_override(self, runner: CliRunner, sample_portfolio_file: Path):
+        result = runner.invoke(
+            main,
+            ["run", str(sample_portfolio_file), "-f", "summary", "--scale", "0.5"],
+        )
+        assert result.exit_code == 0
+        assert "Final Balance" in result.output
+
+    def test_growth_rate_affects_results(self, runner: CliRunner, sample_portfolio_file: Path):
+        low = runner.invoke(
+            main,
+            ["run", str(sample_portfolio_file), "-f", "json", "--growth-rate", "0.02"],
+        )
+        high = runner.invoke(
+            main,
+            ["run", str(sample_portfolio_file), "-f", "json", "--growth-rate", "0.10"],
+        )
+        low_final = json.loads(low.output)["years"][-1]["total_balance"]
+        high_final = json.loads(high.output)["years"][-1]["total_balance"]
+        assert high_final > low_final
+
+    def test_scale_halves_balance(self, runner: CliRunner, sample_portfolio_file: Path):
+        base = runner.invoke(main, ["validate", str(sample_portfolio_file)])
+        scaled = runner.invoke(main, ["validate", str(sample_portfolio_file), "--scale", "0.5"])
+        assert "$800,000" in base.output
+        assert "$400,000" in scaled.output
+
+    def test_combined_overrides(self, runner: CliRunner, sample_portfolio_file: Path):
+        result = runner.invoke(
+            main,
+            [
+                "run",
+                str(sample_portfolio_file),
+                "-f",
+                "summary",
+                "--growth-rate",
+                "0.05",
+                "--spending",
+                "80000",
+                "--scale",
+                "0.75",
+            ],
+        )
+        assert result.exit_code == 0
+
+
+class TestCompareOverrideFlags:
+    def test_compare_with_scale(self, runner: CliRunner, sample_portfolio_file: Path):
+        result = runner.invoke(
+            main,
+            ["compare", str(sample_portfolio_file), "-s", "standard", "--scale", "0.5"],
+        )
+        assert result.exit_code == 0
+
+    def test_compare_with_growth_rate(self, runner: CliRunner, sample_portfolio_file: Path):
+        result = runner.invoke(
+            main,
+            ["compare", str(sample_portfolio_file), "-s", "standard", "--growth-rate", "0.05"],
+        )
+        assert result.exit_code == 0
+
+
+class TestWithdrawalOrder:
+    def test_pretax_first(self, runner: CliRunner, sample_portfolio_file: Path):
+        result = runner.invoke(
+            main, ["run", str(sample_portfolio_file), "-f", "summary", "--pretax-first"]
+        )
+        assert result.exit_code == 0
+
+    def test_brokerage_first_explicit(self, runner: CliRunner, sample_portfolio_file: Path):
+        result = runner.invoke(
+            main, ["run", str(sample_portfolio_file), "-f", "summary", "--brokerage-first"]
+        )
+        assert result.exit_code == 0
+
+    def test_pretax_first_on_compare(self, runner: CliRunner, sample_portfolio_file: Path):
+        result = runner.invoke(
+            main, ["compare", str(sample_portfolio_file), "-s", "standard", "--pretax-first"]
+        )
+        assert result.exit_code == 0
+
+
+class TestValidateScale:
+    def test_validate_with_scale(self, runner: CliRunner, sample_portfolio_file: Path):
+        result = runner.invoke(main, ["validate", str(sample_portfolio_file), "--scale", "0.5"])
+        assert result.exit_code == 0
+        assert "$400,000" in result.output
+
+
 class TestVersionOption:
     def test_version(self, runner: CliRunner):
         result = runner.invoke(main, ["--version"])

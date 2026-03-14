@@ -5,8 +5,13 @@ from pathlib import Path
 
 import click
 
-from retirement_model.loader import load_portfolio
-from retirement_model.models import ConversionStrategy, SpendingStrategy
+from retirement_model.loader import load_portfolio, scale_portfolio
+from retirement_model.models import (
+    ConversionStrategy,
+    Portfolio,
+    SpendingStrategy,
+    WithdrawalCategory,
+)
 from retirement_model.monte_carlo import (
     format_full_monte_carlo_result,
     format_monte_carlo_result,
@@ -15,6 +20,50 @@ from retirement_model.monte_carlo import (
 )
 from retirement_model.output import OutputFormat, compare_results, print_results
 from retirement_model.simulation import run_simulation
+
+
+def _apply_overrides(
+    portfolio_file: Path,
+    strategy: str | None = None,
+    spending_strategy: str | None = None,
+    withdrawal_rate: float | None = None,
+    growth_rate: float | None = None,
+    spending: float | None = None,
+    scale: float | None = None,
+    pretax_first: bool = False,
+) -> Portfolio:
+    """Load portfolio and apply CLI overrides."""
+    try:
+        portfolio = load_portfolio(str(portfolio_file))
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+    if scale is not None:
+        portfolio = scale_portfolio(portfolio, scale)
+
+    if strategy:
+        portfolio.config.strategy_target = ConversionStrategy(strategy)
+    if spending_strategy:
+        portfolio.config.spending_strategy = SpendingStrategy(spending_strategy)
+    if withdrawal_rate is not None:
+        portfolio.config.withdrawal_rate = withdrawal_rate
+    if growth_rate is not None:
+        portfolio.config.growth_rate_override = growth_rate
+    if spending is not None:
+        portfolio.config.annual_spend_net = spending
+    if pretax_first:
+        portfolio.config.withdrawal_order = PRETAX_FIRST_ORDER
+
+    return portfolio
+
+
+PRETAX_FIRST_ORDER = [
+    WithdrawalCategory.CASH,
+    WithdrawalCategory.PRETAX,
+    WithdrawalCategory.BROKERAGE,
+    WithdrawalCategory.ROTH,
+]
 
 
 @click.group()
@@ -43,6 +92,29 @@ def main() -> None:
     type=float,
     default=None,
     help="Override withdrawal rate for percent_of_portfolio strategy (e.g., 0.04 for 4%).",
+)
+@click.option(
+    "--growth-rate",
+    type=float,
+    default=None,
+    help="Override investment growth rate for all accounts (e.g., 0.06 for 6%).",
+)
+@click.option(
+    "--spending",
+    type=float,
+    default=None,
+    help="Override annual spending amount in dollars (e.g., 100000).",
+)
+@click.option(
+    "--scale",
+    type=float,
+    default=None,
+    help="Scale all dollar amounts by this factor (e.g., 0.5 halves the portfolio).",
+)
+@click.option(
+    "--pretax-first/--brokerage-first",
+    default=False,
+    help="Withdrawal order: --pretax-first = cash,pretax,brokerage,roth (default: brokerage first).",
 )
 @click.option(
     "--output-format",
@@ -82,6 +154,10 @@ def run(
     strategy: str | None,
     spending_strategy: str | None,
     withdrawal_rate: float | None,
+    growth_rate: float | None,
+    spending: float | None,
+    scale: float | None,
+    pretax_first: bool,
     output_format: str,
     output_file: Path | None,
     with_montecarlo: bool,
@@ -89,20 +165,16 @@ def run(
     seed: int | None,
 ) -> None:
     """Run the retirement simulation on a portfolio file."""
-    try:
-        portfolio = load_portfolio(str(portfolio_file))
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-    if strategy:
-        portfolio.config.strategy_target = ConversionStrategy(strategy)
-
-    if spending_strategy:
-        portfolio.config.spending_strategy = SpendingStrategy(spending_strategy)
-
-    if withdrawal_rate is not None:
-        portfolio.config.withdrawal_rate = withdrawal_rate
+    portfolio = _apply_overrides(
+        portfolio_file,
+        strategy,
+        spending_strategy,
+        withdrawal_rate,
+        growth_rate,
+        spending,
+        scale,
+        pretax_first,
+    )
 
     if with_montecarlo:
         click.echo(f"Running {montecarlo_iterations} Monte Carlo simulations...")
@@ -140,15 +212,46 @@ def run(
     multiple=True,
     help="Spending strategies to compare (can specify multiple).",
 )
+@click.option(
+    "--growth-rate",
+    type=float,
+    default=None,
+    help="Override investment growth rate for all accounts (e.g., 0.06 for 6%).",
+)
+@click.option(
+    "--spending",
+    type=float,
+    default=None,
+    help="Override annual spending amount in dollars (e.g., 100000).",
+)
+@click.option(
+    "--scale",
+    type=float,
+    default=None,
+    help="Scale all dollar amounts by this factor (e.g., 0.5 halves the portfolio).",
+)
+@click.option(
+    "--pretax-first/--brokerage-first",
+    default=False,
+    help="Withdrawal order: --pretax-first = cash,pretax,brokerage,roth (default: brokerage first).",
+)
 def compare(
-    portfolio_file: Path, strategy: tuple[str, ...], spending_strategy: tuple[str, ...]
+    portfolio_file: Path,
+    strategy: tuple[str, ...],
+    spending_strategy: tuple[str, ...],
+    growth_rate: float | None,
+    spending: float | None,
+    scale: float | None,
+    pretax_first: bool,
 ) -> None:
     """Compare multiple strategies."""
-    try:
-        base_portfolio = load_portfolio(str(portfolio_file))
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
+    base_portfolio = _apply_overrides(
+        portfolio_file,
+        growth_rate=growth_rate,
+        spending=spending,
+        scale=scale,
+        pretax_first=pretax_first,
+    )
 
     conv_strategies = (
         [ConversionStrategy(s) for s in strategy] if strategy else [ConversionStrategy.IRMAA_TIER_1]
@@ -172,19 +275,29 @@ def compare(
 
 @main.command()
 @click.argument("portfolio_file", type=click.Path(exists=True, path_type=Path))
-def validate(portfolio_file: Path) -> None:
+@click.option(
+    "--scale",
+    type=float,
+    default=None,
+    help="Scale all dollar amounts by this factor (e.g., 0.5 halves the portfolio).",
+)
+def validate(portfolio_file: Path, scale: float | None) -> None:
     """Validate a portfolio file without running simulation."""
     try:
         portfolio = load_portfolio(str(portfolio_file))
-        click.echo("Portfolio is valid.")
-        click.echo(f"  Accounts: {len(portfolio.accounts)}")
-        click.echo(f"  Total Balance: ${sum(a.balance for a in portfolio.accounts):,.0f}")
-        click.echo(f"  Conversion Strategy: {portfolio.config.strategy_target.value}")
-        click.echo(f"  Spending Strategy: {portfolio.config.spending_strategy.value}")
-        click.echo(f"  Simulation Years: {portfolio.config.simulation_years}")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+    if scale is not None:
+        portfolio = scale_portfolio(portfolio, scale)
+
+    click.echo("Portfolio is valid.")
+    click.echo(f"  Accounts: {len(portfolio.accounts)}")
+    click.echo(f"  Total Balance: ${sum(a.balance for a in portfolio.accounts):,.0f}")
+    click.echo(f"  Conversion Strategy: {portfolio.config.strategy_target.value}")
+    click.echo(f"  Spending Strategy: {portfolio.config.spending_strategy.value}")
+    click.echo(f"  Simulation Years: {portfolio.config.simulation_years}")
 
 
 @main.command()
@@ -248,25 +361,50 @@ def strategies() -> None:
     default=None,
     help="Override withdrawal rate (e.g., 0.04 for 4%).",
 )
+@click.option(
+    "--growth-rate",
+    type=float,
+    default=None,
+    help="Override investment growth rate for all accounts (e.g., 0.06 for 6%).",
+)
+@click.option(
+    "--spending",
+    type=float,
+    default=None,
+    help="Override annual spending amount in dollars (e.g., 100000).",
+)
+@click.option(
+    "--scale",
+    type=float,
+    default=None,
+    help="Scale all dollar amounts by this factor (e.g., 0.5 halves the portfolio).",
+)
+@click.option(
+    "--pretax-first/--brokerage-first",
+    default=False,
+    help="Withdrawal order: --pretax-first = cash,pretax,brokerage,roth (default: brokerage first).",
+)
 def monte_carlo(
     portfolio_file: Path,
     simulations: int,
     seed: int | None,
     spending_strategy: str | None,
     withdrawal_rate: float | None,
+    growth_rate: float | None,
+    spending: float | None,
+    scale: float | None,
+    pretax_first: bool,
 ) -> None:
     """Run Monte Carlo simulation to assess portfolio survival probability."""
-    try:
-        portfolio = load_portfolio(str(portfolio_file))
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-    if spending_strategy:
-        portfolio.config.spending_strategy = SpendingStrategy(spending_strategy)
-
-    if withdrawal_rate is not None:
-        portfolio.config.withdrawal_rate = withdrawal_rate
+    portfolio = _apply_overrides(
+        portfolio_file,
+        spending_strategy=spending_strategy,
+        withdrawal_rate=withdrawal_rate,
+        growth_rate=growth_rate,
+        spending=spending,
+        scale=scale,
+        pretax_first=pretax_first,
+    )
 
     click.echo(f"Running {simulations} Monte Carlo simulations...")
     result = run_monte_carlo(portfolio, num_simulations=simulations, seed=seed)

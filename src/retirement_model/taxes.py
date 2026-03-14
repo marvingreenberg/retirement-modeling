@@ -12,7 +12,6 @@ from retirement_model.constants import (
     STANDARD_DEDUCTION_MFJ,
     BracketDict,
 )
-from retirement_model.models import TaxBracket
 
 
 def inflate_brackets(brackets: list[BracketDict], factor: float) -> list[BracketDict]:
@@ -28,13 +27,7 @@ def inflate_brackets(brackets: list[BracketDict], factor: float) -> list[Bracket
 
 def get_marginal_tax_rate(income: float, brackets: list[BracketDict] | None = None) -> float:
     """Get the marginal federal tax rate for a given income level."""
-    if brackets:
-        if isinstance(brackets[0], dict):
-            bracket_list = brackets
-        else:
-            bracket_list = [{"limit": b.limit, "rate": b.rate} for b in brackets]
-    else:
-        bracket_list = FEDERAL_TAX_BRACKETS_MFJ
+    bracket_list = brackets or FEDERAL_TAX_BRACKETS_MFJ
 
     for bracket in bracket_list:
         if income < bracket["limit"]:
@@ -118,13 +111,7 @@ def calculate_income_tax(
     if taxable_income <= 0:
         return 0.0
 
-    if brackets:
-        if isinstance(brackets[0], dict):
-            bracket_list = brackets
-        else:
-            bracket_list = [{"limit": b.limit, "rate": b.rate} for b in brackets]
-    else:
-        bracket_list = FEDERAL_TAX_BRACKETS_MFJ
+    bracket_list = brackets or FEDERAL_TAX_BRACKETS_MFJ
 
     federal_tax = 0.0
     prev_limit = 0.0

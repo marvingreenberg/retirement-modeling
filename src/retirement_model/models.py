@@ -338,6 +338,7 @@ class SimulationConfig(BaseModel):
     annual_spend_net: float = Field(gt=0)
     inflation_rate: float = Field(default=DEFAULT_INFLATION_RATE, ge=0, le=0.5)
     conservative_growth: bool = Field(default=False)
+    growth_rate_override: float | None = Field(default=None, ge=0.0, le=0.30)
 
     # Conversion strategy (Roth conversion ceiling)
     strategy_target: ConversionStrategy = ConversionStrategy.IRMAA_TIER_1
@@ -461,6 +462,9 @@ class SimulationResult(BaseModel):
 
     strategy: ConversionStrategy
     spending_strategy: SpendingStrategy = SpendingStrategy.FIXED_DOLLAR
+    withdrawal_order: list[WithdrawalCategory] = Field(
+        default_factory=lambda: list(DEFAULT_WITHDRAWAL_ORDER)
+    )
     years: list[YearResult]
 
     @property

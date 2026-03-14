@@ -6,7 +6,13 @@ from typing import IO
 
 import pandas as pd  # type: ignore[import-untyped]
 
-from retirement_model.models import ConversionStrategy, SimulationResult, SpendingStrategy
+from retirement_model.models import (
+    DEFAULT_WITHDRAWAL_ORDER,
+    ConversionStrategy,
+    SimulationResult,
+    SpendingStrategy,
+    WithdrawalCategory,
+)
 
 
 class OutputFormat(str, Enum):
@@ -42,6 +48,22 @@ def get_spending_strategy_description(strategy: SpendingStrategy) -> str:
             return "Guardrails (Guyton-Klinger)"
         case _:
             return str(strategy.value)
+
+
+WITHDRAWAL_LABELS: dict[WithdrawalCategory, str] = {
+    WithdrawalCategory.CASH: "Cash/CD",
+    WithdrawalCategory.BROKERAGE: "Brokerage",
+    WithdrawalCategory.PRETAX: "IRA/401K",
+    WithdrawalCategory.ROTH: "Roth IRA",
+}
+
+
+def get_withdrawal_order_description(order: list[WithdrawalCategory]) -> str:
+    """Get a human-readable description of the withdrawal order."""
+    if order == list(DEFAULT_WITHDRAWAL_ORDER):
+        return "Brokerage first"
+    labels = [WITHDRAWAL_LABELS[c] for c in order if c != WithdrawalCategory.CASH]
+    return " → ".join(labels)
 
 
 def results_to_dataframe(result: SimulationResult) -> pd.DataFrame:
@@ -92,6 +114,7 @@ def format_summary(result: SimulationResult) -> str:
     lines = [
         f"Conversion Strategy: {get_strategy_description(result.strategy)}",
         f"Spending Strategy: {get_spending_strategy_description(result.spending_strategy)}",
+        f"Withdrawal Order: {get_withdrawal_order_description(result.withdrawal_order)}",
         "",
         f"Simulation Period: Age {result.years[0].age_primary} - {result.years[-1].age_primary}",
         f"Starting Balance: ${result.years[0].total_balance:,.0f}",
@@ -117,7 +140,8 @@ def print_results(
     """Print simulation results in the specified format."""
     output: IO[str] = file or StringIO()
 
-    header = f"Strategy: {get_strategy_description(result.strategy)}"
+    wd_desc = get_withdrawal_order_description(result.withdrawal_order)
+    header = f"Strategy: {get_strategy_description(result.strategy)} | WD: {wd_desc}"
     separator = "-" * 60
 
     match output_format:

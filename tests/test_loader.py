@@ -6,7 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from retirement_model.loader import FileLoader, PortfolioLoader, load_portfolio, register_loader
+from retirement_model.loader import (
+    FileLoader,
+    PortfolioLoader,
+    load_portfolio,
+    register_loader,
+    scale_portfolio,
+)
 from retirement_model.models import Portfolio
 
 
@@ -104,3 +110,79 @@ class TestRegisterLoader:
 
         portfolio = load_portfolio("mock://test")
         assert isinstance(portfolio, Portfolio)
+
+
+class TestScalePortfolio:
+    def test_scales_account_balances(self, portfolio_file: Path):
+        portfolio = load_portfolio(str(portfolio_file))
+        scaled = scale_portfolio(portfolio, 0.5)
+        assert scaled.accounts[0].balance == 250000
+
+    def test_scales_spending(self, portfolio_file: Path):
+        portfolio = load_portfolio(str(portfolio_file))
+        scaled = scale_portfolio(portfolio, 0.5)
+        assert scaled.config.annual_spend_net == 50000
+
+    def test_scales_social_security(self, portfolio_file: Path):
+        portfolio = load_portfolio(str(portfolio_file))
+        scaled = scale_portfolio(portfolio, 0.5)
+        assert scaled.config.social_security.primary_benefit == 18000
+        assert scaled.config.social_security.spouse_benefit == 9000
+
+    def test_does_not_mutate_original(self, portfolio_file: Path):
+        portfolio = load_portfolio(str(portfolio_file))
+        original_balance = portfolio.accounts[0].balance
+        scale_portfolio(portfolio, 0.5)
+        assert portfolio.accounts[0].balance == original_balance
+
+    def test_preserves_cost_basis_ratio(self, portfolio_file: Path):
+        portfolio = load_portfolio(str(portfolio_file))
+        scaled = scale_portfolio(portfolio, 0.5)
+        assert scaled.accounts[0].cost_basis_ratio == portfolio.accounts[0].cost_basis_ratio
+
+    def test_scales_planned_expenses(self, sample_portfolio_data: dict):
+        sample_portfolio_data["config"]["planned_expenses"] = [
+            {"name": "Roof", "amount": 20000, "expense_type": "one_time", "year": 2028}
+        ]
+        portfolio = Portfolio.model_validate(sample_portfolio_data)
+        scaled = scale_portfolio(portfolio, 0.25)
+        assert scaled.config.planned_expenses[0].amount == 5000
+
+    def test_scales_income_streams(self, sample_portfolio_data: dict):
+        sample_portfolio_data["config"]["income_streams"] = [
+            {"name": "Pension", "amount": 40000, "start_age": 65, "kind": "pension"}
+        ]
+        portfolio = Portfolio.model_validate(sample_portfolio_data)
+        scaled = scale_portfolio(portfolio, 0.5)
+        assert scaled.config.income_streams[0].amount == 20000
+
+    def test_scales_ss_auto(self, sample_portfolio_data: dict):
+        sample_portfolio_data["config"]["ss_auto"] = {
+            "primary_fra_amount": 30000,
+            "primary_start_age": 67,
+            "spouse_fra_amount": 15000,
+            "spouse_start_age": 67,
+        }
+        portfolio = Portfolio.model_validate(sample_portfolio_data)
+        scaled = scale_portfolio(portfolio, 0.5)
+        assert scaled.config.ss_auto is not None
+        assert scaled.config.ss_auto.primary_fra_amount == 15000
+        assert scaled.config.ss_auto.spouse_fra_amount == 7500
+
+    def test_scales_salary_auto(self, sample_portfolio_data: dict):
+        sample_portfolio_data["config"]["salary_auto"] = {
+            "primary_salary": 120000,
+            "primary_pretax_401k": 23000,
+            "primary_roth_401k": 0,
+        }
+        portfolio = Portfolio.model_validate(sample_portfolio_data)
+        scaled = scale_portfolio(portfolio, 0.5)
+        assert scaled.config.salary_auto is not None
+        assert scaled.config.salary_auto.primary_salary == 60000
+        assert scaled.config.salary_auto.primary_pretax_401k == 11500
+
+    def test_scale_factor_one_is_identity(self, portfolio_file: Path):
+        portfolio = load_portfolio(str(portfolio_file))
+        scaled = scale_portfolio(portfolio, 1.0)
+        assert scaled.accounts[0].balance == portfolio.accounts[0].balance
+        assert scaled.config.annual_spend_net == portfolio.config.annual_spend_net

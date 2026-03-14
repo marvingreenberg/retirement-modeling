@@ -46,21 +46,21 @@
       "id": "mg_ira",
       "name": "MG IRA",
       "balance": 557069,
-      "type": "pretax",
+      "type": "ira",
       "owner": "primary"
     },
     {
       "id": "my_roth",
       "name": "My Roth IRA",
       "balance": 97596,
-      "type": "roth",
+      "type": "roth_ira",
       "owner": "primary"
     },
     {
       "id": "kj_roth",
       "name": "KJ Roth IRA",
       "balance": 232852,
-      "type": "roth",
+      "type": "roth_ira",
       "owner": "spouse",
       "available_at_age": 62
     },
@@ -68,7 +68,7 @@
       "id": "kj_ira",
       "name": "KJ IRA",
       "balance": 453046,
-      "type": "pretax",
+      "type": "ira",
       "owner": "spouse",
       "available_at_age": 62
     },
@@ -76,7 +76,7 @@
       "id": "kj_trad_ira",
       "name": "Trad IRA (Kendra)",
       "balance": 1237556,
-      "type": "pretax",
+      "type": "ira",
       "owner": "spouse",
       "available_at_age": 62
     },
@@ -84,7 +84,7 @@
       "id": "trad_401k",
       "name": "Traditional 401K - 1001",
       "balance": 1514314,
-      "type": "pretax",
+      "type": "401k",
       "owner": "primary"
     }
   ]
