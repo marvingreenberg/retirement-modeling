@@ -55,9 +55,13 @@ Follow global CLAUDE.md.
 
 In addition, update DESIGN.md when changes affect the overall architecture, and review help text when behavior is changed or added.
 
+### GUARDRAIL: MAIN IS ALWAYS DEPLOYABLE
+
+`main` must have zero lint errors and zero test failures at all times. Never dismiss failures as "pre-existing" or "not from our changes." If `make lint` or tests fail after a merge, fix them before considering the work done. This applies to both backend and frontend — run `make lint` (not just `make lint-api`), which checks both.
+
 ### Linting
 
-All changes must conform to existing lint/format styles. **Always run `make lint` before committing** and fix any issues in changed code.
+All changes must conform to existing lint/format styles. **Always run `make lint` before committing** and fix any issues.
 
 **Backend**: `make lint-api` / `make format-api`
 **Frontend**: `make lint-ui` / `make format-ui`

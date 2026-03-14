@@ -56,7 +56,8 @@
             >
             {#if appVersion}
                <div class="flex items-center gap-2 text-sm">
-                  <span class="font-medium text-surface-600">v{appVersion}</span>
+                  <span class="font-medium text-surface-600">v{appVersion}</span
+                  >
                   {#if previousVersionUrl && previousVersion}
                      <a
                         href={previousVersionUrl}
