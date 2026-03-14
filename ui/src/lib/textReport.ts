@@ -3,11 +3,16 @@ import type {
    AccountWithdrawal,
    SimulationResponse,
 } from './types';
+import { effectiveTaxRate } from './effectiveTaxRate';
 
 function $(n: number): string {
    return n < 0
       ? `-$${Math.abs(Math.round(n)).toLocaleString()}`
       : `$${Math.round(n).toLocaleString()}`;
+}
+
+function pct(rate: number): string {
+   return `${(rate * 100).toFixed(1)}%`;
 }
 
 function pad(s: string, w: number, right = false): string {
@@ -63,51 +68,63 @@ function withdrawalPlanText(years: YearResult[]): string {
    return lines.join('\n');
 }
 
-const COL_WIDTHS = [6, 5, 12, 6, 12, 12, 12, 12, 10, 14, 12, 12, 12, 10, 14];
+// Column order: Year | Total Balance | AGI | Eff Rate | Spending | 401k Dep |
+//   Income Tax | Cap Gains Tax | Conv Tax | ∑ Tax PV | Roth Conv | IRMAA |
+//   Income | Brokerage WD | PreTax WD | Roth WD
+const COL_WIDTHS = [
+   6, 14, 12, 10, 12, 10, 12, 14, 12, 12, 12, 10, 12, 14, 12, 10,
+];
 const HEADERS = [
    'Year',
-   'Age',
-   'AGI',
-   'Brkt',
-   'RMD',
-   'Income',
-   'Spending',
-   'Pre-tax WD',
-   'Roth WD',
-   'Brokerage WD',
-   'Roth Conv',
-   'Conv Tax',
-   'Total Tax',
-   'IRMAA',
    'Total Balance',
+   'AGI',
+   'Eff Rate',
+   'Spending',
+   '401k Dep',
+   'Income Tax',
+   'Cap Gains Tax',
+   'Conv Tax',
+   '∑ Tax PV',
+   'Roth Conv',
+   'IRMAA',
+   'Income',
+   'Brokerage WD',
+   'PreTax WD',
+   'Roth WD',
 ];
 
 function tableRow(cells: string[]): string {
    return cells.map((c, i) => pad(c, COL_WIDTHS[i], i >= 2)).join('  ');
 }
 
-function yearByYearText(years: YearResult[]): string {
+function yearByYearText(years: YearResult[], inflationRate: number): string {
    const lines: string[] = ['YEAR-BY-YEAR DETAIL', ''];
    lines.push(tableRow(HEADERS));
    lines.push('-'.repeat(lines[lines.length - 1].length));
-   for (const yr of years) {
+
+   let cumulativeTaxPv = 0;
+   for (let i = 0; i < years.length; i++) {
+      const yr = years[i];
+      const discountFactor = Math.pow(1 + inflationRate, i);
+      cumulativeTaxPv += yr.total_tax / discountFactor;
       lines.push(
          tableRow([
             String(yr.year),
-            String(yr.age_primary),
+            $(yr.total_balance),
             $(yr.agi),
-            yr.bracket,
-            $(yr.rmd),
-            $(yr.total_income),
+            pct(effectiveTaxRate(yr)),
             $(yr.spending_target),
+            $(yr.pretax_401k_deposit),
+            $(yr.income_tax),
+            $(yr.brokerage_gains_tax),
+            $(yr.conversion_tax),
+            $(Math.round(cumulativeTaxPv)),
+            $(yr.roth_conversion),
+            $(yr.irmaa_cost),
+            $(yr.total_income),
+            $(yr.brokerage_withdrawal),
             $(yr.pretax_withdrawal),
             $(yr.roth_withdrawal),
-            $(yr.brokerage_withdrawal),
-            $(yr.roth_conversion),
-            $(yr.conversion_tax),
-            $(yr.total_tax),
-            $(yr.irmaa_cost),
-            $(yr.total_balance),
          ]),
       );
    }
@@ -129,7 +146,10 @@ function summaryText(sim: SimulationResponse): string {
    return lines.join('\n');
 }
 
-export function generateTextReport(sim: SimulationResponse): string {
+export function generateTextReport(
+   sim: SimulationResponse,
+   inflationRate = 0.03,
+): string {
    const allYears = sim.result.years;
    const depletionIdx = allYears.findIndex(
       (yr, i) => yr.total_balance <= 0 && i > 0,
@@ -144,7 +164,7 @@ export function generateTextReport(sim: SimulationResponse): string {
       summaryText(sim),
       '',
       withdrawalPlanText(years),
-      yearByYearText(years),
+      yearByYearText(years, inflationRate),
    ];
 
    if (depletionIdx >= 0) {
