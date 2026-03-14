@@ -141,6 +141,20 @@ def calculate_income_tax(
     return federal_tax + state_tax
 
 
+def get_effective_tax_rate(
+    agi: float,
+    brackets: list[BracketDict] | None,
+    state_rate: float,
+    deduction: float,
+) -> float:
+    """Get the effective (average) tax rate on AGI, accounting for deduction and progressive brackets."""
+    if agi <= 0:
+        return 0.0
+    taxable = max(0, agi - deduction)
+    tax = calculate_income_tax(taxable, brackets, state_rate)
+    return tax / agi
+
+
 def calculate_ss_taxable_portion(
     ss_income: float, other_income: float, filing_status: str = "mfj"
 ) -> float:

@@ -165,10 +165,10 @@ if conversion_ceiling > 0 and age < rmd_start_age:
 
     if agi_headroom > 5000:  # Worth doing
         conversion_amount = min(agi_headroom, available_pretax)
-        tax_bill = conversion_amount * marginal_rate
+        conversion_tax = conversion_amount * marginal_rate
 
         # Pay tax from brokerage
-        withdraw(tax_bill, brokerage)
+        withdraw(conversion_tax, brokerage)
 
         # Execute conversion
         withdraw(conversion_amount, pretax)

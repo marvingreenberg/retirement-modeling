@@ -42,6 +42,7 @@ from retirement_model.taxes import (
     calculate_rmd_amount,
     calculate_ss_taxable_portion,
     get_bracket_label,
+    get_effective_tax_rate,
     get_marginal_tax_rate,
     inflate_brackets,
 )
@@ -394,8 +395,10 @@ def run_simulation(
             withdrawal_details.extend(_collect_details(rmd_res_s, "rmd", account_names))
         current_agi += rmd_withdrawn
 
-        # Estimate tax rate for withholding (using inflation-adjusted brackets)
-        est_tax_rate = get_marginal_tax_rate(current_agi, adj_fed_brackets) + cfg.tax_rate_state
+        # Estimate tax rate for withholding (effective rate accounts for deduction + progressive brackets)
+        est_tax_rate = get_effective_tax_rate(
+            current_agi, adj_fed_brackets, cfg.tax_rate_state, adj_deduction
+        )
 
         # Cash from SS, income streams, and RMD (net of estimated tax on taxable portion)
         cash_from_ss = ss_income - (ss_taxable * est_tax_rate)
