@@ -85,6 +85,7 @@ export const formTouched = createStore<boolean>(false);
 export const comparisonSnapshots = createStore<ComparisonSnapshot[]>([]);
 export const simulateBlockedSection = createStore<string | null>(null);
 export const numSimulations = createStore<number>(1000);
+export const pvMode = createStore<boolean>(false);
 
 export interface SimulationResultsState {
    singleResult: SimulationResponse | null;
