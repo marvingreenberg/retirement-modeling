@@ -84,24 +84,30 @@ describe('WithdrawalPlan', () => {
       expect(screen.getByText('$100,000')).toBeTruthy();
    });
 
-   it('shows two year cards when two years provided', () => {
+   it('shows only the selected year when multiple years provided', () => {
       const years = [
          makeYear({ year: 2026, age_primary: 65 }),
          makeYear({ year: 2027, age_primary: 66 }),
       ];
       render(WithdrawalPlan, { props: { years } });
       expect(screen.getByText(/2026/)).toBeTruthy();
-      expect(screen.getByText(/2027/)).toBeTruthy();
+      expect(screen.queryByText(/2027/)).toBeNull();
    });
 
-   it('limits to two year cards even with more years', () => {
+   it('shows second year when yearIndex is 1', () => {
       const years = [
-         makeYear({ year: 2026 }),
-         makeYear({ year: 2027 }),
-         makeYear({ year: 2028 }),
+         makeYear({ year: 2026, age_primary: 65 }),
+         makeYear({ year: 2027, age_primary: 66 }),
       ];
-      render(WithdrawalPlan, { props: { years } });
-      expect(screen.queryByText(/2028/)).toBeNull();
+      render(WithdrawalPlan, { props: { years, yearIndex: 1 } });
+      expect(screen.getByText(/2027/)).toBeTruthy();
+      expect(screen.queryByText(/2026/)).toBeNull();
+   });
+
+   it('falls back to first year when yearIndex is out of range', () => {
+      const years = [makeYear({ year: 2026 })];
+      render(WithdrawalPlan, { props: { years, yearIndex: 5 } });
+      expect(screen.getByText(/2026/)).toBeTruthy();
    });
 
    it('shows RMD section with per-person totals', () => {
