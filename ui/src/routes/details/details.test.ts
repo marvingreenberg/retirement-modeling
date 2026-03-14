@@ -213,4 +213,35 @@ describe('Details page', () => {
       expect(screen.getByText('Simulation')).toBeInTheDocument();
       expect(screen.getByText('Monte Carlo')).toBeInTheDocument();
    });
+
+   it('table rows have cursor-pointer class', () => {
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
+      render(DetailsPage);
+      const rows = screen.getAllByRole('row');
+      // Find data rows (skip header row)
+      const dataRows = rows.filter((r) => r.querySelector('td'));
+      expect(dataRows.length).toBeGreaterThan(0);
+      dataRows.forEach((row) => {
+         expect(row.className).toContain('cursor-pointer');
+      });
+   });
+
+   it('clicking a row highlights it with a selection class', async () => {
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
+      render(DetailsPage);
+      const rows = screen.getAllByRole('row');
+      const dataRows = rows.filter((r) => r.querySelector('td'));
+      expect(dataRows.length).toBeGreaterThan(0);
+      // First row should start selected (idx 0)
+      expect(dataRows[0].className).toContain('bg-primary-100/30');
+      // Click the first row — should remain highlighted (same selection)
+      await fireEvent.click(dataRows[0]);
+      expect(dataRows[0].className).toContain('bg-primary-100/30');
+   });
 });

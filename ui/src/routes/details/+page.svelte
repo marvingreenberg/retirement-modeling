@@ -9,6 +9,7 @@
    import { getVisibleColumns } from '$lib/columnVisibility';
 
    let activeTab = $state<'single' | 'monte_carlo'>('single');
+   let selectedYearIdx = $state(0);
    let hasAny = $derived(
       simulationResults.value.singleResult !== null ||
          simulationResults.value.mcResult !== null,
@@ -70,6 +71,7 @@
          }, [])}
          <WithdrawalPlan
             {years}
+            yearIndex={selectedYearIdx}
             spendingStrategy={portfolio.value.config.spending_strategy}
             withdrawalRate={portfolio.value.config.withdrawal_rate}
          />
@@ -147,9 +149,12 @@
                      {#each years as yr, i (yr.year)}
                         {@const rate = effectiveTaxRate(yr)}
                         <tr
-                           class={yr.total_balance <= 0
+                           class="cursor-pointer {i === selectedYearIdx
+                              ? 'bg-primary-100/30 dark:bg-primary-800/30'
+                              : ''} {yr.total_balance <= 0
                               ? 'text-error-500 dark:text-error-400'
-                              : ''}
+                              : ''}"
+                           onclick={() => (selectedYearIdx = i)}
                         >
                            <td>{yr.year}</td>
                            <td>{currency(yr.total_balance)}</td>
