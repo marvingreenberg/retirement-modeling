@@ -6,6 +6,8 @@
    import ChartEventOverlay from './ChartEventOverlay.svelte';
    import HelpButton from '$lib/components/HelpButton.svelte';
    import { formatTick } from './formatTick';
+   import { pvDivisor } from '$lib/presentValue';
+   import { pvMode, portfolio } from '$lib/stores';
 
    let {
       years,
@@ -29,9 +31,10 @@
       return data.some((v) => v > 0);
    }
 
-   function buildChart() {
+   function buildChart(usePV: boolean) {
       chart?.destroy();
       const labels = years.map((y) => `${y.year}`);
+      const inflationRate = portfolio.value.config.inflation_rate;
 
       const areaStyle = {
          borderWidth: 1.5,
@@ -44,28 +47,40 @@
       const balanceDatasets = [
          {
             label: 'Pre-tax',
-            data: years.map((y) => y.pretax_balance),
+            data: years.map((yr, idx) => {
+               const divisor = usePV ? pvDivisor(inflationRate, idx) : 1;
+               return yr.pretax_balance / divisor;
+            }),
             borderColor: '#dc2626',
             backgroundColor: 'rgba(220,38,38,0.55)',
             ...areaStyle,
          },
          {
             label: 'Roth Conv Acct',
-            data: years.map((y) => y.roth_conversion_balance ?? 0),
+            data: years.map((yr, idx) => {
+               const divisor = usePV ? pvDivisor(inflationRate, idx) : 1;
+               return (yr.roth_conversion_balance ?? 0) / divisor;
+            }),
             borderColor: '#7c3aed',
             backgroundColor: 'rgba(124,58,237,0.3)',
             ...areaStyle,
          },
          {
             label: 'Roth',
-            data: years.map((y) => y.roth_balance),
+            data: years.map((yr, idx) => {
+               const divisor = usePV ? pvDivisor(inflationRate, idx) : 1;
+               return yr.roth_balance / divisor;
+            }),
             borderColor: '#16a34a',
             backgroundColor: 'rgba(22,163,74,0.3)',
             ...areaStyle,
          },
          {
             label: 'Brokerage',
-            data: years.map((y) => y.brokerage_balance),
+            data: years.map((yr, idx) => {
+               const divisor = usePV ? pvDivisor(inflationRate, idx) : 1;
+               return yr.brokerage_balance / divisor;
+            }),
             borderColor: '#ca8a04',
             backgroundColor: 'rgba(202,138,4,0.3)',
             ...areaStyle,
@@ -147,6 +162,10 @@
                y: {
                   stacked: true,
                   position: 'left',
+                  title: {
+                     display: usePV,
+                     text: 'Balance (PV $)',
+                  },
                   ticks: {
                      callback: (v) => formatTick(v as number),
                   },
@@ -156,10 +175,11 @@
       });
    }
 
-   onMount(() => buildChart());
+   onMount(() => buildChart(pvMode.value));
 
    $effect(() => {
-      if (canvas && years) untrack(() => buildChart());
+      const usePV = pvMode.value;
+      if (canvas && years) untrack(() => buildChart(usePV));
    });
 </script>
 
