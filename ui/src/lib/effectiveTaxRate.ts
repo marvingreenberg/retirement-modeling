@@ -6,12 +6,14 @@ interface TaxRateInput {
    pretax_withdrawal: number;
    roth_withdrawal: number;
    brokerage_withdrawal: number;
+   rmd: number;
 }
 
 export function effectiveTaxRate(yr: TaxRateInput): number {
    const totalTax = yr.income_tax + yr.brokerage_gains_tax + yr.conversion_tax;
    const totalGross =
       yr.total_income +
+      yr.rmd +
       yr.pretax_withdrawal +
       yr.roth_withdrawal +
       yr.brokerage_withdrawal;

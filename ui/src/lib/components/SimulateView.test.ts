@@ -120,8 +120,8 @@ describe('SimulateView (tabbed results)', () => {
          error: '',
       });
       expect(screen.getByText('Final Balance')).toBeInTheDocument();
-      expect(screen.getByText('Total Taxes')).toBeInTheDocument();
-      expect(screen.getByText('Total IRMAA')).toBeInTheDocument();
+      expect(screen.getByText('Total Taxes (PV $)')).toBeInTheDocument();
+      expect(screen.getByText('Total IRMAA (PV $)')).toBeInTheDocument();
       expect(screen.getByText('Roth Conv Acct')).toBeInTheDocument();
    });
 

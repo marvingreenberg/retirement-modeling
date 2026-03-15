@@ -136,9 +136,10 @@
                               <div>WD</div></th
                            >{/if}
                         {#if columnVis.pretaxWd}<th
-                              ><div>PreTax</div>
+                              ><div>Vol. PreTax</div>
                               <div>WD</div></th
                            >{/if}
+                        {#if columnVis.rmd}<th>RMD</th>{/if}
                         {#if columnVis.rothWd}<th
                               ><div>Roth</div>
                               <div>WD</div></th
@@ -192,6 +193,7 @@
                            {#if columnVis.pretaxWd}<td
                                  >{currency(yr.pretax_withdrawal)}</td
                               >{/if}
+                           {#if columnVis.rmd}<td>{currency(yr.rmd)}</td>{/if}
                            {#if columnVis.rothWd}<td
                                  >{currency(yr.roth_withdrawal)}</td
                               >{/if}

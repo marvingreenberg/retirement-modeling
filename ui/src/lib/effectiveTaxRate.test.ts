@@ -11,6 +11,7 @@ describe('effectiveTaxRate', () => {
          pretax_withdrawal: 30000,
          roth_withdrawal: 10000,
          brokerage_withdrawal: 10000,
+         rmd: 0,
       };
       // totalTax = 15000, totalGross = 100000
       expect(effectiveTaxRate(yr)).toBeCloseTo(0.15);
@@ -25,8 +26,24 @@ describe('effectiveTaxRate', () => {
          pretax_withdrawal: 0,
          roth_withdrawal: 0,
          brokerage_withdrawal: 0,
+         rmd: 0,
       };
       expect(effectiveTaxRate(yr)).toBe(0);
+   });
+
+   it('includes RMD in denominator', () => {
+      const yr = {
+         income_tax: 20000,
+         brokerage_gains_tax: 0,
+         conversion_tax: 0,
+         total_income: 0,
+         pretax_withdrawal: 0,
+         roth_withdrawal: 0,
+         brokerage_withdrawal: 0,
+         rmd: 100000,
+      };
+      // 20000 / 100000 = 0.20
+      expect(effectiveTaxRate(yr)).toBeCloseTo(0.2);
    });
 
    it('returns 0 for rate of exactly 0 (zero tax, nonzero income)', () => {
@@ -38,6 +55,7 @@ describe('effectiveTaxRate', () => {
          pretax_withdrawal: 0,
          roth_withdrawal: 0,
          brokerage_withdrawal: 0,
+         rmd: 0,
       };
       expect(effectiveTaxRate(yr)).toBe(0);
    });

@@ -13,6 +13,7 @@ const baseYear = {
    roth_withdrawal: 0,
    brokerage_gains_tax: 0,
    conversion_tax: 0,
+   rmd: 0,
 };
 
 describe('getVisibleColumns', () => {
@@ -27,6 +28,7 @@ describe('getVisibleColumns', () => {
          income: false,
          brokerageWd: false,
          pretaxWd: false,
+         rmd: false,
          rothWd: false,
       });
    });
@@ -46,6 +48,7 @@ describe('getVisibleColumns', () => {
          income: false,
          brokerageWd: false,
          pretaxWd: false,
+         rmd: false,
          rothWd: false,
       });
    });

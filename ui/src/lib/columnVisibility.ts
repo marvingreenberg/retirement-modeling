@@ -9,6 +9,7 @@ export interface ColumnVisibility {
    income: boolean;
    brokerageWd: boolean;
    pretaxWd: boolean;
+   rmd: boolean;
    rothWd: boolean;
 }
 
@@ -32,6 +33,7 @@ export function getVisibleColumns(years: YearResult[]): ColumnVisibility {
       income: anyNonZero(years, (yr) => yr.total_income),
       brokerageWd: anyNonZero(years, (yr) => yr.brokerage_withdrawal),
       pretaxWd: anyNonZero(years, (yr) => yr.pretax_withdrawal),
+      rmd: anyNonZero(years, (yr) => yr.rmd),
       rothWd: anyNonZero(years, (yr) => yr.roth_withdrawal),
    };
 }

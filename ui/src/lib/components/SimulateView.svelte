@@ -60,10 +60,8 @@
       );
    });
 
-   let taxLabel = $derived(pvMode.value ? 'Total Taxes (PV $)' : 'Total Taxes');
-   let irmaaLabel = $derived(
-      pvMode.value ? 'Total IRMAA (PV $)' : 'Total IRMAA',
-   );
+   const taxLabel = 'Total Taxes (PV $)';
+   const irmaaLabel = 'Total IRMAA (PV $)';
 </script>
 
 <div class="space-y-4">
@@ -161,22 +159,14 @@
                   <span class="text-xs text-surface-500">{taxLabel}</span>
                   <span
                      class="text-base font-bold text-surface-900 dark:text-surface-50"
-                     >{currency(
-                        pvMode.value
-                           ? pvTotalTaxes
-                           : singleResult.summary.total_taxes_paid,
-                     )}</span
+                     >{currency(pvTotalTaxes)}</span
                   >
                </div>
                <div class="flex flex-col gap-0.5">
                   <span class="text-xs text-surface-500">{irmaaLabel}</span>
                   <span
                      class="text-base font-bold text-surface-900 dark:text-surface-50"
-                     >{currency(
-                        pvMode.value
-                           ? pvTotalIrmaa
-                           : singleResult.summary.total_irmaa_paid,
-                     )}</span
+                     >{currency(pvTotalIrmaa)}</span
                   >
                </div>
                <div class="flex flex-col gap-0.5">
