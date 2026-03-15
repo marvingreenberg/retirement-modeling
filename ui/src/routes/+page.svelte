@@ -10,6 +10,11 @@
    import { validatePortfolio } from '$lib/validation';
    import { runSimulation, runMonteCarlo } from '$lib/api';
    import { currency } from '$lib/format';
+   import {
+      pvTotalTaxes,
+      pvTotalIrmaa,
+      pvSpendingRange,
+   } from '$lib/presentValue';
    import PortfolioEditor from '$lib/components/portfolio/PortfolioEditor.svelte';
    import SimulateSettings from '$lib/components/SimulateSettings.svelte';
    import SimulateView from '$lib/components/SimulateView.svelte';
@@ -165,17 +170,19 @@
             ...simulationResults.value,
             singleResult: res,
          };
-         const spends = res.result.years.map((y) => y.spending_target);
-         const minSpend = Math.min(...spends);
-         const maxSpend = Math.max(...spends);
+         const inf = portfolio.value.config.inflation_rate ?? 0.03;
+         const years = res.result.years;
+         const spendRange = pvSpendingRange(years, inf);
          addSnapshot({
             ...buildSnapshotBase(),
             runType: 'single',
             finalBalance: res.summary.final_balance,
-            totalTaxes: res.summary.total_taxes_paid,
-            totalIrmaa: res.summary.total_irmaa_paid,
+            totalTaxes: pvTotalTaxes(years, inf),
+            totalIrmaa: pvTotalIrmaa(years, inf),
             totalRothConversions: res.summary.total_roth_conversions,
-            spendingRange: `${currency(minSpend)}–${currency(maxSpend)}`,
+            spendingRange: spendRange
+               ? `${currency(spendRange.min)}–${currency(spendRange.max)}`
+               : '—',
          });
       });
 

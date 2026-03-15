@@ -13,11 +13,14 @@ export interface ColumnVisibility {
    rothWd: boolean;
 }
 
+/** Threshold for treating a currency value as non-zero (handles float rounding) */
+export const CURRENCY_EPSILON = 0.5;
+
 function anyNonZero(
    years: YearResult[],
    getter: (yr: YearResult) => number,
 ): boolean {
-   return years.some((yr) => Math.abs(getter(yr)) > 0.5);
+   return years.some((yr) => Math.abs(getter(yr)) > CURRENCY_EPSILON);
 }
 
 export function getVisibleColumns(years: YearResult[]): ColumnVisibility {

@@ -11,8 +11,13 @@
       ChartEvent,
    } from '$lib/types';
    import { ShieldCheck } from 'lucide-svelte';
+   import TrafficLight from './TrafficLight.svelte';
    import { pvMode, portfolio } from '$lib/stores';
-   import { toPV } from '$lib/presentValue';
+   import {
+      pvTotalTaxes as calcPvTotalTaxes,
+      pvTotalIrmaa as calcPvTotalIrmaa,
+      pvSpendingRange as calcPvSpendingRange,
+   } from '$lib/presentValue';
 
    let {
       singleResult = null,
@@ -44,29 +49,21 @@
 
    let inflationRate = $derived(portfolio.value.config.inflation_rate ?? 0.03);
 
-   let pvTotalTaxes = $derived.by(() => {
-      if (!singleResult) return 0;
-      return singleResult.result.years.reduce(
-         (sum, yr, i) => sum + toPV(yr.total_tax, inflationRate, i),
-         0,
-      );
-   });
-
-   let pvTotalIrmaa = $derived.by(() => {
-      if (!singleResult) return 0;
-      return singleResult.result.years.reduce(
-         (sum, yr, i) => sum + toPV(yr.irmaa_cost, inflationRate, i),
-         0,
-      );
-   });
-
-   let pvSpendingRange = $derived.by(() => {
-      if (!singleResult) return null;
-      const pvSpends = singleResult.result.years.map((yr, i) =>
-         toPV(yr.spending_target, inflationRate, i),
-      );
-      return { min: Math.min(...pvSpends), max: Math.max(...pvSpends) };
-   });
+   let pvTotalTaxes = $derived(
+      singleResult
+         ? calcPvTotalTaxes(singleResult.result.years, inflationRate)
+         : 0,
+   );
+   let pvTotalIrmaa = $derived(
+      singleResult
+         ? calcPvTotalIrmaa(singleResult.result.years, inflationRate)
+         : 0,
+   );
+   let pvSpendRange = $derived(
+      singleResult
+         ? calcPvSpendingRange(singleResult.result.years, inflationRate)
+         : null,
+   );
 
    let hasAnyResults = $derived(!!singleResult || !!mcResult);
 </script>
@@ -116,124 +113,7 @@
                   class="text-base font-bold text-surface-900 dark:text-surface-50"
                >
                   {#if mcResult}
-                     {@const rate = mcResult.success_rate}
-                     {@const isGreen = rate >= 0.9}
-                     {@const isYellow = rate >= 0.7 && rate < 0.9}
-                     {@const isRed = rate < 0.7}
-                     {@const textColor = isGreen
-                        ? '#16a34a'
-                        : isYellow
-                          ? '#ca8a04'
-                          : '#dc2626'}
-                     <svg
-                        viewBox="0 0 52 20"
-                        class="inline-block h-5 align-middle"
-                        role="img"
-                        aria-label="Success rate indicator"
-                     >
-                        <rect
-                           x="0.5"
-                           y="0.5"
-                           width="51"
-                           height="19"
-                           rx="4"
-                           class="fill-surface-500 dark:fill-surface-700 stroke-surface-400 dark:stroke-surface-600"
-                           stroke-width="1"
-                        />
-                        <circle
-                           cx="10"
-                           cy="10"
-                           r="6"
-                           fill={isRed ? '#ef4444' : '#6b3030'}
-                        />
-                        {#if isRed}
-                           <circle cx="10" cy="10" r="6" fill="url(#glowRed)" />
-                        {/if}
-                        <circle
-                           cx="26"
-                           cy="10"
-                           r="6"
-                           fill={isYellow ? '#eab308' : '#5c5020'}
-                        />
-                        {#if isYellow}
-                           <circle
-                              cx="26"
-                              cy="10"
-                              r="6"
-                              fill="url(#glowYellow)"
-                           />
-                        {/if}
-                        <circle
-                           cx="42"
-                           cy="10"
-                           r="6"
-                           fill={isGreen ? '#22c55e' : '#1a5030'}
-                        />
-                        {#if isGreen}
-                           <circle
-                              cx="42"
-                              cy="10"
-                              r="6"
-                              fill="url(#glowGreen)"
-                           />
-                        {/if}
-                        <defs>
-                           <radialGradient id="glowRed">
-                              <stop
-                                 offset="0%"
-                                 stop-color="#fca5a5"
-                                 stop-opacity="0.8"
-                              />
-                              <stop
-                                 offset="50%"
-                                 stop-color="#ef4444"
-                                 stop-opacity="0.6"
-                              />
-                              <stop
-                                 offset="100%"
-                                 stop-color="#ef4444"
-                                 stop-opacity="0"
-                              />
-                           </radialGradient>
-                           <radialGradient id="glowYellow">
-                              <stop
-                                 offset="0%"
-                                 stop-color="#fde68a"
-                                 stop-opacity="0.8"
-                              />
-                              <stop
-                                 offset="50%"
-                                 stop-color="#eab308"
-                                 stop-opacity="0.6"
-                              />
-                              <stop
-                                 offset="100%"
-                                 stop-color="#eab308"
-                                 stop-opacity="0"
-                              />
-                           </radialGradient>
-                           <radialGradient id="glowGreen">
-                              <stop
-                                 offset="0%"
-                                 stop-color="#86efac"
-                                 stop-opacity="0.8"
-                              />
-                              <stop
-                                 offset="50%"
-                                 stop-color="#22c55e"
-                                 stop-opacity="0.6"
-                              />
-                              <stop
-                                 offset="100%"
-                                 stop-color="#22c55e"
-                                 stop-opacity="0"
-                              />
-                           </radialGradient>
-                        </defs>
-                     </svg>
-                     <span style="color: {textColor}"
-                        >{Math.round(rate * 100)}%</span
-                     >
+                     <TrafficLight rate={mcResult.success_rate} />
                   {:else}
                      —
                   {/if}
@@ -247,10 +127,8 @@
                <span
                   class="text-base font-bold text-surface-900 dark:text-surface-50"
                >
-                  {#if pvSpendingRange}
-                     {currency(pvSpendingRange.min)}–{currency(
-                        pvSpendingRange.max,
-                     )}
+                  {#if pvSpendRange}
+                     {currency(pvSpendRange.min)}–{currency(pvSpendRange.max)}
                   {:else}
                      —
                   {/if}

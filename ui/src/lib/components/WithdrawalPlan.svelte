@@ -8,6 +8,7 @@
    } from '$lib/types';
    import { currency } from '$lib/format';
    import { portfolio, profile } from '$lib/stores';
+   import { CURRENCY_EPSILON } from '$lib/columnVisibility';
    import { SvelteMap } from 'svelte/reactivity';
    import { ClipboardList } from 'lucide-svelte';
 
@@ -41,12 +42,14 @@
    );
    let hasIncome = $derived((yr?.income_details ?? []).length > 0);
    let expenses = $derived(yr ? activeExpenses(yr) : []);
-   let hasExpenses = $derived(yr ? yr.planned_expense > 0 : false);
+   let hasExpenses = $derived(
+      yr ? yr.planned_expense > CURRENCY_EPSILON : false,
+   );
    let baseSpending = $derived(
       yr ? yr.spending_target - yr.planned_expense : 0,
    );
    let totalWithdrawals = $derived(cashWDs.reduce((s, d) => s + d.amount, 0));
-   let hasWithdrawals = $derived(totalWithdrawals > 0);
+   let hasWithdrawals = $derived(totalWithdrawals > CURRENCY_EPSILON);
 
    function byPurpose(
       details: AccountWithdrawal[] | undefined,
