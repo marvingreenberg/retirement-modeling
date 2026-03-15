@@ -45,6 +45,7 @@ from retirement_model.taxes import (
     get_effective_tax_rate,
     get_marginal_tax_rate,
     inflate_brackets,
+    rmd_start_age_for_birth_year,
 )
 from retirement_model.withdrawals import (
     WithdrawalResult,
@@ -229,6 +230,12 @@ def run_simulation(
                 )
             )
 
+    # Compute per-person RMD start age from birth year (SECURE Act 2.0)
+    birth_year_primary = cfg.start_year - cfg.current_age_primary
+    birth_year_spouse = cfg.start_year - cfg.current_age_spouse
+    rmd_age_primary = rmd_start_age_for_birth_year(birth_year_primary)
+    rmd_age_spouse = rmd_start_age_for_birth_year(birth_year_spouse)
+
     # Track cumulative inflation for expense adjustments
     cumulative_inflation = 1.0
 
@@ -374,10 +381,10 @@ def run_simulation(
 
         # Mandatory RMDs (from ALL pretax-category accounts)
         pretax_bal_primary = get_total_balance_by_owner(accounts, TaxCategory.PRETAX, Owner.PRIMARY)
-        rmd_primary = calculate_rmd_amount(age_primary, pretax_bal_primary, cfg.rmd_start_age)
+        rmd_primary = calculate_rmd_amount(age_primary, pretax_bal_primary, rmd_age_primary)
 
         pretax_bal_spouse = get_total_balance_by_owner(accounts, TaxCategory.PRETAX, Owner.SPOUSE)
-        rmd_spouse = calculate_rmd_amount(age_spouse, pretax_bal_spouse, cfg.rmd_start_age)
+        rmd_spouse = calculate_rmd_amount(age_spouse, pretax_bal_spouse, rmd_age_spouse)
 
         total_rmd = rmd_primary + rmd_spouse
         rmd_withdrawn = 0.0

@@ -9,6 +9,8 @@ from retirement_model.constants import (
     IRMAA_TIERS_MFJ,
     RMD_DIVISOR_TABLE,
     RMD_START_AGE,
+    RMD_START_AGE_BORN_1960_PLUS,
+    SECURE_ACT_BIRTH_YEAR_CUTOFF,
     STANDARD_DEDUCTION_MFJ,
     BracketDict,
 )
@@ -83,6 +85,13 @@ def calculate_capital_gains_tax(
         income_floor += taxable_in_bracket
 
     return tax
+
+
+def rmd_start_age_for_birth_year(birth_year: int) -> int:
+    """Return the RMD start age based on birth year per SECURE Act 2.0."""
+    if birth_year >= SECURE_ACT_BIRTH_YEAR_CUTOFF:
+        return RMD_START_AGE_BORN_1960_PLUS
+    return RMD_START_AGE
 
 
 def calculate_rmd_amount(age: int, balance: float, rmd_start_age: int = RMD_START_AGE) -> float:

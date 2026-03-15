@@ -12,6 +12,7 @@ from retirement_model.taxes import (
     get_bracket_label,
     get_marginal_tax_rate,
     inflate_brackets,
+    rmd_start_age_for_birth_year,
 )
 
 
@@ -156,6 +157,20 @@ class TestCalculateRmdAmount:
     def test_custom_start_age(self):
         assert calculate_rmd_amount(72, 500000, rmd_start_age=72) > 0
         assert calculate_rmd_amount(71, 500000, rmd_start_age=72) == 0
+
+
+class TestRmdStartAgeForBirthYear:
+    def test_born_1959_gets_73(self):
+        assert rmd_start_age_for_birth_year(1959) == 73
+
+    def test_born_1960_gets_75(self):
+        assert rmd_start_age_for_birth_year(1960) == 75
+
+    def test_born_1965_gets_75(self):
+        assert rmd_start_age_for_birth_year(1965) == 75
+
+    def test_born_1951_gets_73(self):
+        assert rmd_start_age_for_birth_year(1951) == 73
 
 
 class TestCalculateIncomeTax:

@@ -96,8 +96,10 @@ RMD_DIVISOR_TABLE = {
     120: 2.0,
 }
 
-# RMD start age per SECURE 2.0 Act
-RMD_START_AGE = 73
+# RMD start ages per SECURE 2.0 Act
+RMD_START_AGE = 73  # Birth years 1951-1959
+RMD_START_AGE_BORN_1960_PLUS = 75
+SECURE_ACT_BIRTH_YEAR_CUTOFF = 1960
 
 # Standard deduction (Married Filing Jointly, 2024)
 STANDARD_DEDUCTION_MFJ = 29200
