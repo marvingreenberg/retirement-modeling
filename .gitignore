@@ -1,5 +1,7 @@
 # Virtual environment
 .venv/
+# Dir for multiline comments used by complex commands
+.multiline/
 # Various
 .docs/
 .accounts/
