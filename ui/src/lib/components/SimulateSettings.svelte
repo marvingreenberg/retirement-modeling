@@ -57,6 +57,8 @@
       `Fixed ${currency(portfolio.value.config.annual_spend_net)}`,
    );
 
+   const DIAGNOSTIC_THRESHOLD_PCT = 0.05;
+
    let strategyDiagnostic = $derived.by(() => {
       const c = portfolio.value.config;
       const s = c.spending_strategy ?? 'fixed_dollar';
@@ -73,17 +75,20 @@
          rate = c.guardrails_config.initial_withdrawal_rate;
       else return null;
       const strategySpend = totalBalance * rate;
-      if (strategySpend > desired * 1.05)
+      if (strategySpend > desired * (1 + DIAGNOSTIC_THRESHOLD_PCT))
          return {
-            text: `Rate supports ~${currency(strategySpend)}/yr (above ${currency(desired)} desired)`,
+            text: `Rate supports ~${currency(strategySpend)}/yr (above ${currency(desired)} target)`,
             warn: false,
          };
-      if (strategySpend < desired * 0.95)
+      if (strategySpend < desired * (1 - DIAGNOSTIC_THRESHOLD_PCT))
          return {
-            text: `Rate only supports ~${currency(strategySpend)}/yr (below ${currency(desired)} desired)`,
+            text: `\u26A0\uFE0F Rate only supports ~${currency(strategySpend)}/yr (below ${currency(desired)} target)`,
             warn: true,
          };
-      return null;
+      return {
+         text: `Rate supports ~${currency(strategySpend)}/yr (about ${currency(desired)} target)`,
+         warn: false,
+      };
    });
 
    let showConversion = $derived(hasPretaxAccounts(portfolio.value.accounts));
@@ -319,11 +324,7 @@
             {fixedDollarDiagnostic}
          </div>
       {:else if strategyDiagnostic}
-         <div
-            class="text-xs {strategyDiagnostic.warn
-               ? 'text-warning-600 dark:text-warning-400'
-               : 'text-surface-500 dark:text-surface-400'}"
-         >
+         <div class="text-xs text-surface-600 dark:text-surface-400">
             {strategyDiagnostic.text}
          </div>
       {/if}

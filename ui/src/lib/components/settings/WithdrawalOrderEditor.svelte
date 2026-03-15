@@ -19,36 +19,19 @@
    }
 </script>
 
-<fieldset class="flex flex-col gap-2">
-   <legend class="text-sm font-medium text-surface-700-200">
-      Withdrawal Order
-      <HelpButton topic="withdrawal-order" />
-   </legend>
-   <label class="flex items-center gap-2 text-sm">
-      <input
-         type="radio"
-         name="withdrawal-order"
-         checked={!isBrokerageFirst}
-         onchange={() => setOrder(false)}
-         class="radio"
-      />
-      IRA/401k first
-   </label>
-   <label class="flex items-center gap-2 text-sm">
-      <input
-         type="radio"
-         name="withdrawal-order"
-         checked={isBrokerageFirst}
-         onchange={() => setOrder(true)}
-         class="radio"
-      />
-      Brokerage first
-   </label>
-   {#if isBrokerageFirst}
-      <p class="text-xs text-warning-600">
-         Withdrawing from brokerage first MAY allow more Roth conversion, which
-         MAY be advantageous
-         <HelpButton topic="withdrawal-order" />
-      </p>
-   {/if}
-</fieldset>
+<label
+   class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+>
+   <span class="flex items-center gap-1"
+      >Withdrawal Order <HelpButton topic="withdrawal-order" /></span
+   >
+   <select
+      class="select w-40 text-sm"
+      value={isBrokerageFirst ? 'brokerage' : 'pretax'}
+      onchange={(e) =>
+         setOrder((e.target as HTMLSelectElement).value === 'brokerage')}
+   >
+      <option value="pretax">IRA/401k first</option>
+      <option value="brokerage">Brokerage first</option>
+   </select>
+</label>
