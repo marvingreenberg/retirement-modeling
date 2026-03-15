@@ -125,9 +125,34 @@ describe('generateTextReport', () => {
          (l) => l.includes('Year') && l.includes('AGI'),
       );
       expect(headerLine).toBeDefined();
-      expect(headerLine).toContain('Brkt');
-      expect(headerLine).toContain('RMD');
+      expect(headerLine).toContain('Eff Rate');
+      expect(headerLine).toContain('∑ Tax PV');
       expect(headerLine).toContain('Total Balance');
+      expect(headerLine).not.toContain('Brkt');
+      expect(headerLine).not.toContain('RMD');
+      expect(headerLine).not.toContain('Age');
+   });
+
+   it('shows effective tax rate in year-by-year table', () => {
+      const yr = makeYear({
+         income_tax: 12800,
+         brokerage_gains_tax: 0,
+         conversion_tax: 2200,
+         total_income: 36000,
+         pretax_withdrawal: 50000,
+         roth_withdrawal: 20000,
+         brokerage_withdrawal: 30000,
+      });
+      const report = generateTextReport(makeSim([yr]));
+      // (12800 + 0 + 2200) / (36000 + 50000 + 20000 + 30000) = 15000/136000 ≈ 11.0%
+      expect(report).toContain('11.0%');
+   });
+
+   it('shows cumulative tax PV in year-by-year table', () => {
+      const yr = makeYear({ total_tax: 15000 });
+      const report = generateTextReport(makeSim([yr]), 0.03);
+      // First year: PV = 15000 / (1.03^0) = 15000
+      expect(report).toContain('$15,000');
    });
 
    it('summary shows strategy and final balance', () => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-   import { currency, pct } from '$lib/format';
+   import { currency } from '$lib/format';
    import BalanceChart from './charts/BalanceChart.svelte';
    import SpendingChart from './charts/SpendingChart.svelte';
    import FanChart from './charts/FanChart.svelte';
@@ -10,7 +10,14 @@
       SimulationConfig,
       ChartEvent,
    } from '$lib/types';
-   import { BarChart3, TrendingUp, ShieldCheck } from 'lucide-svelte';
+   import { ShieldCheck } from 'lucide-svelte';
+   import TrafficLight from './TrafficLight.svelte';
+   import { pvMode, portfolio } from '$lib/stores';
+   import {
+      pvTotalTaxes as calcPvTotalTaxes,
+      pvTotalIrmaa as calcPvTotalIrmaa,
+      pvSpendingRange as calcPvSpendingRange,
+   } from '$lib/presentValue';
 
    let {
       singleResult = null,
@@ -39,6 +46,26 @@
          return inflated + y.planned_expense;
       });
    });
+
+   let inflationRate = $derived(portfolio.value.config.inflation_rate ?? 0.03);
+
+   let pvTotalTaxes = $derived(
+      singleResult
+         ? calcPvTotalTaxes(singleResult.result.years, inflationRate)
+         : 0,
+   );
+   let pvTotalIrmaa = $derived(
+      singleResult
+         ? calcPvTotalIrmaa(singleResult.result.years, inflationRate)
+         : 0,
+   );
+   let pvSpendRange = $derived(
+      singleResult
+         ? calcPvSpendingRange(singleResult.result.years, inflationRate)
+         : null,
+   );
+
+   let hasAnyResults = $derived(!!singleResult || !!mcResult);
 </script>
 
 <div class="space-y-4">
@@ -47,6 +74,100 @@
          class="text-error-500 bg-error-50 dark:bg-error-950 p-3 rounded text-sm"
       >
          {error}
+      </div>
+   {/if}
+
+   <!-- Summary bar (always visible when any results exist) -->
+   {#if hasAnyResults}
+      <div class="card bg-surface-100 dark:bg-surface-800 p-4">
+         <div class="flex gap-6 flex-wrap items-end">
+            <div class="flex flex-col gap-0.5">
+               <span class="text-xs text-surface-500">Final Balance</span>
+               <span
+                  class="text-base font-bold text-surface-900 dark:text-surface-50"
+               >
+                  {singleResult
+                     ? currency(singleResult.summary.final_balance)
+                     : '—'}
+               </span>
+            </div>
+
+            <div class="flex flex-col gap-0.5">
+               <span class="text-xs text-surface-500">MC Balance Range</span>
+               <span
+                  class="text-base font-bold text-surface-900 dark:text-surface-50"
+               >
+                  {#if mcResult}
+                     {currency(mcResult.final_balance_p5)}–{currency(
+                        mcResult.final_balance_p95,
+                     )}
+                  {:else}
+                     —
+                  {/if}
+               </span>
+            </div>
+
+            <div class="flex flex-col gap-0.5">
+               <span class="text-xs text-surface-500">MC Success Rate</span>
+               <span
+                  class="text-base font-bold text-surface-900 dark:text-surface-50"
+               >
+                  {#if mcResult}
+                     <TrafficLight rate={mcResult.success_rate} />
+                  {:else}
+                     —
+                  {/if}
+               </span>
+            </div>
+
+            <div class="flex flex-col gap-0.5">
+               <span class="text-xs text-surface-500"
+                  >Spending Range (PV $)</span
+               >
+               <span
+                  class="text-base font-bold text-surface-900 dark:text-surface-50"
+               >
+                  {#if pvSpendRange}
+                     {currency(pvSpendRange.min)}–{currency(pvSpendRange.max)}
+                  {:else}
+                     —
+                  {/if}
+               </span>
+            </div>
+
+            <div class="flex flex-col gap-0.5">
+               <span class="text-xs text-surface-500">Total Taxes (PV $)</span>
+               <span
+                  class="text-base font-bold text-surface-900 dark:text-surface-50"
+               >
+                  {singleResult ? currency(pvTotalTaxes) : '—'}
+               </span>
+            </div>
+
+            <div class="flex flex-col gap-0.5">
+               <span class="text-xs text-surface-500"
+                  >Total IRMAA Surcharges (PV $)</span
+               >
+               <span
+                  class="text-base font-bold text-surface-900 dark:text-surface-50"
+               >
+                  {singleResult ? currency(pvTotalIrmaa) : '—'}
+               </span>
+            </div>
+
+            {#if activeTab !== 'monte_carlo'}
+               <div class="flex flex-col justify-end">
+                  <label class="flex items-center gap-2 text-sm">
+                     <input
+                        type="checkbox"
+                        class="checkbox"
+                        bind:checked={pvMode.value}
+                     />
+                     Present Value $
+                  </label>
+               </div>
+            {/if}
+         </div>
       </div>
    {/if}
 
@@ -89,73 +210,6 @@
    <!-- Single run tab -->
    {#if activeTab === 'single'}
       {#if singleResult}
-         <div class="card bg-surface-100 dark:bg-surface-800 p-4">
-            <h3
-               class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"
-            >
-               <BarChart3 size={18} class="text-primary-500" /> Summary
-            </h3>
-            <div class="flex gap-6 flex-wrap">
-               {#if singleResult.summary.initial_monthly_spend}
-                  <div class="flex flex-col gap-0.5">
-                     <span class="text-xs text-surface-500"
-                        >Initial Spending</span
-                     >
-                     <span
-                        class="text-base font-bold text-surface-900 dark:text-surface-50"
-                        >{currency(
-                           Math.round(
-                              singleResult.summary.initial_monthly_spend,
-                           ),
-                        )}/mo
-                        <span class="text-sm font-normal text-surface-500"
-                           >({currency(
-                              singleResult.summary.initial_annual_spend ?? 0,
-                           )}/yr)</span
-                        ></span
-                     >
-                  </div>
-               {/if}
-               <div class="flex flex-col gap-0.5">
-                  <span class="text-xs text-surface-500">Final Balance</span>
-                  <span
-                     class="text-base font-bold text-surface-900 dark:text-surface-50"
-                     >{currency(singleResult.summary.final_balance)}</span
-                  >
-               </div>
-               <div class="flex flex-col gap-0.5">
-                  <span class="text-xs text-surface-500">Total Taxes</span>
-                  <span
-                     class="text-base font-bold text-surface-900 dark:text-surface-50"
-                     >{currency(singleResult.summary.total_taxes_paid)}</span
-                  >
-               </div>
-               <div class="flex flex-col gap-0.5">
-                  <span class="text-xs text-surface-500">Total IRMAA</span>
-                  <span
-                     class="text-base font-bold text-surface-900 dark:text-surface-50"
-                     >{currency(singleResult.summary.total_irmaa_paid)}</span
-                  >
-               </div>
-               <div class="flex flex-col gap-0.5">
-                  <span class="text-xs text-surface-500">Roth Conv Acct</span>
-                  <span
-                     class="text-base font-bold text-surface-900 dark:text-surface-50"
-                     >{currency(
-                        singleResult.summary.total_roth_conversions,
-                     )}</span
-                  >
-               </div>
-               <div class="flex flex-col gap-0.5">
-                  <span class="text-xs text-surface-500">Years</span>
-                  <span
-                     class="text-base font-bold text-surface-900 dark:text-surface-50"
-                     >{singleResult.summary.simulation_years}</span
-                  >
-               </div>
-            </div>
-         </div>
-
          <BalanceChart
             years={singleResult.result.years}
             retirementAge={config?.retirement_age}
@@ -214,51 +268,10 @@
             >
          </div>
       {:else if mcResult}
-         <p class="text-xs text-warning-600 dark:text-warning-400">
+         <p class="text-xs italic text-surface-400 dark:text-surface-500 py-2">
             Monte Carlo uses historically-sampled inflation and growth, not the
-            configured values above.
+            configured values.
          </p>
-
-         <div
-            class="text-center p-4 rounded-lg text-2xl font-bold"
-            class:bg-success-100={mcResult.success_rate >= 0.9}
-            class:dark:bg-success-900={mcResult.success_rate >= 0.9}
-            class:text-success-700={mcResult.success_rate >= 0.9}
-            class:dark:text-success-300={mcResult.success_rate >= 0.9}
-            class:bg-warning-100={mcResult.success_rate >= 0.7 &&
-               mcResult.success_rate < 0.9}
-            class:dark:bg-warning-900={mcResult.success_rate >= 0.7 &&
-               mcResult.success_rate < 0.9}
-            class:text-warning-700={mcResult.success_rate >= 0.7 &&
-               mcResult.success_rate < 0.9}
-            class:dark:text-warning-300={mcResult.success_rate >= 0.7 &&
-               mcResult.success_rate < 0.9}
-            class:bg-error-100={mcResult.success_rate < 0.7}
-            class:dark:bg-error-900={mcResult.success_rate < 0.7}
-            class:text-error-700={mcResult.success_rate < 0.7}
-            class:dark:text-error-300={mcResult.success_rate < 0.7}
-         >
-            {pct(mcResult.success_rate)} Success Rate
-         </div>
-
-         <div class="card bg-surface-100 dark:bg-surface-800 p-4">
-            <h3
-               class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"
-            >
-               <TrendingUp size={18} class="text-tertiary-500" /> Final Balance Range
-            </h3>
-            <div class="flex gap-6 flex-wrap">
-               {#each [['5th', mcResult.final_balance_p5], ['Median', mcResult.median_simulation.years.at(-1)?.total_balance ?? 0], ['95th', mcResult.final_balance_p95]] as [label, value] (label)}
-                  <div class="flex flex-col gap-0.5">
-                     <span class="text-xs text-surface-500">{label}</span>
-                     <span
-                        class="text-base font-bold text-surface-900 dark:text-surface-50"
-                        >{currency(value as number)}</span
-                     >
-                  </div>
-               {/each}
-            </div>
-         </div>
 
          {#if mcResult.yearly_percentiles.length > 0}
             <h4

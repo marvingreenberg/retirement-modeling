@@ -106,18 +106,42 @@ describe('Details page', () => {
       render(DetailsPage);
       expect(screen.getByText('Year-by-Year Detail')).toBeInTheDocument();
       expect(screen.getByText('2026')).toBeInTheDocument();
-      expect(screen.getByText('65')).toBeInTheDocument();
-      expect(screen.getByText('22%')).toBeInTheDocument();
    });
 
-   it('renders Cap Gains Tax and 401k Dep column headers', () => {
+   it('renders Eff Tax Rate and cumulative tax PV headers', () => {
       simulationResults.value = {
          singleResult: mockSingleResult,
          mcResult: null,
       };
       render(DetailsPage);
-      expect(screen.getByText('Cap Gains Tax')).toBeInTheDocument();
-      expect(screen.getByText('401k Dep')).toBeInTheDocument();
+      expect(screen.getByText('Eff Tax')).toBeInTheDocument();
+      expect(screen.getByText('Rate')).toBeInTheDocument();
+      // ∑ Tax PV header uses two-line divs
+      expect(screen.getByText('∑ Tax')).toBeInTheDocument();
+      expect(screen.getByText('PV')).toBeInTheDocument();
+   });
+
+   it('renders effective tax rate value', () => {
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
+      render(DetailsPage);
+      // (12000+1500+2200)/(0+50000+20000+30000) = 15700/100000 = 15.7%
+      expect(screen.getByText('15.7%')).toBeInTheDocument();
+   });
+
+   it('renders two-line column headers for conditionally visible columns', () => {
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
+      render(DetailsPage);
+      // Cap Gains Tax is two-line: "Cap Gains" + "Tax"
+      expect(screen.getByText('Cap Gains')).toBeInTheDocument();
+      // 401k Dep is two-line: "401k" + "Dep"
+      expect(screen.getByText('401k')).toBeInTheDocument();
+      expect(screen.getByText('Dep')).toBeInTheDocument();
    });
 
    it('renders Cap Gains Tax and 401k Dep values for each row', () => {
@@ -130,6 +154,33 @@ describe('Details page', () => {
       expect(screen.getAllByText('$1,500').length).toBeGreaterThanOrEqual(1);
       // pretax_401k_deposit (5000) + roth_401k_deposit (3000) = 8000 → "$8,000"
       expect(screen.getByText('$8,000')).toBeInTheDocument();
+   });
+
+   it('does not show Age or Bracket columns', () => {
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
+      render(DetailsPage);
+      // Age and Bracket headers should not exist
+      const headers = screen.getAllByRole('columnheader');
+      const headerTexts = headers.map((h) => h.textContent);
+      expect(headerTexts).not.toContain('Age');
+      expect(headerTexts).not.toContain('Bracket');
+   });
+
+   it('hides columns that are all-zero (IRMAA, Income)', () => {
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
+      render(DetailsPage);
+      // irmaa_cost=0 and total_income=0, so those columns should be hidden
+      const headers = screen.getAllByRole('columnheader');
+      const headerTexts = headers.map((h) => h.textContent);
+      expect(headerTexts).not.toContain('IRMAA');
+      // "Income" as standalone header (not "IncomeTax") should not appear
+      expect(headerTexts.filter((t) => t === 'Income')).toHaveLength(0);
    });
 
    it('shows Monte Carlo percentile table on MC tab', async () => {
@@ -161,5 +212,36 @@ describe('Details page', () => {
       render(DetailsPage);
       expect(screen.getByText('Simulation')).toBeInTheDocument();
       expect(screen.getByText('Monte Carlo')).toBeInTheDocument();
+   });
+
+   it('table rows have cursor-pointer class', () => {
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
+      render(DetailsPage);
+      const rows = screen.getAllByRole('row');
+      // Find data rows (skip header row)
+      const dataRows = rows.filter((r) => r.querySelector('td'));
+      expect(dataRows.length).toBeGreaterThan(0);
+      dataRows.forEach((row) => {
+         expect(row.className).toContain('cursor-pointer');
+      });
+   });
+
+   it('clicking a row highlights it with a selection class', async () => {
+      simulationResults.value = {
+         singleResult: mockSingleResult,
+         mcResult: null,
+      };
+      render(DetailsPage);
+      const rows = screen.getAllByRole('row');
+      const dataRows = rows.filter((r) => r.querySelector('td'));
+      expect(dataRows.length).toBeGreaterThan(0);
+      // First row should start selected (idx 0)
+      expect(dataRows[0].className).toContain('bg-primary-100/30');
+      // Click the first row — should remain highlighted (same selection)
+      await fireEvent.click(dataRows[0]);
+      expect(dataRows[0].className).toContain('bg-primary-100/30');
    });
 });

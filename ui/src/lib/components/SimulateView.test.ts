@@ -112,7 +112,7 @@ describe('SimulateView (tabbed results)', () => {
       expect(screen.getByText('Server error')).toBeInTheDocument();
    });
 
-   it('shows summary for single run results on Simulation tab', () => {
+   it('shows summary bar with single run metrics', () => {
       render(SimulateView, {
          singleResult: mockSingleResult,
          mcResult: null,
@@ -120,9 +120,37 @@ describe('SimulateView (tabbed results)', () => {
          error: '',
       });
       expect(screen.getByText('Final Balance')).toBeInTheDocument();
-      expect(screen.getByText('Total Taxes')).toBeInTheDocument();
-      expect(screen.getByText('Total IRMAA')).toBeInTheDocument();
-      expect(screen.getByText('Roth Conv Acct')).toBeInTheDocument();
+      expect(screen.getByText('Total Taxes (PV $)')).toBeInTheDocument();
+      expect(
+         screen.getByText('Total IRMAA Surcharges (PV $)'),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Spending Range (PV $)')).toBeInTheDocument();
+   });
+
+   it('shows dash for MC metrics when no MC result', () => {
+      render(SimulateView, {
+         singleResult: mockSingleResult,
+         mcResult: null,
+         mcLoading: false,
+         error: '',
+      });
+      expect(screen.getByText('MC Balance Range')).toBeInTheDocument();
+      expect(screen.getByText('MC Success Rate')).toBeInTheDocument();
+      // The values should show dashes
+      const balanceRange = screen.getByText('MC Balance Range').closest('div');
+      expect(balanceRange?.textContent).toContain('—');
+      const successRate = screen.getByText('MC Success Rate').closest('div');
+      expect(successRate?.textContent).toContain('—');
+   });
+
+   it('shows MC metrics in summary bar when MC result exists', () => {
+      render(SimulateView, {
+         singleResult: mockSingleResult,
+         mcResult: mockMCResult,
+         mcLoading: false,
+         error: '',
+      });
+      expect(screen.getByText('92%')).toBeInTheDocument();
    });
 
    it('shows details link for single results', () => {
@@ -161,30 +189,15 @@ describe('SimulateView (tabbed results)', () => {
       ).toBeInTheDocument();
    });
 
-   it('shows success rate on Monte Carlo tab', async () => {
+   it('shows success rate with stoplight icon on Monte Carlo tab', async () => {
       render(SimulateView, {
          singleResult: mockSingleResult,
          mcResult: mockMCResult,
          mcLoading: false,
          error: '',
       });
-      const mcTab = screen.getByText('Monte Carlo');
-      await fireEvent.click(mcTab);
-      expect(screen.getByText(/92\.0% Success Rate/)).toBeInTheDocument();
-   });
-
-   it('shows final balance percentiles on Monte Carlo tab', async () => {
-      render(SimulateView, {
-         singleResult: mockSingleResult,
-         mcResult: mockMCResult,
-         mcLoading: false,
-         error: '',
-      });
-      const mcTab = screen.getByText('Monte Carlo');
-      await fireEvent.click(mcTab);
-      expect(screen.getByText('5th')).toBeInTheDocument();
-      expect(screen.getByText('Median')).toBeInTheDocument();
-      expect(screen.getByText('95th')).toBeInTheDocument();
+      // Success rate appears in summary bar as "92%" (0 decimal places)
+      expect(screen.getByText('92%')).toBeInTheDocument();
    });
 
    it('shows depletion count when success rate < 1', async () => {
@@ -257,26 +270,6 @@ describe('SimulateView (tabbed results)', () => {
       expect(link.getAttribute('href')).toBe('/details');
    });
 
-   it('shows initial spending when initial_monthly_spend is present', () => {
-      const resultWithSpending: SimulationResponse = {
-         ...mockSingleResult,
-         summary: {
-            ...mockSingleResult.summary,
-            initial_monthly_spend: 10000,
-            initial_annual_spend: 120000,
-         },
-      };
-      render(SimulateView, {
-         singleResult: resultWithSpending,
-         mcResult: null,
-         mcLoading: false,
-         error: '',
-      });
-      expect(screen.getByText('Initial Spending')).toBeInTheDocument();
-      expect(screen.getByText(/\$10,000\/mo/)).toBeInTheDocument();
-      expect(screen.getByText(/\$120,000\/yr/)).toBeInTheDocument();
-   });
-
    it('shows spending chart on Spending tab', async () => {
       render(SimulateView, {
          singleResult: mockSingleResult,
@@ -289,13 +282,33 @@ describe('SimulateView (tabbed results)', () => {
       expect(screen.getByTestId('mock-chart')).toBeInTheDocument();
    });
 
-   it('does not show initial spending when field is absent', () => {
+   it('hides PV toggle on Monte Carlo tab', async () => {
       render(SimulateView, {
          singleResult: mockSingleResult,
-         mcResult: null,
+         mcResult: mockMCResult,
          mcLoading: false,
          error: '',
       });
-      expect(screen.queryByText('Initial Spending')).not.toBeInTheDocument();
+      // PV toggle visible on Simulation tab
+      expect(screen.getByLabelText('Present Value $')).toBeInTheDocument();
+      // Switch to MC tab
+      const mcTab = screen.getByText('Monte Carlo');
+      await fireEvent.click(mcTab);
+      expect(
+         screen.queryByLabelText('Present Value $'),
+      ).not.toBeInTheDocument();
+   });
+
+   it('shows dash for single-result metrics when no single result', () => {
+      render(SimulateView, {
+         singleResult: null,
+         mcResult: mockMCResult,
+         mcLoading: false,
+         error: '',
+      });
+      const finalBalance = screen.getByText('Final Balance').closest('div');
+      expect(finalBalance?.textContent).toContain('—');
+      const taxes = screen.getByText('Total Taxes (PV $)').closest('div');
+      expect(taxes?.textContent).toContain('—');
    });
 });

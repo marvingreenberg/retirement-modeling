@@ -5,6 +5,7 @@ import {
    defaultPortfolio,
    simulationResults,
    numSimulations,
+   pvMode,
    portfolio,
    profile,
    randomizeForDemo,
@@ -228,6 +229,15 @@ describe('simulationResults store', () => {
 describe('numSimulations store', () => {
    it('defaults to 1000', () => {
       expect(numSimulations.value).toBe(1000);
+   });
+});
+
+describe('pvMode store', () => {
+   it('pvMode defaults to false and can be toggled', () => {
+      expect(pvMode.value).toBe(false);
+      pvMode.value = true;
+      expect(pvMode.value).toBe(true);
+      pvMode.value = false;
    });
 });
 

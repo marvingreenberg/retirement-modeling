@@ -5,8 +5,11 @@
    import WithdrawalPlan from '$lib/components/WithdrawalPlan.svelte';
    import { generateTextReport } from '$lib/textReport';
    import { saveTextFile, generateFilename } from '$lib/fileIO';
+   import { effectiveTaxRate, taxRateColor } from '$lib/effectiveTaxRate';
+   import { getVisibleColumns } from '$lib/columnVisibility';
 
    let activeTab = $state<'single' | 'monte_carlo'>('single');
+   let selectedYearIdx = $state(0);
    let hasAny = $derived(
       simulationResults.value.singleResult !== null ||
          simulationResults.value.mcResult !== null,
@@ -59,8 +62,16 @@
          )}
          {@const years =
             depletionIdx >= 0 ? allYears.slice(0, depletionIdx + 1) : allYears}
+         {@const columnVis = getVisibleColumns(years)}
+         {@const inflationRate = portfolio.value.config.inflation_rate}
+         {@const cumTaxPV = years.reduce<number[]>((acc, yr, i) => {
+            const pvTax = yr.total_tax / Math.pow(1 + inflationRate, i);
+            acc.push((acc[i - 1] ?? 0) + pvTax);
+            return acc;
+         }, [])}
          <WithdrawalPlan
             {years}
+            yearIndex={selectedYearIdx}
             spendingStrategy={portfolio.value.config.spending_strategy}
             withdrawalRate={portfolio.value.config.withdrawal_rate}
          />
@@ -83,49 +94,109 @@
                <table class="table table-sm">
                   <thead>
                      <tr>
-                        <th>Year</th><th>Age</th><th>AGI</th><th>Bracket</th><th
-                           >RMD</th
+                        <th>Year</th>
+                        <th
+                           ><div>Total</div>
+                           <div>Balance</div></th
                         >
-                        <th>Income</th><th>Spending</th><th>Pre-tax WD</th><th
-                           >Roth WD</th
-                        ><th>Brokerage WD</th>
-                        <th>Roth Conv</th><th>Conv Tax</th><th>Total Tax</th><th
-                           >IRMAA</th
-                        ><th>Cap Gains Tax</th><th>401k Dep</th><th
-                           >Total Balance</th
+                        <th>AGI</th>
+                        <th
+                           ><div>Eff Tax</div>
+                           <div>Rate</div></th
                         >
+                        <th>Spending</th>
+                        {#if columnVis.dep401k}<th
+                              ><div>401k</div>
+                              <div>Dep</div></th
+                           >{/if}
+                        <th
+                           ><div>Income</div>
+                           <div>Tax</div></th
+                        >
+                        {#if columnVis.capGainsTax}<th
+                              ><div>Cap Gains</div>
+                              <div>Tax</div></th
+                           >{/if}
+                        {#if columnVis.convTax}<th
+                              ><div>Conv</div>
+                              <div>Tax</div></th
+                           >{/if}
+                        <th
+                           ><div>∑ Tax</div>
+                           <div>PV</div></th
+                        >
+                        {#if columnVis.rothConv}<th
+                              ><div>Roth</div>
+                              <div>Conv</div></th
+                           >{/if}
+                        {#if columnVis.irmaa}<th>IRMAA</th>{/if}
+                        {#if columnVis.income}<th>Income</th>{/if}
+                        {#if columnVis.brokerageWd}<th
+                              ><div>Brokerage</div>
+                              <div>WD</div></th
+                           >{/if}
+                        {#if columnVis.pretaxWd}<th
+                              ><div>Vol. PreTax</div>
+                              <div>WD</div></th
+                           >{/if}
+                        {#if columnVis.rmd}<th>RMD</th>{/if}
+                        {#if columnVis.rothWd}<th
+                              ><div>Roth</div>
+                              <div>WD</div></th
+                           >{/if}
                      </tr>
                   </thead>
                   <tbody>
-                     {#each years as yr (yr.year)}
+                     {#each years as yr, i (yr.year)}
+                        {@const rate = effectiveTaxRate(yr)}
                         <tr
-                           class={yr.total_balance <= 0
+                           class="cursor-pointer {i === selectedYearIdx
+                              ? 'bg-primary-100/30 dark:bg-primary-800/30'
+                              : ''} {yr.total_balance <= 0
                               ? 'text-error-500 dark:text-error-400'
-                              : ''}
+                              : ''}"
+                           onclick={() => (selectedYearIdx = i)}
                         >
-                           <td>{yr.year}</td><td>{yr.age_primary}</td><td
-                              >{currency(yr.agi)}</td
-                           >
-                           <td>{yr.bracket}</td><td>{currency(yr.rmd)}</td><td
-                              >{currency(yr.total_income)}</td
+                           <td>{yr.year}</td>
+                           <td>{currency(yr.total_balance)}</td>
+                           <td>{currency(yr.agi)}</td>
+                           <td style="color: {taxRateColor(rate)}"
+                              >{(rate * 100).toFixed(1)}%</td
                            >
                            <td>{currency(yr.spending_target)}</td>
-                           <td>{currency(yr.pretax_withdrawal)}</td><td
-                              >{currency(yr.roth_withdrawal)}</td
-                           >
-                           <td>{currency(yr.brokerage_withdrawal)}</td><td
-                              >{currency(yr.roth_conversion)}</td
-                           >
-                           <td>{currency(yr.conversion_tax)}</td><td
-                              >{currency(yr.total_tax)}</td
-                           >
-                           <td>{currency(yr.irmaa_cost)}</td><td
-                              >{currency(yr.brokerage_gains_tax)}</td
-                           ><td
-                              >{currency(
-                                 yr.pretax_401k_deposit + yr.roth_401k_deposit,
-                              )}</td
-                           ><td>{currency(yr.total_balance)}</td>
+                           {#if columnVis.dep401k}<td
+                                 >{currency(
+                                    yr.pretax_401k_deposit +
+                                       yr.roth_401k_deposit,
+                                 )}</td
+                              >{/if}
+                           <td>{currency(yr.income_tax)}</td>
+                           {#if columnVis.capGainsTax}<td
+                                 >{currency(yr.brokerage_gains_tax)}</td
+                              >{/if}
+                           {#if columnVis.convTax}<td
+                                 >{currency(yr.conversion_tax)}</td
+                              >{/if}
+                           <td>{currency(cumTaxPV[i])}</td>
+                           {#if columnVis.rothConv}<td
+                                 >{currency(yr.roth_conversion)}</td
+                              >{/if}
+                           {#if columnVis.irmaa}<td
+                                 >{currency(yr.irmaa_cost)}</td
+                              >{/if}
+                           {#if columnVis.income}<td
+                                 >{currency(yr.total_income)}</td
+                              >{/if}
+                           {#if columnVis.brokerageWd}<td
+                                 >{currency(yr.brokerage_withdrawal)}</td
+                              >{/if}
+                           {#if columnVis.pretaxWd}<td
+                                 >{currency(yr.pretax_withdrawal)}</td
+                              >{/if}
+                           {#if columnVis.rmd}<td>{currency(yr.rmd)}</td>{/if}
+                           {#if columnVis.rothWd}<td
+                                 >{currency(yr.roth_withdrawal)}</td
+                              >{/if}
                         </tr>
                      {/each}
                   </tbody>

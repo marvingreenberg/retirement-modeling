@@ -8,25 +8,48 @@
    } from '$lib/types';
    import { currency } from '$lib/format';
    import { portfolio, profile } from '$lib/stores';
+   import { CURRENCY_EPSILON } from '$lib/columnVisibility';
    import { SvelteMap } from 'svelte/reactivity';
    import { ClipboardList } from 'lucide-svelte';
 
    let {
       years,
+      yearIndex = 0,
       spendingStrategy = 'fixed_dollar',
       withdrawalRate = 0.04,
    }: {
       years: YearResult[];
+      yearIndex?: number;
       spendingStrategy?: SpendingStrategy;
       withdrawalRate?: number;
    } = $props();
 
-   let planYears = $derived(years.slice(0, 2));
+   let yr = $derived(years[yearIndex] ?? years[0]);
    let accounts = $derived((portfolio.value?.accounts ?? []) as Account[]);
    let hasSpouse = $derived(!!profile.value.spouseName?.trim());
    let annualSpendNet = $derived(
       portfolio.value?.config?.annual_spend_net ?? 0,
    );
+
+   let rmdItems = $derived(rmdByPerson(yr?.withdrawal_details));
+   let hasRmd = $derived(rmdItems.length > 0);
+   let cashWDs = $derived(
+      mergeByAccount(
+         (yr?.withdrawal_details ?? []).filter(
+            (d) => d.purpose === 'spending' || d.purpose === 'tax',
+         ),
+      ),
+   );
+   let hasIncome = $derived((yr?.income_details ?? []).length > 0);
+   let expenses = $derived(yr ? activeExpenses(yr) : []);
+   let hasExpenses = $derived(
+      yr ? yr.planned_expense > CURRENCY_EPSILON : false,
+   );
+   let baseSpending = $derived(
+      yr ? yr.spending_target - yr.planned_expense : 0,
+   );
+   let totalWithdrawals = $derived(cashWDs.reduce((s, d) => s + d.amount, 0));
+   let hasWithdrawals = $derived(totalWithdrawals > CURRENCY_EPSILON);
 
    function byPurpose(
       details: AccountWithdrawal[] | undefined,
@@ -85,45 +108,45 @@
       return result;
    }
 
-   function activeExpenses(yr: YearResult): { name: string; amount: number }[] {
-      const expenses: PlannedExpense[] =
+   function activeExpenses(y: YearResult): { name: string; amount: number }[] {
+      const expenseList: PlannedExpense[] =
          portfolio.value?.config?.planned_expenses ?? [];
-      return expenses
+      return expenseList
          .filter((e) => {
-            if (e.expense_type === 'one_time') return e.year === yr.year;
+            if (e.expense_type === 'one_time') return e.year === y.year;
             const start = e.start_year ?? 0;
             const end = e.end_year ?? 9999;
-            return start <= yr.year && yr.year <= end;
+            return start <= y.year && y.year <= end;
          })
          .map((e) => ({ name: e.name, amount: e.amount }));
    }
 
-   function strategyLabel(yr: YearResult): string {
-      const baseSpending = yr.spending_target - yr.planned_expense;
+   function strategyLabel(y: YearResult): string {
+      const base = y.spending_target - y.planned_expense;
       if (spendingStrategy === 'fixed_dollar') {
-         return `Fixed ${currency(baseSpending)}`;
+         return `Fixed ${currency(base)}`;
       }
       if (spendingStrategy === 'percent_of_portfolio') {
          const rate = Math.round(withdrawalRate * 1000) / 10;
-         return `${rate}% of Portfolio \u2192 ${currency(baseSpending)}   desired ${currency(annualSpendNet)}`;
+         return `${rate}% of Portfolio \u2192 ${currency(base)}   desired ${currency(annualSpendNet)}`;
       }
       if (spendingStrategy === 'guardrails') {
          const effectiveRate =
-            yr.total_balance > 0
-               ? Math.round((baseSpending / yr.total_balance) * 1000) / 10
+            y.total_balance > 0
+               ? Math.round((base / y.total_balance) * 1000) / 10
                : 0;
-         return `Guardrails ${effectiveRate}% \u2192 ${currency(baseSpending)}   desired ${currency(annualSpendNet)}`;
+         return `Guardrails ${effectiveRate}% \u2192 ${currency(base)}   desired ${currency(annualSpendNet)}`;
       }
       return '';
    }
 
-   function yearHeader(yr: YearResult): string {
+   function yearHeader(y: YearResult): string {
       const primary = profile.value.primaryName || 'Primary';
       if (hasSpouse) {
          const spouse = profile.value.spouseName;
-         return `${yr.year} \u00b7 ${primary} ${yr.age_primary}, ${spouse} ${yr.age_spouse}`;
+         return `${y.year} \u00b7 ${primary} ${y.age_primary}, ${spouse} ${y.age_spouse}`;
       }
-      return `${yr.year} \u00b7 ${primary} ${yr.age_primary}`;
+      return `${y.year} \u00b7 ${primary} ${y.age_primary}`;
    }
 </script>
 
@@ -133,40 +156,23 @@
    >
       <ClipboardList size={18} class="text-primary-500" /> Withdrawal Plan
    </h3>
-   <div class="grid gap-4 {planYears.length > 1 ? 'md:grid-cols-2' : ''}">
-      {#each planYears as yr (yr.year)}
-         {@const rmdItems = rmdByPerson(yr.withdrawal_details)}
-         {@const hasRmd = rmdItems.length > 0}
-         {@const cashWDs = mergeByAccount(
-            (yr.withdrawal_details ?? []).filter(
-               (d) => d.purpose === 'spending' || d.purpose === 'tax',
-            ),
-         )}
-         {@const hasIncome = (yr.income_details ?? []).length > 0}
-         {@const expenses = activeExpenses(yr)}
-         {@const hasExpenses = yr.planned_expense > 0}
-         {@const baseSpending = yr.spending_target - yr.planned_expense}
-         {@const totalWithdrawals = cashWDs.reduce((s, d) => s + d.amount, 0)}
-         {@const hasWithdrawals = totalWithdrawals > 0}
-         <div
-            class="rounded-lg bg-surface-50 dark:bg-surface-700 p-3 space-y-2"
-         >
-            <!-- Header -->
-            <div class="font-medium text-surface-900 dark:text-surface-100">
-               {yearHeader(yr)}
+   {#if yr}
+      <div class="rounded-lg bg-surface-50 dark:bg-surface-700 p-3 space-y-2">
+         <!-- Header -->
+         <div class="font-medium text-surface-900 dark:text-surface-100">
+            {yearHeader(yr)}
+         </div>
+
+         <!-- Strategy line -->
+         {#if strategyLabel(yr)}
+            <div class="text-xs text-surface-500 dark:text-surface-400 italic">
+               {strategyLabel(yr)}
             </div>
+         {/if}
 
-            <!-- Strategy line -->
-            {#if strategyLabel(yr)}
-               <div
-                  class="text-xs text-surface-500 dark:text-surface-400 italic"
-               >
-                  {strategyLabel(yr)}
-               </div>
-            {/if}
-
-            <div class="text-sm space-y-1">
-               <!-- ═══ SOURCES ═══ -->
+         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <!-- ═══ SOURCES (left column) ═══ -->
+            <div class="space-y-1">
                <div
                   class="pt-1 border-t-2 border-surface-300 dark:border-surface-500 text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400"
                >
@@ -256,8 +262,10 @@
                         .join(', ')}
                   </div>
                {/if}
+            </div>
 
-               <!-- ═══ USES ═══ -->
+            <!-- ═══ USES + ROTH CONVERSION (right column) ═══ -->
+            <div class="space-y-1">
                <div
                   class="pt-1 border-t-2 border-surface-300 dark:border-surface-500 text-xs font-semibold uppercase tracking-wide text-surface-500 dark:text-surface-400"
                >
@@ -384,7 +392,6 @@
                {/if}
 
                <!-- ═══ ROTH CONVERSION ═══ -->
-
                {#if yr.roth_conversion > 0}
                   <div
                      class="pt-1 border-t-2 border-surface-300 dark:border-surface-500"
@@ -411,6 +418,6 @@
                {/if}
             </div>
          </div>
-      {/each}
-   </div>
+      </div>
+   {/if}
 </div>

@@ -5,6 +5,8 @@
    import type { YearlyResultPercentiles } from '$lib/types';
    import HelpButton from '$lib/components/HelpButton.svelte';
    import { formatTick } from './formatTick';
+   import { pvDivisor } from '$lib/presentValue';
+   import { pvMode, portfolio } from '$lib/stores';
 
    type FanMetric = 'balance' | 'spending';
 
@@ -33,12 +35,21 @@
 
    Chart.register(...registerables, annotationPlugin);
 
-   function getData(p: YearlyResultPercentiles, level: string): number {
+   function getData(
+      p: YearlyResultPercentiles,
+      level: string,
+      idx: number,
+   ): number {
       const key = `${metric}_${level}` as keyof YearlyResultPercentiles;
-      return (p[key] as number) ?? 0;
+      const raw = (p[key] as number) ?? 0;
+      const divisor = pvMode.value
+         ? pvDivisor(portfolio.value.config.inflation_rate, idx)
+         : 1;
+      return raw / divisor;
    }
 
    function buildChart() {
+      const isPV = pvMode.value;
       chart?.destroy();
       const labels = percentiles.map((p) => `${p.year}`);
       const { base, solid } = COLORS[metric];
@@ -82,7 +93,7 @@
             datasets: [
                {
                   label: '95th percentile',
-                  data: percentiles.map((p) => getData(p, 'p95')),
+                  data: percentiles.map((p, i) => getData(p, 'p95', i)),
                   borderColor: `rgba(${base},0.35)`,
                   backgroundColor: `rgba(${base},0.15)`,
                   fill: '+4',
@@ -91,7 +102,7 @@
                },
                {
                   label: '75th percentile',
-                  data: percentiles.map((p) => getData(p, 'p75')),
+                  data: percentiles.map((p, i) => getData(p, 'p75', i)),
                   borderColor: `rgba(${base},0.5)`,
                   backgroundColor: `rgba(${base},0.2)`,
                   fill: '+2',
@@ -100,7 +111,7 @@
                },
                {
                   label: 'Median',
-                  data: percentiles.map((p) => getData(p, 'median')),
+                  data: percentiles.map((p, i) => getData(p, 'median', i)),
                   borderColor: solid,
                   borderWidth: 2.5,
                   fill: false,
@@ -108,7 +119,7 @@
                },
                {
                   label: '25th percentile',
-                  data: percentiles.map((p) => getData(p, 'p25')),
+                  data: percentiles.map((p, i) => getData(p, 'p25', i)),
                   borderColor: `rgba(${base},0.5)`,
                   borderWidth: 1,
                   fill: false,
@@ -116,7 +127,7 @@
                },
                {
                   label: '5th percentile',
-                  data: percentiles.map((p) => getData(p, 'p5')),
+                  data: percentiles.map((p, i) => getData(p, 'p5', i)),
                   borderColor: `rgba(${base},0.35)`,
                   borderWidth: 1,
                   fill: false,
@@ -143,6 +154,10 @@
             },
             scales: {
                y: {
+                  title: {
+                     display: isPV,
+                     text: isPV ? 'Amount (PV $)' : '',
+                  },
                   ticks: {
                      callback: (v) => formatTick(v as number),
                   },

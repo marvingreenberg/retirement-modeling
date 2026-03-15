@@ -67,10 +67,19 @@
                         <th class="text-left">Withdrawal</th>
                         <th class="text-left">Conversion</th>
                         <th>Final Balance</th>
-                        <th>Total Taxes</th>
-                        <th>Total IRMAA</th>
+                        <th
+                           ><div>Total Taxes</div>
+                           <div class="font-normal">(PV $)</div></th
+                        >
+                        <th
+                           ><div>Total IRMAA</div>
+                           <div class="font-normal">(PV $)</div></th
+                        >
                         <th>Roth Conv Acct</th>
-                        <th class="text-left">Spending Range</th>
+                        <th class="text-left"
+                           ><div>Spending Range</div>
+                           <div class="font-normal">(PV $)</div></th
+                        >
                         <th></th>
                      </tr>
                   </thead>

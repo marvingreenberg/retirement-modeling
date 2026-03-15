@@ -1,0 +1,42 @@
+import type { YearResult } from '$lib/types';
+
+export interface ColumnVisibility {
+   dep401k: boolean;
+   capGainsTax: boolean;
+   convTax: boolean;
+   rothConv: boolean;
+   irmaa: boolean;
+   income: boolean;
+   brokerageWd: boolean;
+   pretaxWd: boolean;
+   rmd: boolean;
+   rothWd: boolean;
+}
+
+/** Threshold for treating a currency value as non-zero (handles float rounding) */
+export const CURRENCY_EPSILON = 0.5;
+
+function anyNonZero(
+   years: YearResult[],
+   getter: (yr: YearResult) => number,
+): boolean {
+   return years.some((yr) => Math.abs(getter(yr)) > CURRENCY_EPSILON);
+}
+
+export function getVisibleColumns(years: YearResult[]): ColumnVisibility {
+   return {
+      dep401k: anyNonZero(
+         years,
+         (yr) => yr.pretax_401k_deposit + yr.roth_401k_deposit,
+      ),
+      capGainsTax: anyNonZero(years, (yr) => yr.brokerage_gains_tax),
+      convTax: anyNonZero(years, (yr) => yr.conversion_tax),
+      rothConv: anyNonZero(years, (yr) => yr.roth_conversion),
+      irmaa: anyNonZero(years, (yr) => yr.irmaa_cost),
+      income: anyNonZero(years, (yr) => yr.total_income),
+      brokerageWd: anyNonZero(years, (yr) => yr.brokerage_withdrawal),
+      pretaxWd: anyNonZero(years, (yr) => yr.pretax_withdrawal),
+      rmd: anyNonZero(years, (yr) => yr.rmd),
+      rothWd: anyNonZero(years, (yr) => yr.roth_withdrawal),
+   };
+}
