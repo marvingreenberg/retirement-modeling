@@ -411,7 +411,8 @@ def run_simulation(
         cash_from_ss = ss_income - (ss_taxable * est_tax_rate)
         cash_from_streams = stream_income - (stream_taxable * est_tax_rate)
         cash_from_rmd = rmd_withdrawn * (1 - est_tax_rate)
-        cash_in_hand = cash_from_ss + cash_from_streams + cash_from_rmd
+        est_irmaa = calculate_irmaa_cost(current_agi, adj_irmaa_tiers)
+        cash_in_hand = cash_from_ss + cash_from_streams + cash_from_rmd - est_irmaa
 
         remaining_spend = max(0, total_spend_needed - cash_in_hand)
         surplus_cash = max(0, cash_in_hand - total_spend_needed)
@@ -594,7 +595,7 @@ def run_simulation(
         # brokerage_gains_tax is added since gains require additional tax payment.
         estimated_withholding = (
             ss_taxable + stream_taxable + rmd_withdrawn + voluntary_pretax
-        ) * est_tax_rate
+        ) * est_tax_rate + est_irmaa
         actual_tax_owed = income_tax + brokerage_gains_tax + irmaa_cost
         tax_shortfall = max(0, actual_tax_owed - estimated_withholding)
 
