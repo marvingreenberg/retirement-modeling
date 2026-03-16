@@ -36,11 +36,13 @@
    <link rel="icon" href={favicon} />
 </svelte:head>
 
-<AppBar />
+<div class="sticky top-0 z-10">
+   <AppBar />
+   <div
+      class="h-1 bg-gradient-to-r from-primary-500 via-tertiary-500 to-success-500"
+   ></div>
+</div>
 <PortraitBlocker />
-<div
-   class="h-1 bg-gradient-to-r from-primary-500 via-tertiary-500 to-success-500"
-></div>
 
 <main class="max-w-6xl mx-auto p-4 sm:p-8">
    {@render children()}

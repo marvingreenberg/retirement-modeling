@@ -12,7 +12,7 @@
    import { avatarSrc, fetchAvatarSvg } from '$lib/avatar.svelte';
    import LoadSaveSection from '$lib/components/settings/LoadSaveSection.svelte';
    import AdvancedSettings from '$lib/components/settings/AdvancedSettings.svelte';
-   import { User, FolderOpen, Sliders, LayoutDashboard } from 'lucide-svelte';
+   import { User, FolderOpen, Sliders } from 'lucide-svelte';
    import { onMount } from 'svelte';
 
    type Section = 'basic' | 'loadsave' | 'advanced';
@@ -178,17 +178,6 @@
                {label}
             </button>
          {/each}
-      </div>
-
-      <!-- Footer: Back to Overview -->
-      <div class="p-4 border-t border-surface-300 dark:border-surface-700">
-         <a
-            href="/"
-            class="flex items-center gap-2 px-3 py-2 text-sm text-surface-600 dark:text-surface-400 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
-         >
-            <LayoutDashboard size={18} />
-            Overview
-         </a>
       </div>
    </nav>
 
