@@ -12,6 +12,13 @@ export function toPV(
    return value / pvDivisor(inflationRate, yearIndex);
 }
 
+export function pvMapper(
+   isPV: boolean,
+   inflationRate: number,
+): (value: number, yearIndex: number) => number {
+   return isPV ? (v, i) => v / pvDivisor(inflationRate, i) : (v) => v;
+}
+
 export function pvTotalTaxes(
    years: YearResult[],
    inflationRate: number,

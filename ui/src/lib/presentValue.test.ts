@@ -5,6 +5,7 @@ import {
    pvTotalTaxes,
    pvTotalIrmaa,
    pvSpendingRange,
+   pvMapper,
 } from './presentValue';
 import type { YearResult } from '$lib/types';
 
@@ -113,5 +114,22 @@ describe('pvSpendingRange', () => {
 
    it('returns null for empty years', () => {
       expect(pvSpendingRange([], 0.03)).toBeNull();
+   });
+});
+
+describe('pvMapper', () => {
+   it('returns identity function when PV is off', () => {
+      const pv = pvMapper(false, 0.03);
+      expect(pv(100000, 10)).toBe(100000);
+   });
+
+   it('discounts value when PV is on', () => {
+      const pv = pvMapper(true, 0.03);
+      expect(pv(100000, 10)).toBeCloseTo(100000 / 1.03 ** 10);
+   });
+
+   it('returns value unchanged at year 0 even with PV on', () => {
+      const pv = pvMapper(true, 0.03);
+      expect(pv(100000, 0)).toBe(100000);
    });
 });

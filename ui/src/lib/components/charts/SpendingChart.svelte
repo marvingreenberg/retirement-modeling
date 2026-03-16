@@ -6,7 +6,7 @@
    import ChartEventOverlay from './ChartEventOverlay.svelte';
    import HelpButton from '$lib/components/HelpButton.svelte';
    import { formatTick } from './formatTick';
-   import { pvDivisor } from '$lib/presentValue';
+   import { pvMapper } from '$lib/presentValue';
    import { pvMode, portfolio } from '$lib/stores';
 
    function totalAvailableForYear(y: YearResult): number {
@@ -40,8 +40,7 @@
    function buildChart() {
       chart?.destroy();
       const labels = years.map((y) => `${y.year}`);
-      const isPv = pvMode.value;
-      const inflationRate = portfolio.value.config.inflation_rate;
+      const pv = pvMapper(pvMode.value, portfolio.value.config.inflation_rate);
 
       const areaStyle = {
          borderWidth: 1.5,
@@ -50,9 +49,6 @@
          yAxisID: 'y',
          stack: 'spending',
       };
-
-      const pv = (v: number, idx: number) =>
-         isPv ? v / pvDivisor(inflationRate, idx) : v;
 
       const baseSpendingData = years.map((y, idx) =>
          pv(y.spending_target - y.planned_expense, idx),
