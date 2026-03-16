@@ -10,7 +10,7 @@
    } from '$lib/stores';
    import { validatePortfolio } from '$lib/validation';
    import { runSimulation, runMonteCarlo } from '$lib/api';
-   import { currency } from '$lib/format';
+   import { currency, uniqueId } from '$lib/format';
    import {
       pvTotalTaxes,
       pvTotalIrmaa,
@@ -86,7 +86,7 @@
    function buildSnapshotBase() {
       const c = portfolio.value.config;
       return {
-         id: crypto.randomUUID(),
+         id: uniqueId(),
          name: '',
          inflationRate: c.inflation_rate,
          conservativeGrowth: c.conservative_growth,
