@@ -22,10 +22,6 @@ The **Eff Tax %** column replaces the old bracket column. It shows the overall t
 
 Color coding gives a quick read on tax efficiency: green below 18%, blending to red at 23% and above.
 
-### ∑ Tax PV (Cumulative Tax Present Value)
-
-This column accumulates the present value of taxes paid through each year. Each year's taxes are discounted back to today's dollars using the inflation rate, then added to the running total. It's most useful when comparing strategies on the Compare page — a lower final value means less total tax cost in real terms.
-
 ### Conditional Columns
 
 Some columns are hidden when their values are zero across all simulated years: 401k deposits, cap gains tax, conversion tax, Roth conversions, IRMAA, income, and per-account withdrawal columns. This keeps the table readable for simpler scenarios. All columns are always included in CSV exports.

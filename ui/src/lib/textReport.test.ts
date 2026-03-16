@@ -126,7 +126,6 @@ describe('generateTextReport', () => {
       );
       expect(headerLine).toBeDefined();
       expect(headerLine).toContain('Eff Rate');
-      expect(headerLine).toContain('∑ Tax PV');
       expect(headerLine).toContain('Total Balance');
       expect(headerLine).not.toContain('Brkt');
       expect(headerLine).not.toContain('RMD');

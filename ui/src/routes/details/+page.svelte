@@ -63,12 +63,6 @@
          {@const years =
             depletionIdx >= 0 ? allYears.slice(0, depletionIdx + 1) : allYears}
          {@const columnVis = getVisibleColumns(years)}
-         {@const inflationRate = portfolio.value.config.inflation_rate}
-         {@const cumTaxPV = years.reduce<number[]>((acc, yr, i) => {
-            const pvTax = yr.total_tax / Math.pow(1 + inflationRate, i);
-            acc.push((acc[i - 1] ?? 0) + pvTax);
-            return acc;
-         }, [])}
          <WithdrawalPlan
             {years}
             yearIndex={selectedYearIdx}
@@ -121,10 +115,6 @@
                               ><div>Conv</div>
                               <div>Tax</div></th
                            >{/if}
-                        <th
-                           ><div>∑ Tax</div>
-                           <div>PV</div></th
-                        >
                         {#if columnVis.rothConv}<th
                               ><div>Roth</div>
                               <div>Conv</div></th
@@ -177,7 +167,6 @@
                            {#if columnVis.convTax}<td
                                  >{currency(yr.conversion_tax)}</td
                               >{/if}
-                           <td>{currency(cumTaxPV[i])}</td>
                            {#if columnVis.rothConv}<td
                                  >{currency(yr.roth_conversion)}</td
                               >{/if}
