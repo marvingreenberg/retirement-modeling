@@ -6,6 +6,7 @@
       simulateBlockedSection,
       numSimulations as numSimsStore,
       comparisonSnapshots,
+      portfolioFingerprint,
    } from '$lib/stores';
    import { validatePortfolio } from '$lib/validation';
    import { runSimulation, runMonteCarlo } from '$lib/api';
@@ -131,6 +132,16 @@
             simulationResults.value = { singleResult: null, mcResult: null };
          }
       }
+   });
+
+   // Clear comparison snapshots when structural portfolio inputs change
+   let lastFingerprint = $state(portfolioFingerprint(portfolio.value));
+   $effect(() => {
+      const fp = portfolioFingerprint(portfolio.value);
+      if (fp !== lastFingerprint && comparisonSnapshots.value.length > 0) {
+         comparisonSnapshots.value = [];
+      }
+      lastFingerprint = fp;
    });
 
    async function handleRun() {
