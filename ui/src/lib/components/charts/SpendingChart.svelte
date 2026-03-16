@@ -40,7 +40,8 @@
    function buildChart() {
       chart?.destroy();
       const labels = years.map((y) => `${y.year}`);
-      const pv = pvMapper(pvMode.value, portfolio.value.config.inflation_rate);
+      const isPv = pvMode.value;
+      const pv = pvMapper(isPv, portfolio.value.config.inflation_rate);
 
       const areaStyle = {
          borderWidth: 1.5,

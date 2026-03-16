@@ -255,21 +255,16 @@ describe('SimulateView (tabbed results)', () => {
       expect(screen.getByTestId('mock-chart')).toBeInTheDocument();
    });
 
-   it('hides PV toggle on Monte Carlo tab', async () => {
+   it('shows PV toggle on Monte Carlo tab', async () => {
       render(SimulateView, {
          singleResult: mockSingleResult,
          mcResult: mockMCResult,
          mcLoading: false,
          error: '',
       });
-      // PV toggle visible on Simulation tab
-      expect(screen.getByLabelText('Present Value $')).toBeInTheDocument();
-      // Switch to MC tab
       const mcTab = screen.getByText('Monte Carlo');
       await fireEvent.click(mcTab);
-      expect(
-         screen.queryByLabelText('Present Value $'),
-      ).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Present Value $')).toBeInTheDocument();
    });
 
    it('shows dash for single-result metrics when no single result', () => {
@@ -315,18 +310,15 @@ describe('SimulateView (tabbed results)', () => {
       ).toBeInTheDocument();
    });
 
-   it('hides PV toggle on MC Spending tab', async () => {
+   it('shows PV toggle on MC Spending tab', async () => {
       render(SimulateView, {
          singleResult: mockSingleResult,
          mcResult: mockMCResult,
          mcLoading: false,
          error: '',
       });
-      expect(screen.getByLabelText('Present Value $')).toBeInTheDocument();
       const mcSpendingTab = screen.getByText('MC Spending');
       await fireEvent.click(mcSpendingTab);
-      expect(
-         screen.queryByLabelText('Present Value $'),
-      ).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Present Value $')).toBeInTheDocument();
    });
 });
