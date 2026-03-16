@@ -1,6 +1,7 @@
 <script lang="ts">
    import { Chart } from 'chart.js';
    import type { YearlyResultPercentiles } from '$lib/types';
+   import type { DataMapper } from '$lib/presentValue';
    import ChartBase from './ChartBase.svelte';
    import { formatTick } from './formatTick';
 
@@ -34,11 +35,11 @@
 
    function buildChart(
       canvas: HTMLCanvasElement,
-      pv: (v: number, i: number) => number,
-      isPV: boolean,
+      mapper: DataMapper,
       annotations: Record<string, unknown>,
    ): Chart {
       const labels = percentiles.map((p) => `${p.year}`);
+      const { map: pv, suffix } = mapper;
       const { base, solid } = COLORS[metric];
 
       return new Chart(canvas, {
@@ -110,8 +111,8 @@
             scales: {
                y: {
                   title: {
-                     display: isPV,
-                     text: isPV ? 'Amount (PV $)' : '',
+                     display: true,
+                     text: `Amount${suffix}`,
                   },
                   ticks: {
                      callback: (v) => formatTick(v as number),

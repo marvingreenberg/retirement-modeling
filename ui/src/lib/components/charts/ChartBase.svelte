@@ -5,14 +5,12 @@
    import type { YearResult, ChartEvent } from '$lib/types';
    import ChartEventOverlay from './ChartEventOverlay.svelte';
    import HelpButton from '$lib/components/HelpButton.svelte';
-   import { pvMapper } from '$lib/presentValue';
+   import { createDataMapper, type DataMapper } from '$lib/presentValue';
    import { pvMode, portfolio } from '$lib/stores';
 
-   type PVFn = (value: number, yearIndex: number) => number;
    type BuildChartFn = (
       canvas: HTMLCanvasElement,
-      pv: PVFn,
-      isPV: boolean,
+      mapper: DataMapper,
       annotations: Record<string, unknown>,
    ) => Chart;
 
@@ -77,10 +75,12 @@
 
    function rebuild() {
       chart?.destroy();
-      const isPV = pvMode.value;
-      const pv = pvMapper(isPV, portfolio.value.config.inflation_rate);
+      const mapper = createDataMapper(
+         pvMode.value,
+         portfolio.value.config.inflation_rate,
+      );
       const annotations = retirementAnnotation();
-      chart = buildChartFn(canvas, pv, isPV, annotations);
+      chart = buildChartFn(canvas, mapper, annotations);
    }
 
    onMount(() => rebuild());

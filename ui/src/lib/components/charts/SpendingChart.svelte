@@ -1,6 +1,7 @@
 <script lang="ts">
    import { Chart } from 'chart.js';
    import type { YearResult, ChartEvent } from '$lib/types';
+   import type { DataMapper } from '$lib/presentValue';
    import ChartBase from './ChartBase.svelte';
    import { formatTick } from './formatTick';
 
@@ -30,11 +31,11 @@
 
    function buildChart(
       canvas: HTMLCanvasElement,
-      pv: (v: number, i: number) => number,
-      isPV: boolean,
+      mapper: DataMapper,
       annotations: Record<string, unknown>,
    ): Chart {
       const labels = years.map((y) => `${y.year}`);
+      const { map: pv, suffix } = mapper;
 
       const areaStyle = {
          borderWidth: 1.5,
@@ -155,8 +156,8 @@
                y: {
                   stacked: true,
                   title: {
-                     display: isPV,
-                     text: 'Annual Spending (PV $)',
+                     display: true,
+                     text: `Annual Spending${suffix}`,
                   },
                   ticks: {
                      callback: (v) => formatTick(v as number),
