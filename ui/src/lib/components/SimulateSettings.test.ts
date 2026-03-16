@@ -33,26 +33,44 @@ describe('SimulateSettings', () => {
       expect(screen.getAllByText(/Conversion/).length).toBeGreaterThan(0);
    });
 
-   it('shows strategy summary when collapsed', () => {
+   it('shows strategy selector always visible', () => {
       renderSettings();
-      expect(screen.getByText(/Withdrawal Strategy/)).toBeInTheDocument();
+      expect(screen.getByText(/Strategy/)).toBeInTheDocument();
+      const selects = screen.getAllByRole('combobox');
+      const strategySelect = selects.find((s) =>
+         Array.from(s.querySelectorAll('option')).some(
+            (o) => o.value === 'fixed_dollar',
+         ),
+      );
+      expect(strategySelect).toBeInTheDocument();
    });
 
-   it('shows strategy controls after expanding strategy section', async () => {
+   it('shows fixed dollar diagnostic for fixed_dollar strategy', () => {
+      portfolio.value = {
+         ...portfolio.value,
+         config: {
+            ...portfolio.value.config,
+            spending_strategy: 'fixed_dollar',
+            annual_spend_net: 200000,
+         },
+      };
+      renderSettings();
+      expect(screen.getByText(/Fixed \$200,000/)).toBeInTheDocument();
+   });
+
+   it('shows guardrails controls without needing to expand', () => {
       portfolio.value = {
          ...portfolio.value,
          config: { ...portfolio.value.config, spending_strategy: 'guardrails' },
       };
       renderSettings();
-      const toggle = screen.getByText(/Withdrawal Strategy/);
-      await fireEvent.click(toggle);
       expect(screen.getByText(/Floor Rate %/)).toBeInTheDocument();
       expect(screen.getByText(/Ceiling Rate %/)).toBeInTheDocument();
       expect(screen.getByText('Adjust %')).toBeInTheDocument();
       expect(screen.getByText(/Initial rate:/)).toBeInTheDocument();
    });
 
-   it('shows withdrawal rate after expanding strategy for POP', async () => {
+   it('shows withdrawal rate for percent_of_portfolio without needing to expand', () => {
       portfolio.value = {
          ...portfolio.value,
          config: {
@@ -61,22 +79,7 @@ describe('SimulateSettings', () => {
          },
       };
       renderSettings();
-      const toggle = screen.getByText(/Withdrawal Strategy/);
-      await fireEvent.click(toggle);
       expect(screen.getByText('Withdrawal Rate')).toBeInTheDocument();
-   });
-
-   it('strategy section collapsed by default shows summary', () => {
-      portfolio.value = {
-         ...portfolio.value,
-         config: {
-            ...portfolio.value.config,
-            spending_strategy: 'fixed_dollar',
-            annual_spend_net: 140000,
-         },
-      };
-      renderSettings();
-      expect(screen.getByText(/Fixed \$140K/)).toBeInTheDocument();
    });
 
    it('does not show run mode radio buttons', () => {
@@ -102,8 +105,14 @@ describe('SimulateSettings', () => {
          },
       };
       renderSettings();
-      const select = screen.getByRole('combobox');
-      expect(select).not.toBeDisabled();
+      const selects = screen.getAllByRole('combobox');
+      const conversionSelect = selects.find((s) =>
+         Array.from(s.querySelectorAll('option')).some(
+            (o) => o.value === 'irmaa_tier_1',
+         ),
+      );
+      expect(conversionSelect).toBeDefined();
+      expect(conversionSelect).not.toBeDisabled();
    });
 
    it('shows inline error for inflation input when validation fails', () => {
@@ -134,7 +143,6 @@ describe('SimulateSettings', () => {
    it('shows conversion dropdown when pretax accounts exist', () => {
       renderSettings();
       expect(screen.getAllByText(/Conversion/).length).toBeGreaterThan(0);
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
    });
 
    it('hides conversion dropdown when no pretax accounts', () => {
@@ -155,7 +163,13 @@ describe('SimulateSettings', () => {
          config: { ...portfolio.value.config, strategy_target: 'irmaa_tier_1' },
       };
       renderSettings();
-      expect(screen.getByRole('combobox')).toHaveValue('irmaa_tier_1');
+      const selects = screen.getAllByRole('combobox');
+      const conversionSelect = selects.find((s) =>
+         Array.from(s.querySelectorAll('option')).some(
+            (o) => o.value === 'irmaa_tier_1',
+         ),
+      );
+      expect(conversionSelect).toHaveValue('irmaa_tier_1');
 
       portfolio.value = {
          ...portfolio.value,

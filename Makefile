@@ -73,14 +73,14 @@ clean:
 
 
 dev:
-	@$(ACTIVATE) && pip install -q -e . 2>&1 | grep -v 'already satisfied' || true
+	@uv sync 2>&1 | grep -v 'Audited\|Resolved' || true
 	@cleanup() { kill 0 2>/dev/null; wait 2>/dev/null; }; \
 	  trap cleanup INT TERM EXIT; \
 	  $(ACTIVATE) && uvicorn retirement_model.api:app --reload & API_PID=$$!; \
 	  sleep 1; \
 	  kill -0 $$API_PID 2>/dev/null || { echo "ERROR: API server failed to start (port 8000 in use?)"; exit 1; }; \
 	  VITE_PORT=$$(( (RANDOM % 16384) + 49152 )); \
-	  (cd ui && npx vite dev --port $$VITE_PORT --strictPort) & \
+	  (cd ui; set -x; npx vite dev --port $$VITE_PORT --strictPort) & \
 	  for i in 1 2 3 4 5 6 7 8 9 10; do curl -s http://localhost:$$VITE_PORT >/dev/null && break; sleep 1; done; \
 	  echo "Vite dev server on port $$VITE_PORT"; \
 	  open http://localhost:$$VITE_PORT; \
@@ -155,9 +155,7 @@ format: format-api format-ui
 # ── Component targets ───────────────────────────────────────────
 
 setup-api:
-	python3 -m venv .venv && \
-	  $(ACTIVATE) && \
-	  pip install -q -e ".[dev]"
+	uv sync --extra dev
 
 setup-ui:
 	cd ui && pnpm install

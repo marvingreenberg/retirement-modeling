@@ -53,24 +53,11 @@
       g.ceiling_percent = init > 0 ? ceiling / 100 / init : 1.2;
    }
 
-   function strategySummary(): string {
-      const c = portfolio.value.config;
-      const s = c.spending_strategy ?? 'fixed_dollar';
-      if (s === 'fixed_dollar') {
-         const spend =
-            c.annual_spend_net >= 1000
-               ? `$${Math.round(c.annual_spend_net / 1000)}K`
-               : `$${c.annual_spend_net}`;
-         return `Fixed ${spend}`;
-      }
-      if (s === 'percent_of_portfolio')
-         return `${toPct(c.withdrawal_rate ?? 0.04).toFixed(1)}% of Portfolio`;
-      if (s === 'guardrails' && c.guardrails_config) {
-         const adj = toPct(c.guardrails_config.adjustment_percent).toFixed(1);
-         return `Guardrails ${guardrailFloor()}-${guardrailCeiling()}% Adj ${adj}%`;
-      }
-      return 'RMD-Based';
-   }
+   let fixedDollarDiagnostic = $derived(
+      `Fixed ${currency(portfolio.value.config.annual_spend_net)}`,
+   );
+
+   const DIAGNOSTIC_THRESHOLD_PCT = 0.05;
 
    let strategyDiagnostic = $derived.by(() => {
       const c = portfolio.value.config;
@@ -88,17 +75,20 @@
          rate = c.guardrails_config.initial_withdrawal_rate;
       else return null;
       const strategySpend = totalBalance * rate;
-      if (strategySpend > desired * 1.05)
+      if (strategySpend > desired * (1 + DIAGNOSTIC_THRESHOLD_PCT))
          return {
-            text: `Rate supports ~${currency(strategySpend)}/yr (above ${currency(desired)} desired)`,
+            text: `Rate supports ~${currency(strategySpend)}/yr (above ${currency(desired)} target)`,
             warn: false,
          };
-      if (strategySpend < desired * 0.95)
+      if (strategySpend < desired * (1 - DIAGNOSTIC_THRESHOLD_PCT))
          return {
-            text: `Rate only supports ~${currency(strategySpend)}/yr (below ${currency(desired)} desired)`,
+            text: `\u26A0\uFE0F Rate only supports ~${currency(strategySpend)}/yr (below ${currency(desired)} target)`,
             warn: true,
          };
-      return null;
+      return {
+         text: `Rate supports ~${currency(strategySpend)}/yr (about ${currency(desired)} target)`,
+         warn: false,
+      };
    });
 
    let showConversion = $derived(hasPretaxAccounts(portfolio.value.accounts));
@@ -122,8 +112,6 @@
          portfolio.value.config.strategy_target = 'standard';
       }
    });
-
-   let strategyOpen = $state(false);
 
    function handleKeydown(e: KeyboardEvent) {
       if (e.key === 'Enter') {
@@ -213,196 +201,137 @@
       {/if}
    </div>
 
-   <!-- Withdrawal Strategy: collapsible -->
-   <button
-      class="text-md text-surface-700 dark:text-surface-300 hover:text-surface-900 dark:hover:text-surface-100 cursor-pointer w-full text-left font-medium"
-      onclick={() => {
-         strategyOpen = !strategyOpen;
-      }}
-   >
-      {strategyOpen ? '▾' : '▸'} Withdrawal Strategy{#if !strategyOpen}
-         <span class="text-surface-500 font-normal">— {strategySummary()}</span
-         >{/if}
-   </button>
-
-   {#if strategyOpen}
-      <div class="pl-3 space-y-2">
-         {#if portfolio.value.config.spending_strategy === 'percent_of_portfolio'}
-            <div class="flex gap-4 flex-wrap items-end">
-               <label
-                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
-               >
-                  <span class="flex items-center gap-1"
-                     >Strategy <HelpButton
-                        topic="spending-strategies"
-                        anchor="strategy-selection"
-                     /></span
-                  >
-                  <select
-                     class="select w-44 text-sm"
-                     bind:value={portfolio.value.config.spending_strategy}
-                  >
-                     <option value="fixed_dollar">Fixed Dollar</option>
-                     <option value="percent_of_portfolio">% of Portfolio</option
-                     >
-                     <option value="guardrails">Guardrails</option>
-                  </select>
-               </label>
-               <label
-                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
-               >
-                  Withdrawal Rate
-                  <input
-                     type="number"
-                     class="input w-24 text-sm"
-                     value={toPct(
-                        portfolio.value.config.withdrawal_rate ?? 0.04,
-                     )}
-                     oninput={(e) =>
-                        setPct(
-                           e,
-                           (v) => (portfolio.value.config.withdrawal_rate = v),
-                        )}
-                     min="1"
-                     max="15"
-                     step="0.5"
-                  />
-               </label>
-            </div>
-         {:else if portfolio.value.config.spending_strategy === 'guardrails' && portfolio.value.config.guardrails_config}
-            <div class="flex gap-4 flex-wrap items-end">
-               <label
-                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
-               >
-                  <span class="flex items-center gap-1"
-                     >Strategy <HelpButton
-                        topic="spending-strategies"
-                        anchor="strategy-selection"
-                     /></span
-                  >
-                  <select
-                     class="select w-44 text-sm"
-                     bind:value={portfolio.value.config.spending_strategy}
-                  >
-                     <option value="fixed_dollar">Fixed Dollar</option>
-                     <option value="percent_of_portfolio">% of Portfolio</option
-                     >
-                     <option value="guardrails">Guardrails</option>
-                  </select>
-               </label>
-               <label
-                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
-               >
-                  <span class="flex items-center gap-1"
-                     >Floor Rate % <HelpButton
-                        topic="spending-strategies"
-                        anchor="guardrail-floor"
-                     /></span
-                  >
-                  <input
-                     type="number"
-                     class="input w-20 text-sm"
-                     value={guardrailFloor()}
-                     oninput={(e) =>
-                        setGuardrailRange(
-                           +(e.target as HTMLInputElement).value,
-                           guardrailCeiling(),
-                        )}
-                     min="1"
-                     max="10"
-                     step="0.5"
-                  />
-               </label>
-               <label
-                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
-               >
-                  <span class="flex items-center gap-1"
-                     >Ceiling Rate % <HelpButton
-                        topic="spending-strategies"
-                        anchor="guardrail-ceiling"
-                     /></span
-                  >
-                  <input
-                     type="number"
-                     class="input w-20 text-sm"
-                     value={guardrailCeiling()}
-                     oninput={(e) =>
-                        setGuardrailRange(
-                           guardrailFloor(),
-                           +(e.target as HTMLInputElement).value,
-                        )}
-                     min="2"
-                     max="15"
-                     step="0.5"
-                  />
-               </label>
-               <label
-                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
-               >
-                  Adjust %
-                  <input
-                     type="number"
-                     class="input w-20 text-sm"
-                     value={toPct(
-                        portfolio.value.config.guardrails_config
-                           .adjustment_percent,
-                     )}
-                     oninput={(e) =>
-                        setPct(
-                           e,
-                           (v) =>
-                              (portfolio.value.config.guardrails_config!.adjustment_percent =
-                                 v),
-                        )}
-                     min="1"
-                     max="25"
-                     step="0.5"
-                  />
-               </label>
-               <span class="text-xs text-surface-500 self-end pb-1.5"
-                  >Initial rate: {toPct(
-                     portfolio.value.config.guardrails_config
-                        .initial_withdrawal_rate,
-                  ).toFixed(1)}%</span
-               >
-            </div>
-         {:else}
-            <div class="flex gap-4 flex-wrap items-end">
-               <label
-                  class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
-               >
-                  <span class="flex items-center gap-1"
-                     >Strategy <HelpButton
-                        topic="spending-strategies"
-                        anchor="strategy-selection"
-                     /></span
-                  >
-                  <select
-                     class="select w-44 text-sm"
-                     bind:value={portfolio.value.config.spending_strategy}
-                  >
-                     <option value="fixed_dollar">Fixed Dollar</option>
-                     <option value="percent_of_portfolio">% of Portfolio</option
-                     >
-                     <option value="guardrails">Guardrails</option>
-                  </select>
-               </label>
-            </div>
-         {/if}
-         {#if strategyDiagnostic}
-            <div
-               class="text-xs {strategyDiagnostic.warn
-                  ? 'text-warning-600 dark:text-warning-400'
-                  : 'text-surface-500 dark:text-surface-400'}"
+   <!-- Withdrawal Strategy -->
+   <div class="space-y-2">
+      <div class="flex gap-4 flex-wrap items-end">
+         <label
+            class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+         >
+            <span class="flex items-center gap-1"
+               >Strategy <HelpButton
+                  topic="spending-strategies"
+                  anchor="strategy-selection"
+               /></span
             >
-               {strategyDiagnostic.text}
-            </div>
-         {/if}
-         {#if showWithdrawalOrder}
-            <WithdrawalOrderEditor
-               bind:order={portfolio.value.config.withdrawal_order}
-            />
+            <select
+               class="select w-44 text-sm"
+               bind:value={portfolio.value.config.spending_strategy}
+            >
+               <option value="fixed_dollar">Fixed Dollar</option>
+               <option value="percent_of_portfolio">% of Portfolio</option>
+               <option value="guardrails">Guardrails</option>
+            </select>
+         </label>
+         {#if portfolio.value.config.spending_strategy === 'percent_of_portfolio'}
+            <label
+               class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+            >
+               Withdrawal Rate
+               <input
+                  type="number"
+                  class="input w-24 text-sm"
+                  value={toPct(portfolio.value.config.withdrawal_rate ?? 0.04)}
+                  oninput={(e) =>
+                     setPct(
+                        e,
+                        (v) => (portfolio.value.config.withdrawal_rate = v),
+                     )}
+                  min="1"
+                  max="15"
+                  step="0.5"
+               />
+            </label>
+         {:else if portfolio.value.config.spending_strategy === 'guardrails' && portfolio.value.config.guardrails_config}
+            <label
+               class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+            >
+               <span class="flex items-center gap-1"
+                  >Floor Rate % <HelpButton
+                     topic="spending-strategies"
+                     anchor="guardrail-floor"
+                  /></span
+               >
+               <input
+                  type="number"
+                  class="input w-20 text-sm"
+                  value={guardrailFloor()}
+                  oninput={(e) =>
+                     setGuardrailRange(
+                        +(e.target as HTMLInputElement).value,
+                        guardrailCeiling(),
+                     )}
+                  min="1"
+                  max="10"
+                  step="0.5"
+               />
+            </label>
+            <label
+               class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+            >
+               <span class="flex items-center gap-1"
+                  >Ceiling Rate % <HelpButton
+                     topic="spending-strategies"
+                     anchor="guardrail-ceiling"
+                  /></span
+               >
+               <input
+                  type="number"
+                  class="input w-20 text-sm"
+                  value={guardrailCeiling()}
+                  oninput={(e) =>
+                     setGuardrailRange(
+                        guardrailFloor(),
+                        +(e.target as HTMLInputElement).value,
+                     )}
+                  min="2"
+                  max="15"
+                  step="0.5"
+               />
+            </label>
+            <label
+               class="flex flex-col gap-0.5 text-xs font-medium text-surface-600 dark:text-surface-400"
+            >
+               Adjust %
+               <input
+                  type="number"
+                  class="input w-20 text-sm"
+                  value={toPct(
+                     portfolio.value.config.guardrails_config
+                        .adjustment_percent,
+                  )}
+                  oninput={(e) =>
+                     setPct(
+                        e,
+                        (v) =>
+                           (portfolio.value.config.guardrails_config!.adjustment_percent =
+                              v),
+                     )}
+                  min="1"
+                  max="25"
+                  step="0.5"
+               />
+            </label>
+            <span class="text-xs text-surface-500 self-end pb-1.5"
+               >Initial rate: {toPct(
+                  portfolio.value.config.guardrails_config
+                     .initial_withdrawal_rate,
+               ).toFixed(1)}%</span
+            >
          {/if}
       </div>
-   {/if}
+      {#if portfolio.value.config.spending_strategy === 'fixed_dollar'}
+         <div class="text-xs text-surface-500 dark:text-surface-400">
+            {fixedDollarDiagnostic}
+         </div>
+      {:else if strategyDiagnostic}
+         <div class="text-xs text-surface-600 dark:text-surface-400">
+            {strategyDiagnostic.text}
+         </div>
+      {/if}
+      {#if showWithdrawalOrder}
+         <WithdrawalOrderEditor
+            bind:order={portfolio.value.config.withdrawal_order}
+         />
+      {/if}
+   </div>
 </div>
