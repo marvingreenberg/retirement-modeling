@@ -6,10 +6,11 @@
       simulateBlockedSection,
       numSimulations as numSimsStore,
       comparisonSnapshots,
+      portfolioFingerprint,
    } from '$lib/stores';
    import { validatePortfolio } from '$lib/validation';
    import { runSimulation, runMonteCarlo } from '$lib/api';
-   import { currency } from '$lib/format';
+   import { currency, uniqueId } from '$lib/format';
    import {
       pvTotalTaxes,
       pvTotalIrmaa,
@@ -19,6 +20,7 @@
    import SimulateSettings from '$lib/components/SimulateSettings.svelte';
    import SimulateView from '$lib/components/SimulateView.svelte';
    import WelcomeState from '$lib/components/WelcomeState.svelte';
+   import { Info } from 'lucide-svelte';
    import type {
       SimulationResponse,
       MonteCarloResponse,
@@ -85,7 +87,7 @@
    function buildSnapshotBase() {
       const c = portfolio.value.config;
       return {
-         id: crypto.randomUUID(),
+         id: uniqueId(),
          name: '',
          inflationRate: c.inflation_rate,
          conservativeGrowth: c.conservative_growth,
@@ -131,6 +133,20 @@
             simulationResults.value = { singleResult: null, mcResult: null };
          }
       }
+   });
+
+   // Clear comparison snapshots when structural portfolio inputs change
+   let lastFingerprint = $state(portfolioFingerprint(portfolio.value));
+   let comparisonClearedMsg = $state('');
+   $effect(() => {
+      const fp = portfolioFingerprint(portfolio.value);
+      if (fp !== lastFingerprint && comparisonSnapshots.value.length > 0) {
+         comparisonSnapshots.value = [];
+         comparisonClearedMsg =
+            'Comparisons cleared — portfolio inputs changed';
+         setTimeout(() => (comparisonClearedMsg = ''), 5000);
+      }
+      lastFingerprint = fp;
    });
 
    async function handleRun() {
@@ -228,6 +244,15 @@
 </script>
 
 <div class="space-y-6">
+   {#if comparisonClearedMsg}
+      <div
+         class="flex items-center gap-2 text-sm text-surface-700 dark:text-surface-300 bg-surface-300/60 dark:bg-surface-600/60 rounded px-3 py-2"
+      >
+         <Info size={16} class="shrink-0 text-surface-500" />
+         {comparisonClearedMsg}
+      </div>
+   {/if}
+
    <PortfolioEditor />
 
    <SimulateSettings onrun={handleRun} {loading} />

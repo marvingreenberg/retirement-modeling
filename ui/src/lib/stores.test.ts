@@ -10,6 +10,7 @@ import {
    profile,
    randomizeForDemo,
    snapshot,
+   portfolioFingerprint,
 } from './stores';
 import { portfolioSchema } from './schema';
 
@@ -238,6 +239,82 @@ describe('pvMode store', () => {
       pvMode.value = true;
       expect(pvMode.value).toBe(true);
       pvMode.value = false;
+   });
+});
+
+describe('portfolioFingerprint', () => {
+   it('returns the same value for identical portfolios', () => {
+      const p = structuredClone(samplePortfolio);
+      expect(portfolioFingerprint(p)).toBe(portfolioFingerprint(p));
+   });
+
+   it('changes when an account balance changes', () => {
+      const p1 = structuredClone(samplePortfolio);
+      const p2 = structuredClone(samplePortfolio);
+      p2.accounts[0].balance += 1000;
+      expect(portfolioFingerprint(p1)).not.toBe(portfolioFingerprint(p2));
+   });
+
+   it('changes when an account is added', () => {
+      const p1 = structuredClone(samplePortfolio);
+      const p2 = structuredClone(samplePortfolio);
+      p2.accounts.push({
+         id: 'new-acct',
+         name: 'New',
+         balance: 50000,
+         type: 'brokerage',
+         owner: 'primary',
+      });
+      expect(portfolioFingerprint(p1)).not.toBe(portfolioFingerprint(p2));
+   });
+
+   it('changes when annual spend changes', () => {
+      const p1 = structuredClone(samplePortfolio);
+      const p2 = structuredClone(samplePortfolio);
+      p2.config.annual_spend_net += 5000;
+      expect(portfolioFingerprint(p1)).not.toBe(portfolioFingerprint(p2));
+   });
+
+   it('changes when social security config changes', () => {
+      const p1 = structuredClone(samplePortfolio);
+      const p2 = structuredClone(samplePortfolio);
+      p2.config.social_security.primary_benefit += 100;
+      expect(portfolioFingerprint(p1)).not.toBe(portfolioFingerprint(p2));
+   });
+
+   it('does NOT change when inflation rate changes', () => {
+      const p1 = structuredClone(samplePortfolio);
+      const p2 = structuredClone(samplePortfolio);
+      p2.config.inflation_rate = 0.05;
+      expect(portfolioFingerprint(p1)).toBe(portfolioFingerprint(p2));
+   });
+
+   it('does NOT change when conservative growth changes', () => {
+      const p1 = structuredClone(samplePortfolio);
+      const p2 = structuredClone(samplePortfolio);
+      p2.config.conservative_growth = !p1.config.conservative_growth;
+      expect(portfolioFingerprint(p1)).toBe(portfolioFingerprint(p2));
+   });
+
+   it('does NOT change when conversion strategy changes', () => {
+      const p1 = structuredClone(samplePortfolio);
+      const p2 = structuredClone(samplePortfolio);
+      p2.config.strategy_target = 'irmaa_tier_1';
+      expect(portfolioFingerprint(p1)).toBe(portfolioFingerprint(p2));
+   });
+
+   it('does NOT change when spending strategy changes', () => {
+      const p1 = structuredClone(samplePortfolio);
+      const p2 = structuredClone(samplePortfolio);
+      p2.config.spending_strategy = 'percent_of_portfolio';
+      expect(portfolioFingerprint(p1)).toBe(portfolioFingerprint(p2));
+   });
+
+   it('does NOT change when withdrawal order changes', () => {
+      const p1 = structuredClone(samplePortfolio);
+      const p2 = structuredClone(samplePortfolio);
+      p2.config.withdrawal_order = ['roth', 'pretax', 'brokerage', 'cash'];
+      expect(portfolioFingerprint(p1)).toBe(portfolioFingerprint(p2));
    });
 });
 

@@ -97,6 +97,30 @@ export const simulationResults = createStore<SimulationResultsState>({
    mcResult: null,
 });
 
+/**
+ * Produces a string fingerprint of the "structural" portfolio inputs —
+ * the fields that, when changed, make existing comparison snapshots invalid.
+ * Deliberately excludes settings that are varied between comparison runs
+ * (inflation, growth mode, strategies, withdrawal order, etc.).
+ */
+export function portfolioFingerprint(p: Portfolio): string {
+   const data = {
+      accounts: p.accounts.map((a) => ({
+         id: a.id,
+         balance: a.balance,
+         type: a.type,
+         stock_pct: a.stock_pct,
+      })),
+      spend: p.config.annual_spend_net,
+      expenses: p.config.planned_expenses,
+      income: p.config.income_streams,
+      ss: p.config.social_security,
+      ss_auto: p.config.ss_auto,
+      salary_auto: p.config.salary_auto,
+   };
+   return JSON.stringify(data);
+}
+
 export function markTouched(path: string) {
    touchedFields.value = new SvelteSet([...touchedFields.value, path]);
 }
