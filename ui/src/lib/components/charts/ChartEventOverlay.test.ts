@@ -109,7 +109,7 @@ describe('ChartEventOverlay', () => {
       expect(screen.getByLabelText('Job $120K/yr ends')).toBeInTheDocument();
    });
 
-   it('hovering shows popover with year/age/balance', async () => {
+   it('hovering shows popover with year/age but no balance', async () => {
       const years = makeYears(10);
       render(ChartEventOverlay, {
          props: {
@@ -123,7 +123,7 @@ describe('ChartEventOverlay', () => {
       await fireEvent.mouseEnter(btn);
       expect(screen.getByText('2028 (Age 67)')).toBeInTheDocument();
       expect(screen.getByText('Pension $30K/yr begins')).toBeInTheDocument();
-      expect(screen.getByText('$940K')).toBeInTheDocument();
+      expect(screen.queryByText('$940K')).not.toBeInTheDocument();
    });
 
    it('popover hides on mouseleave', async () => {

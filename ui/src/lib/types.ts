@@ -437,7 +437,8 @@ export type ChartEventKind =
    | 'income_other'
    | 'income_end'
    | 'expense_one_time'
-   | 'expense_recurring';
+   | 'expense_recurring'
+   | 'expense_recurring_end';
 
 export interface ChartEvent {
    year: number;

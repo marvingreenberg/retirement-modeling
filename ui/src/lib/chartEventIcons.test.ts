@@ -12,6 +12,7 @@ const ALL_KINDS: ChartEventKind[] = [
    'income_end',
    'expense_one_time',
    'expense_recurring',
+   'expense_recurring_end',
 ];
 
 describe('EVENT_ICON_MAP', () => {

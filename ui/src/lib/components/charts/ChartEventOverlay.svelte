@@ -2,7 +2,6 @@
    import type { Chart } from 'chart.js';
    import type { ChartEvent, YearResult } from '$lib/types';
    import { EVENT_ICON_MAP } from '$lib/chartEventIcons';
-   import { compactCurrency } from '$lib/format';
 
    let {
       chart = undefined,
@@ -126,9 +125,6 @@
                <div class="font-semibold">{yr.year} (Age {yr.age_primary})</div>
                <div class="text-surface-600 dark:text-surface-300">
                   {m.event.tooltip}
-               </div>
-               <div class="mt-1 font-medium">
-                  {compactCurrency(yr.total_balance)}
                </div>
             {:else}
                <div>{m.event.tooltip}</div>
