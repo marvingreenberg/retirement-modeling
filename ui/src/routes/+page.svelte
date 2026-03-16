@@ -85,7 +85,9 @@
    function buildSnapshotBase() {
       const c = portfolio.value.config;
       return {
-         id: crypto.randomUUID(),
+         id:
+            crypto.randomUUID?.() ??
+            `${Date.now()}-${Math.random().toString(36).slice(2)}`,
          name: '',
          inflationRate: c.inflation_rate,
          conservativeGrowth: c.conservative_growth,

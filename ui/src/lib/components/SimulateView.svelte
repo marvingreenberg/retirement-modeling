@@ -10,7 +10,6 @@
       SimulationConfig,
       ChartEvent,
    } from '$lib/types';
-   import { ShieldCheck } from 'lucide-svelte';
    import TrafficLight from './TrafficLight.svelte';
    import { pvMode, portfolio } from '$lib/stores';
    import {
@@ -33,7 +32,9 @@
       config?: SimulationConfig | null;
    } = $props();
 
-   let activeTab = $state<'single' | 'spending' | 'monte_carlo'>('single');
+   let activeTab = $state<
+      'single' | 'spending' | 'monte_carlo' | 'mc_spending'
+   >('single');
    let chartEvents: ChartEvent[] = $derived(
       config ? buildChartEvents(config) : [],
    );
@@ -155,7 +156,7 @@
                </span>
             </div>
 
-            {#if activeTab !== 'monte_carlo'}
+            {#if activeTab !== 'monte_carlo' && activeTab !== 'mc_spending'}
                <div class="flex flex-col justify-end">
                   <label class="flex items-center gap-2 text-sm">
                      <input
@@ -199,6 +200,20 @@
          onclick={() => (activeTab = 'monte_carlo')}
       >
          Monte Carlo
+         {#if mcLoading}
+            <span
+               class="inline-block ml-1 animate-spin h-3 w-3 border-2 border-primary-500 border-t-transparent rounded-full align-middle"
+            ></span>
+         {/if}
+      </button>
+      <button
+         class="px-4 py-2 text-sm font-medium transition-colors {activeTab ===
+         'mc_spending'
+            ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500'
+            : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'}"
+         onclick={() => (activeTab = 'mc_spending')}
+      >
+         MC Spending
          {#if mcLoading}
             <span
                class="inline-block ml-1 animate-spin h-3 w-3 border-2 border-primary-500 border-t-transparent rounded-full align-middle"
@@ -286,9 +301,38 @@
                startAge={config?.current_age_primary ?? 0}
                startYear={config?.start_year ?? 0}
             />
+         {/if}
 
+         <div class="flex items-center gap-4">
+            <a
+               href="/details"
+               class="text-sm text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
+               >View yearly percentiles &rarr;</a
+            >
+         </div>
+      {/if}
+   {/if}
+
+   <!-- MC Spending tab -->
+   {#if activeTab === 'mc_spending'}
+      {#if mcLoading}
+         <div class="flex flex-col items-center justify-center py-16 gap-3">
+            <div
+               class="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"
+            ></div>
+            <span class="text-surface-500"
+               >Running Monte Carlo simulation...</span
+            >
+         </div>
+      {:else if mcResult}
+         <p class="text-xs italic text-surface-400 dark:text-surface-500 py-2">
+            Monte Carlo uses historically-sampled inflation and growth, not the
+            configured values.
+         </p>
+
+         {#if mcResult.yearly_percentiles.length > 0}
             <h4
-               class="text-sm font-semibold text-surface-600 dark:text-surface-400 mt-4"
+               class="text-sm font-semibold text-surface-600 dark:text-surface-400 mt-2"
             >
                Spending Distribution
             </h4>
@@ -301,39 +345,6 @@
                helpTopic="spending-strategies"
             />
          {/if}
-
-         <div class="card bg-surface-100 dark:bg-surface-800 p-4">
-            <h3
-               class="text-base font-semibold text-surface-900 dark:text-surface-50 mb-3 flex items-center gap-2"
-            >
-               <ShieldCheck size={18} class="text-warning-500" /> Portfolio Depletion
-            </h3>
-            {#if Math.round((1 - mcResult.success_rate) * mcResult.num_simulations) === 0}
-               <p class="text-success-600 dark:text-success-400 text-sm">
-                  No simulations resulted in portfolio depletion.
-               </p>
-            {:else}
-               <div class="flex gap-6 flex-wrap">
-                  <div class="flex flex-col gap-0.5">
-                     <span class="text-xs text-surface-500">Depleted</span>
-                     <span class="text-base font-bold"
-                        >{Math.round(
-                           (1 - mcResult.success_rate) *
-                              mcResult.num_simulations,
-                        )} of {mcResult.num_simulations}</span
-                     >
-                  </div>
-               </div>
-            {/if}
-         </div>
-
-         <div class="flex items-center gap-4">
-            <a
-               href="/details"
-               class="text-sm text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-               >View yearly percentiles &rarr;</a
-            >
-         </div>
       {/if}
    {/if}
 </div>

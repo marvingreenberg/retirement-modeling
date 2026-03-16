@@ -90,7 +90,7 @@ describe('SimulateView (tabbed results)', () => {
       comparisonSnapshots.value = [];
    });
 
-   it('renders tab bar with Simulation, Spending, and Monte Carlo tabs', () => {
+   it('renders tab bar with Simulation, Spending, Monte Carlo, and MC Spending tabs', () => {
       render(SimulateView, {
          singleResult: mockSingleResult,
          mcResult: null,
@@ -100,6 +100,7 @@ describe('SimulateView (tabbed results)', () => {
       expect(screen.getByText('Simulation')).toBeInTheDocument();
       expect(screen.getByText('Spending')).toBeInTheDocument();
       expect(screen.getByText('Monte Carlo')).toBeInTheDocument();
+      expect(screen.getByText('MC Spending')).toBeInTheDocument();
    });
 
    it('shows error message when error prop is set', () => {
@@ -200,34 +201,6 @@ describe('SimulateView (tabbed results)', () => {
       expect(screen.getByText('92%')).toBeInTheDocument();
    });
 
-   it('shows depletion count when success rate < 1', async () => {
-      const mcWithFailures = { ...mockMCResult, success_rate: 0.9 };
-      render(SimulateView, {
-         singleResult: null,
-         mcResult: mcWithFailures,
-         mcLoading: false,
-         error: '',
-      });
-      const mcTab = screen.getByText('Monte Carlo');
-      await fireEvent.click(mcTab);
-      expect(screen.getByText('100 of 1000')).toBeInTheDocument();
-   });
-
-   it('shows no depletion message when success rate is 100%', async () => {
-      const mcNoDep = { ...mockMCResult, success_rate: 1.0 };
-      render(SimulateView, {
-         singleResult: null,
-         mcResult: mcNoDep,
-         mcLoading: false,
-         error: '',
-      });
-      const mcTab = screen.getByText('Monte Carlo');
-      await fireEvent.click(mcTab);
-      expect(
-         screen.getByText(/no simulations resulted in portfolio depletion/i),
-      ).toBeInTheDocument();
-   });
-
    it('shows MC warning text about historically-sampled returns', async () => {
       render(SimulateView, {
          singleResult: null,
@@ -310,5 +283,50 @@ describe('SimulateView (tabbed results)', () => {
       expect(finalBalance?.textContent).toContain('—');
       const taxes = screen.getByText('Total Taxes (PV $)').closest('div');
       expect(taxes?.textContent).toContain('—');
+   });
+
+   it('shows MC warning text on MC Spending tab', async () => {
+      render(SimulateView, {
+         singleResult: null,
+         mcResult: mockMCResult,
+         mcLoading: false,
+         error: '',
+      });
+      const mcSpendingTab = screen.getByText('MC Spending');
+      await fireEvent.click(mcSpendingTab);
+      expect(
+         screen.getByText(
+            /Monte Carlo uses historically-sampled inflation and growth/,
+         ),
+      ).toBeInTheDocument();
+   });
+
+   it('shows loading spinner on MC Spending tab when loading', async () => {
+      render(SimulateView, {
+         singleResult: mockSingleResult,
+         mcResult: null,
+         mcLoading: true,
+         error: '',
+      });
+      const mcSpendingTab = screen.getByText('MC Spending');
+      await fireEvent.click(mcSpendingTab);
+      expect(
+         screen.getByText('Running Monte Carlo simulation...'),
+      ).toBeInTheDocument();
+   });
+
+   it('hides PV toggle on MC Spending tab', async () => {
+      render(SimulateView, {
+         singleResult: mockSingleResult,
+         mcResult: mockMCResult,
+         mcLoading: false,
+         error: '',
+      });
+      expect(screen.getByLabelText('Present Value $')).toBeInTheDocument();
+      const mcSpendingTab = screen.getByText('MC Spending');
+      await fireEvent.click(mcSpendingTab);
+      expect(
+         screen.queryByLabelText('Present Value $'),
+      ).not.toBeInTheDocument();
    });
 });
