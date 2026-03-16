@@ -16,4 +16,4 @@ Sums like **Total Taxes** and **Total IRMAA** are always shown in present value.
 
 - **Comparing strategies:** A strategy showing $5M final balance may look better than one showing $3M, but in PV terms they might be $2.5M vs $2.2M — a much smaller difference
 - **Understanding spending:** Fixed-dollar spending grows nominally but stays flat in PV terms — the chart makes this visible
-- **Tax burden:** ∑ Tax PV in the details table shows the cumulative real cost of taxes over time
+- **Tax burden:** Total Taxes (PV $) in the summary shows the real cumulative cost of taxes

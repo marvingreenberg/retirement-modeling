@@ -116,9 +116,6 @@ describe('Details page', () => {
       render(DetailsPage);
       expect(screen.getByText('Eff Tax')).toBeInTheDocument();
       expect(screen.getByText('Rate')).toBeInTheDocument();
-      // ∑ Tax PV header uses two-line divs
-      expect(screen.getByText('∑ Tax')).toBeInTheDocument();
-      expect(screen.getByText('PV')).toBeInTheDocument();
    });
 
    it('renders effective tax rate value', () => {

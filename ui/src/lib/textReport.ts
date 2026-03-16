@@ -69,11 +69,9 @@ function withdrawalPlanText(years: YearResult[]): string {
 }
 
 // Column order: Year | Total Balance | AGI | Eff Rate | Spending | 401k Dep |
-//   Income Tax | Cap Gains Tax | Conv Tax | ∑ Tax PV | Roth Conv | IRMAA |
+//   Income Tax | Cap Gains Tax | Conv Tax | Roth Conv | IRMAA |
 //   Income | Brokerage WD | PreTax WD | Roth WD
-const COL_WIDTHS = [
-   6, 14, 12, 10, 12, 10, 12, 14, 12, 12, 12, 10, 12, 14, 12, 10,
-];
+const COL_WIDTHS = [6, 14, 12, 10, 12, 10, 12, 14, 12, 12, 10, 12, 14, 12, 10];
 const HEADERS = [
    'Year',
    'Total Balance',
@@ -84,7 +82,6 @@ const HEADERS = [
    'Income Tax',
    'Cap Gains Tax',
    'Conv Tax',
-   '∑ Tax PV',
    'Roth Conv',
    'IRMAA',
    'Income',
@@ -97,16 +94,12 @@ function tableRow(cells: string[]): string {
    return cells.map((c, i) => pad(c, COL_WIDTHS[i], i >= 2)).join('  ');
 }
 
-function yearByYearText(years: YearResult[], inflationRate: number): string {
+function yearByYearText(years: YearResult[]): string {
    const lines: string[] = ['YEAR-BY-YEAR DETAIL', ''];
    lines.push(tableRow(HEADERS));
    lines.push('-'.repeat(lines[lines.length - 1].length));
 
-   let cumulativeTaxPv = 0;
-   for (let i = 0; i < years.length; i++) {
-      const yr = years[i];
-      const discountFactor = Math.pow(1 + inflationRate, i);
-      cumulativeTaxPv += yr.total_tax / discountFactor;
+   for (const yr of years) {
       lines.push(
          tableRow([
             String(yr.year),
@@ -118,7 +111,6 @@ function yearByYearText(years: YearResult[], inflationRate: number): string {
             $(yr.income_tax),
             $(yr.brokerage_gains_tax),
             $(yr.conversion_tax),
-            $(Math.round(cumulativeTaxPv)),
             $(yr.roth_conversion),
             $(yr.irmaa_cost),
             $(yr.total_income),
@@ -146,10 +138,7 @@ function summaryText(sim: SimulationResponse): string {
    return lines.join('\n');
 }
 
-export function generateTextReport(
-   sim: SimulationResponse,
-   inflationRate = 0.03,
-): string {
+export function generateTextReport(sim: SimulationResponse): string {
    const allYears = sim.result.years;
    const depletionIdx = allYears.findIndex(
       (yr, i) => yr.total_balance <= 0 && i > 0,
@@ -164,7 +153,7 @@ export function generateTextReport(
       summaryText(sim),
       '',
       withdrawalPlanText(years),
-      yearByYearText(years, inflationRate),
+      yearByYearText(years),
    ];
 
    if (depletionIdx >= 0) {
