@@ -155,18 +155,16 @@
                </span>
             </div>
 
-            {#if activeTab !== 'monte_carlo'}
-               <div class="flex flex-col justify-end">
-                  <label class="flex items-center gap-2 text-sm">
-                     <input
-                        type="checkbox"
-                        class="checkbox"
-                        bind:checked={pvMode.value}
-                     />
-                     Present Value $
-                  </label>
-               </div>
-            {/if}
+            <div class="flex flex-col justify-end">
+               <label class="flex items-center gap-2 text-sm">
+                  <input
+                     type="checkbox"
+                     class="checkbox"
+                     bind:checked={pvMode.value}
+                  />
+                  Present Value $
+               </label>
+            </div>
          </div>
       </div>
    {/if}
