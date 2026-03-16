@@ -2,6 +2,7 @@
 
 import pytest
 
+from retirement_model.constants import FilingStatus
 from retirement_model.taxes import (
     calculate_capital_gains_tax,
     calculate_income_tax,
@@ -218,9 +219,20 @@ class TestCalculateSsTaxablePortion:
         taxable = calculate_ss_taxable_portion(50000, 100000)
         assert taxable == pytest.approx(50000 * 0.85, rel=0.01)
 
-    def test_unsupported_filing_status(self):
-        with pytest.raises(NotImplementedError):
-            calculate_ss_taxable_portion(30000, 30000, filing_status="single")
+    def test_single_filer_below_threshold(self):
+        # Single: $25K threshold for 50% tier
+        assert calculate_ss_taxable_portion(30000, 5000, FilingStatus.SINGLE) == 0.0
+
+    def test_single_filer_50_pct_tier(self):
+        # Single: combined = 20000 + 15000 = 35000, between $25K and $34K
+        taxable = calculate_ss_taxable_portion(30000, 20000, FilingStatus.SINGLE)
+        assert taxable > 0
+        assert taxable <= 30000 * 0.5
+
+    def test_single_filer_85_pct_tier(self):
+        # Single: combined = 100000 + 25000 = 125000, well above $34K
+        taxable = calculate_ss_taxable_portion(50000, 100000, FilingStatus.SINGLE)
+        assert taxable == pytest.approx(50000 * 0.85, rel=0.01)
 
 
 class TestInflateBrackets:
