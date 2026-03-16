@@ -6,7 +6,11 @@
    import ChartEventOverlay from './ChartEventOverlay.svelte';
    import HelpButton from '$lib/components/HelpButton.svelte';
    import { createDataMapper, type DataMapper } from '$lib/presentValue';
-   import { pvMode, portfolio } from '$lib/stores';
+   import { pvMode, portfolio, profile } from '$lib/stores';
+
+   const SECURE_ACT_BIRTH_YEAR_THRESHOLD = 1960;
+   const RMD_AGE_POST_SECURE_ACT = 75;
+   const RMD_AGE_PRE_SECURE_ACT = 73;
 
    type BuildChartFn = (
       canvas: HTMLCanvasElement,
@@ -73,13 +77,81 @@
       };
    }
 
+   function rmdAgeForBirthYear(birthYear: number): number {
+      return birthYear >= SECURE_ACT_BIRTH_YEAR_THRESHOLD
+         ? RMD_AGE_POST_SECURE_ACT
+         : RMD_AGE_PRE_SECURE_ACT;
+   }
+
+   function rmdAnnotation(): Record<string, unknown> {
+      if (startYear <= 0 || startAge <= 0) return {};
+      const cfg = portfolio.value.config;
+      const primaryBirthYear = startYear - cfg.current_age_primary;
+      const primaryRmdAge = rmdAgeForBirthYear(primaryBirthYear);
+      const primaryRmdYear =
+         startYear + (primaryRmdAge - cfg.current_age_primary);
+
+      let rmdYear = primaryRmdYear;
+      const primaryName = profile.value.primaryName;
+      const spName = profile.value.spouseName;
+
+      let labelParts: string[];
+      const hasSpouse = cfg.current_age_spouse > 0;
+      if (hasSpouse) {
+         const spouseBirthYear = startYear - cfg.current_age_spouse;
+         const spouseRmdAge = rmdAgeForBirthYear(spouseBirthYear);
+         const spouseRmdYear =
+            startYear + (spouseRmdAge - cfg.current_age_spouse);
+         rmdYear = Math.min(primaryRmdYear, spouseRmdYear);
+         if (primaryRmdYear === spouseRmdYear) {
+            const names = [primaryName, spName].filter(Boolean);
+            labelParts =
+               names.length > 0
+                  ? ['RMDs begin', names.join(' & ')]
+                  : ['RMDs begin'];
+         } else if (rmdYear === primaryRmdYear) {
+            labelParts = primaryName
+               ? ['RMDs begin', primaryName]
+               : ['RMDs begin'];
+         } else {
+            labelParts = spName ? ['RMDs begin', spName] : ['RMDs begin'];
+         }
+      } else {
+         labelParts = ['RMDs begin'];
+      }
+
+      const rmdIdx = yearLabels.findIndex((l) => l === String(rmdYear));
+      if (rmdIdx < 0) return {};
+      return {
+         rmdLine: {
+            type: 'line',
+            xMin: rmdIdx,
+            xMax: rmdIdx,
+            borderColor: 'rgba(180,80,20,0.6)',
+            borderWidth: 2,
+            borderDash: [6, 4],
+            label: {
+               display: true,
+               content: labelParts,
+               position: 'start',
+               backgroundColor: 'rgba(180,80,20,0.7)',
+               color: '#fff',
+               font: { size: 11 },
+            },
+         },
+      };
+   }
+
    function rebuild() {
       chart?.destroy();
       const mapper = createDataMapper(
          pvMode.value,
          portfolio.value.config.inflation_rate,
       );
-      const annotations = retirementAnnotation();
+      const annotations = {
+         ...retirementAnnotation(),
+         ...rmdAnnotation(),
+      };
       chart = buildChartFn(canvas, mapper, annotations);
    }
 

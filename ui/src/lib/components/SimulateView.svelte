@@ -11,7 +11,7 @@
       ChartEvent,
    } from '$lib/types';
    import TrafficLight from './TrafficLight.svelte';
-   import { pvMode, portfolio } from '$lib/stores';
+   import { pvMode, portfolio, profile } from '$lib/stores';
    import {
       pvTotalTaxes as calcPvTotalTaxes,
       pvTotalIrmaa as calcPvTotalIrmaa,
@@ -36,7 +36,13 @@
       'single' | 'spending' | 'monte_carlo' | 'mc_spending'
    >('single');
    let chartEvents: ChartEvent[] = $derived(
-      config ? buildChartEvents(config) : [],
+      config
+         ? buildChartEvents(
+              config,
+              profile.value.primaryName,
+              profile.value.spouseName,
+           )
+         : [],
    );
    let desiredSpending: number[] = $derived.by(() => {
       if (!config || !singleResult) return [];

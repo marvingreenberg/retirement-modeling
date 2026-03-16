@@ -27,4 +27,5 @@ export const EVENT_ICON_MAP: Record<ChartEventKind, EventIconConfig> = {
    income_end: { icon: CircleX, color: '#dc2626', bg: '#fee2e2' },
    expense_one_time: { icon: Receipt, color: '#ea580c', bg: '#ffedd5' },
    expense_recurring: { icon: Repeat, color: '#ea580c', bg: '#ffedd5' },
+   expense_recurring_end: { icon: CircleX, color: '#ea580c', bg: '#ffedd5' },
 };

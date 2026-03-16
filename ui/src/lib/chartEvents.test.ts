@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { buildChartEvents } from '$lib/chartEvents';
 import type { SimulationConfig } from '$lib/types';
 
+const DEFAULT_PRIMARY_NAME = 'Marvin';
+const DEFAULT_SPOUSE_NAME = 'Karen';
+
 function makeConfig(
    overrides: Partial<SimulationConfig> = {},
 ): SimulationConfig {
@@ -41,7 +44,7 @@ describe('buildChartEvents', () => {
       expect(events).toEqual([]);
    });
 
-   it('creates start event for income stream', () => {
+   it('creates start event for income stream with owner name and age', () => {
       const config = makeConfig({
          income_streams: [
             {
@@ -58,10 +61,17 @@ describe('buildChartEvents', () => {
             },
          ],
       });
-      const events = buildChartEvents(config);
+      const events = buildChartEvents(
+         config,
+         DEFAULT_PRIMARY_NAME,
+         DEFAULT_SPOUSE_NAME,
+      );
       expect(events).toHaveLength(1);
       expect(events[0].year).toBe(2028);
       expect(events[0].label).toBe('Pension $30K');
+      expect(events[0].tooltip).toBe(
+         `Age 67 - ${DEFAULT_PRIMARY_NAME}\n$30K Pension Start`,
+      );
       expect(events[0].type).toBe('start');
       expect(events[0].kind).toBe('income_pension');
    });
@@ -83,18 +93,28 @@ describe('buildChartEvents', () => {
             },
          ],
       });
-      const events = buildChartEvents(config);
+      const events = buildChartEvents(
+         config,
+         DEFAULT_PRIMARY_NAME,
+         DEFAULT_SPOUSE_NAME,
+      );
       expect(events).toHaveLength(2);
       expect(events[0].type).toBe('start');
       expect(events[0].year).toBe(2026);
       expect(events[0].kind).toBe('income_employment');
+      expect(events[0].tooltip).toBe(
+         `Age 65 - ${DEFAULT_PRIMARY_NAME}\n$120K Job Start`,
+      );
       expect(events[1].type).toBe('end');
       expect(events[1].year).toBe(2031);
       expect(events[1].label).toBe('Job ends');
+      expect(events[1].tooltip).toBe(
+         `Age 70 - ${DEFAULT_PRIMARY_NAME}\nJob Ends`,
+      );
       expect(events[1].kind).toBe('income_end');
    });
 
-   it('uses spouse age for spouse-owned income', () => {
+   it('uses spouse age and name for spouse-owned income', () => {
       const config = makeConfig({
          income_streams: [
             {
@@ -111,9 +131,37 @@ describe('buildChartEvents', () => {
             },
          ],
       });
-      const events = buildChartEvents(config);
+      const events = buildChartEvents(
+         config,
+         DEFAULT_PRIMARY_NAME,
+         DEFAULT_SPOUSE_NAME,
+      );
       expect(events[0].year).toBe(2029);
       expect(events[0].kind).toBe('income_pension');
+      expect(events[0].tooltip).toBe(
+         `Age 65 - ${DEFAULT_SPOUSE_NAME}\n$20K Spouse Pension Start`,
+      );
+   });
+
+   it('omits owner name from tooltip when names are empty', () => {
+      const config = makeConfig({
+         income_streams: [
+            {
+               name: 'Pension',
+               kind: 'pension',
+               amount: 30000,
+               start_age: 67,
+               end_age: null,
+               taxable_pct: 1.0,
+               cola_rate: null,
+               owner: 'primary',
+               pretax_401k: 0,
+               roth_401k: 0,
+            },
+         ],
+      });
+      const events = buildChartEvents(config);
+      expect(events[0].tooltip).toBe('Age 67\n$30K Pension Start');
    });
 
    it('creates event for one-time planned expense', () => {
@@ -135,7 +183,7 @@ describe('buildChartEvents', () => {
       expect(events[0].kind).toBe('expense_one_time');
    });
 
-   it('creates event for recurring planned expense', () => {
+   it('creates start and end events for recurring planned expense with end_year', () => {
       const config = makeConfig({
          planned_expenses: [
             {
@@ -149,9 +197,34 @@ describe('buildChartEvents', () => {
          ],
       });
       const events = buildChartEvents(config);
-      expect(events).toHaveLength(1);
+      expect(events).toHaveLength(2);
       expect(events[0].year).toBe(2040);
       expect(events[0].label).toBe('Nursing Home $100K');
+      expect(events[0].tooltip).toBe('Nursing Home $100K/yr\n2040-2050 begins');
+      expect(events[0].kind).toBe('expense_recurring');
+      expect(events[1].year).toBe(2050);
+      expect(events[1].label).toBe('Nursing Home ends');
+      expect(events[1].tooltip).toBe('Nursing Home ends');
+      expect(events[1].kind).toBe('expense_recurring_end');
+      expect(events[1].type).toBe('end');
+   });
+
+   it('creates only start event for recurring expense without end_year', () => {
+      const config = makeConfig({
+         planned_expenses: [
+            {
+               name: 'Long Care',
+               amount: 80000,
+               expense_type: 'recurring',
+               start_year: 2045,
+               inflation_adjusted: true,
+            },
+         ],
+      });
+      const events = buildChartEvents(config);
+      expect(events).toHaveLength(1);
+      expect(events[0].year).toBe(2045);
+      expect(events[0].tooltip).toBe('Long Care $80K/yr\n2045+ begins');
       expect(events[0].kind).toBe('expense_recurring');
    });
 
