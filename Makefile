@@ -10,7 +10,6 @@ PREV_TAG := $(shell git tag --sort=-v:refname 2>/dev/null | grep -E '^v$(MAJOR_V
 PREV_VERSION := $(shell echo $(PREV_TAG) | sed 's/^v//')
 
 PKG_NAME := retirement-model
-ACTIVATE := if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi
 FILE ?= input.json
 
 REPO = ghcr.io
@@ -73,13 +72,14 @@ clean:
 
 
 dev:
-	@uv sync 2>&1 | grep -v 'Audited\|Resolved' || true
+	@(set -x; uv sync 2>&1 )| grep -v 'Audited\|Resolved' || true
 	@cleanup() { kill 0 2>/dev/null; wait 2>/dev/null; }; \
 	  trap cleanup INT TERM EXIT; \
-	  $(ACTIVATE) && uvicorn retirement_model.api:app --reload & API_PID=$$!; \
+	  uv run uvicorn retirement_model.api:app --reload & API_PID=$$!; \
 	  sleep 1; \
 	  kill -0 $$API_PID 2>/dev/null || { echo "ERROR: API server failed to start (port 8000 in use?)"; exit 1; }; \
 	  VITE_PORT=$$(( (RANDOM % 16384) + 49152 )); \
+	  echo "Started uvicorn API server PID $API_PID"; \
 	  (cd ui; set -x; npx vite dev --port $$VITE_PORT --strictPort) & \
 	  for i in 1 2 3 4 5 6 7 8 9 10; do curl -s http://localhost:$$VITE_PORT >/dev/null && break; sleep 1; done; \
 	  echo "Vite dev server on port $$VITE_PORT"; \
@@ -141,7 +141,7 @@ deploy-version:
 e2e:
 	@cleanup() { kill 0 2>/dev/null; wait 2>/dev/null; }; \
 	  trap cleanup INT TERM EXIT; \
-	  $(ACTIVATE) && uvicorn retirement_model.api:app --port 8000 & API_PID=$$!; \
+	  uv run uvicorn retirement_model.api:app --port 8000 & API_PID=$$!; \
 	  sleep 1; \
 	  kill -0 $$API_PID 2>/dev/null || { echo "ERROR: API server failed to start (port 8000 in use?)"; exit 1; }; \
 	  cd ui && npx playwright test; \
@@ -161,39 +161,37 @@ setup-ui:
 	cd ui && pnpm install
 
 build-api:
-	$(ACTIVATE) && python -m build
+	uv run python -m build
 
 build-ui:
 	cd ui && pnpm build
 
 test-api:
-	$(ACTIVATE) && pytest tests/ -v
+	uv run pytest tests/ -v
 
 test-ui:
 	cd ui && pnpm test
 
 run-api:
-	$(ACTIVATE) && uvicorn retirement_model.api:app --reload
+	uv run uvicorn retirement_model.api:app --reload
 
 run-ui:
 	cd ui && pnpm dev
 
 run-cli:
-	$(ACTIVATE) && retirement-model run $(FILE)
+	uv run retirement-model run $(FILE)
 
 
 lint-api:
-	$(ACTIVATE) && \
-	  black --check src/ tests/ && \
-	  isort --check-only src/ tests/ && \
-	  mypy src/
+	uv run black --check src/ tests/
+	uv run isort --check-only src/ tests/
+	uv run mypy src/
 
 lint-ui:
 	cd ui && pnpm lint && pnpm format:check
 format-api:
-	$(ACTIVATE) && \
-	  black src/ tests/ && \
-	  isort src/ tests/
+	uv run black src/ tests/
+	uv run isort src/ tests/
 
 format-ui:
 	cd ui && pnpm lint:fix && pnpm format
