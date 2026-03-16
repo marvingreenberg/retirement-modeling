@@ -194,7 +194,7 @@
                         <span>{currency(yr.rmd)}</span>
                      </div>
                      {#if hasSpouse}
-                        {#each rmdItems as item (item.label)}
+                        {#each rmdItems as item, i (i)}
                            <div
                               class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                            >
@@ -213,7 +213,7 @@
                         <span>Income</span>
                         <span>{currency(yr.total_income)}</span>
                      </div>
-                     {#each yr.income_details ?? [] as inc (inc.name)}
+                     {#each yr.income_details ?? [] as inc, i (i)}
                         <div
                            class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                         >
@@ -308,7 +308,7 @@
                         <span>Planned Expenses</span>
                         <span>{currency(yr.planned_expense)}</span>
                      </div>
-                     {#each expenses as exp (exp.name)}
+                     {#each expenses as exp, i (i)}
                         <div
                            class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                         >
@@ -400,7 +400,7 @@
                         <span>Roth Conversion</span>
                         <span>{currency(yr.roth_conversion)}</span>
                      </div>
-                     {#each byPurpose(yr.withdrawal_details, 'conversion') as d (d.account_name)}
+                     {#each byPurpose(yr.withdrawal_details, 'conversion') as d, i (i)}
                         <div
                            class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                         >

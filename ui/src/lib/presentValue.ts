@@ -12,6 +12,25 @@ export function toPV(
    return value / pvDivisor(inflationRate, yearIndex);
 }
 
+export interface DataMapper {
+   map: (value: number, yearIndex: number) => number;
+   suffix: string;
+}
+
+const IDENTITY_MAPPER: DataMapper = { map: (v) => v, suffix: '' };
+const PV_SUFFIX = ' (PV $)';
+
+export function createDataMapper(
+   isPV: boolean,
+   inflationRate: number,
+): DataMapper {
+   if (!isPV) return IDENTITY_MAPPER;
+   return {
+      map: (v, i) => v / pvDivisor(inflationRate, i),
+      suffix: PV_SUFFIX,
+   };
+}
+
 export function pvTotalTaxes(
    years: YearResult[],
    inflationRate: number,

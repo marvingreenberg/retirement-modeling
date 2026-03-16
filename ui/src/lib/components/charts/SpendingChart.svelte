@@ -1,16 +1,16 @@
 <script lang="ts">
-   import { onMount, untrack } from 'svelte';
-   import { Chart, registerables } from 'chart.js';
-   import annotationPlugin from 'chartjs-plugin-annotation';
+   import { Chart } from 'chart.js';
    import type { YearResult, ChartEvent } from '$lib/types';
-   import ChartEventOverlay from './ChartEventOverlay.svelte';
-   import HelpButton from '$lib/components/HelpButton.svelte';
+   import type { DataMapper } from '$lib/presentValue';
+   import ChartBase from './ChartBase.svelte';
    import { formatTick } from './formatTick';
-   import { pvDivisor } from '$lib/presentValue';
-   import { pvMode, portfolio } from '$lib/stores';
 
    function totalAvailableForYear(y: YearResult): number {
       return y.spending_target + y.surplus + y.total_tax + y.irmaa_cost;
+   }
+
+   function hasNonZero(data: number[]): boolean {
+      return data.some((v) => v > 0);
    }
 
    let {
@@ -28,20 +28,14 @@
       events?: ChartEvent[];
       desiredSpending?: number[];
    } = $props();
-   let canvas: HTMLCanvasElement;
-   let chart: Chart | undefined = $state();
 
-   Chart.register(...registerables, annotationPlugin);
-
-   function hasNonZero(data: number[]): boolean {
-      return data.some((v) => v > 0);
-   }
-
-   function buildChart() {
-      chart?.destroy();
+   function buildChart(
+      canvas: HTMLCanvasElement,
+      mapper: DataMapper,
+      annotations: Record<string, unknown>,
+   ): Chart {
       const labels = years.map((y) => `${y.year}`);
-      const isPv = pvMode.value;
-      const inflationRate = portfolio.value.config.inflation_rate;
+      const { map: pv, suffix } = mapper;
 
       const areaStyle = {
          borderWidth: 1.5,
@@ -50,9 +44,6 @@
          yAxisID: 'y',
          stack: 'spending',
       };
-
-      const pv = (v: number, idx: number) =>
-         isPv ? v / pvDivisor(inflationRate, idx) : v;
 
       const baseSpendingData = years.map((y, idx) =>
          pv(y.spending_target - y.planned_expense, idx),
@@ -65,8 +56,6 @@
       const convTaxData = years.map((y, idx) => pv(y.conversion_tax, idx));
       const surplusData = years.map((y, idx) => pv(y.surplus, idx));
 
-      // Bottom to top: spending, expenses, income tax, conv tax, IRMAA, surplus
-      // order controls legend sorting (lower = listed first) and draw z-order
       const stackedDatasets = [
          {
             label: 'Spending',
@@ -135,43 +124,9 @@
            ]
          : [];
 
-      // Line first for legend ordering (Desired Spending at top of key)
       const datasets = [...lineDatasets, ...stackedDatasets];
 
-      // Retirement marker annotation
-      const retirementYear =
-         retirementAge != null && startYear > 0 && startAge > 0
-            ? startYear + (retirementAge - startAge)
-            : null;
-      const retirementIdx =
-         retirementYear != null
-            ? years.findIndex((y) => y.year === retirementYear)
-            : -1;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const annotations: Record<string, any> =
-         retirementIdx >= 0
-            ? {
-                 retirementLine: {
-                    type: 'line',
-                    xMin: retirementIdx,
-                    xMax: retirementIdx,
-                    borderColor: 'rgba(100,100,100,0.6)',
-                    borderWidth: 2,
-                    borderDash: [6, 4],
-                    label: {
-                       display: true,
-                       content: 'Retires',
-                       position: 'start',
-                       backgroundColor: 'rgba(100,100,100,0.7)',
-                       color: '#fff',
-                       font: { size: 11 },
-                    },
-                 },
-              }
-            : {};
-
-      chart = new Chart(canvas, {
+      return new Chart(canvas, {
          type: 'line',
          data: { labels, datasets },
          options: {
@@ -201,8 +156,8 @@
                y: {
                   stacked: true,
                   title: {
-                     display: isPv,
-                     text: 'Annual Spending (PV $)',
+                     display: true,
+                     text: `Annual Spending${suffix}`,
                   },
                   ticks: {
                      callback: (v) => formatTick(v as number),
@@ -212,26 +167,17 @@
          },
       });
    }
-
-   onMount(() => buildChart());
-
-   $effect(() => {
-      // Read pvMode.value outside untrack so chart rebuilds on PV toggle
-      const _pv = pvMode.value;
-      if (canvas && years) untrack(() => buildChart());
-      void _pv;
-   });
 </script>
 
-<div class="relative w-full max-h-[400px]">
-   <div class="absolute top-0 right-0 z-10 p-1">
-      <HelpButton topic="spending-chart" />
-   </div>
-   <canvas bind:this={canvas}></canvas>
-   <ChartEventOverlay
-      {chart}
-      {events}
-      {years}
-      getYValue={(idx) => totalAvailableForYear(years[idx] ?? years[0])}
-   />
-</div>
+<ChartBase
+   {buildChart}
+   data={years}
+   {retirementAge}
+   {startAge}
+   {startYear}
+   yearLabels={years.map((y) => `${y.year}`)}
+   helpTopic="spending-chart"
+   {events}
+   {years}
+   getYValue={(idx) => totalAvailableForYear(years[idx] ?? years[0])}
+/>
