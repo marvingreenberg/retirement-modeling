@@ -254,10 +254,17 @@ class SocialSecurityConfig(BaseModel):
 
 
 class TaxBracket(BaseModel):
-    """A single tax bracket definition."""
+    """A single tax bracket definition (federal income tax or capital gains)."""
 
     limit: float
     rate: float = Field(ge=0, le=1.0)
+
+
+class IRMAATier(BaseModel):
+    """A single IRMAA surcharge tier."""
+
+    limit: float
+    cost: float = Field(ge=0)
 
 
 class PlannedExpense(BaseModel):

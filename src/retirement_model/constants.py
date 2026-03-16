@@ -1,20 +1,57 @@
 """Tax constants, IRMAA tiers, and RMD tables for retirement simulation."""
 
+import math
+from enum import Enum
+from typing import NamedTuple
+
+
+class FilingStatus(str, Enum):
+    MFJ = "mfj"
+    SINGLE = "single"
+
+
+class TaxBracket(NamedTuple):
+    """A single tax bracket (federal income tax or capital gains)."""
+
+    limit: float
+    rate: float
+
+
+class IRMAATier(NamedTuple):
+    """A single IRMAA surcharge tier."""
+
+    limit: float
+    cost: float
+
+
+# Keep BracketDict as a legacy alias for code that still uses dict access
 BracketDict = dict[str, float]
 
-# 2024 Federal Tax Brackets (Married Filing Jointly)
-# These are the income limits where each bracket ends
-FEDERAL_TAX_BRACKETS_MFJ: list[BracketDict] = [
-    {"limit": 23200, "rate": 0.10},
-    {"limit": 94300, "rate": 0.12},
-    {"limit": 201050, "rate": 0.22},
-    {"limit": 383900, "rate": 0.24},
-    {"limit": 487450, "rate": 0.32},
-    {"limit": 731200, "rate": 0.35},
-    {"limit": float("inf"), "rate": 0.37},
+# ---------------------------------------------------------------------------
+# 2024 Federal Tax Brackets
+# ---------------------------------------------------------------------------
+
+FEDERAL_TAX_BRACKETS_MFJ: list[TaxBracket] = [
+    TaxBracket(23200, 0.10),
+    TaxBracket(94300, 0.12),
+    TaxBracket(201050, 0.22),
+    TaxBracket(383900, 0.24),
+    TaxBracket(487450, 0.32),
+    TaxBracket(731200, 0.35),
+    TaxBracket(math.inf, 0.37),
 ]
 
-# Bracket labels for display
+FEDERAL_TAX_BRACKETS_SINGLE: list[TaxBracket] = [
+    TaxBracket(11600, 0.10),
+    TaxBracket(47150, 0.12),
+    TaxBracket(100525, 0.22),
+    TaxBracket(191950, 0.24),
+    TaxBracket(243725, 0.32),
+    TaxBracket(609350, 0.35),
+    TaxBracket(math.inf, 0.37),
+]
+
+# Bracket labels for display (MFJ thresholds — used for display only)
 BRACKET_LABELS = [
     (487450, "35%+"),
     (383900, "32%"),
@@ -24,23 +61,99 @@ BRACKET_LABELS = [
     (0, "10%"),
 ]
 
-# 2024 IRMAA Tiers (Married Filing Jointly)
-# Based on MAGI from 2 years prior
-IRMAA_TIERS_MFJ: list[BracketDict] = [
-    {"limit": 206000, "cost": 0},
-    {"limit": 258000, "cost": 1600},
-    {"limit": 322000, "cost": 4000},
-    {"limit": 386000, "cost": 6400},
-    {"limit": 750000, "cost": 8800},
-    {"limit": float("inf"), "cost": 11200},
+# ---------------------------------------------------------------------------
+# 2024 IRMAA Tiers
+# ---------------------------------------------------------------------------
+
+IRMAA_TIERS_MFJ: list[IRMAATier] = [
+    IRMAATier(206000, 0),
+    IRMAATier(258000, 1600),
+    IRMAATier(322000, 4000),
+    IRMAATier(386000, 6400),
+    IRMAATier(750000, 8800),
+    IRMAATier(math.inf, 11200),
 ]
 
-# Long-term capital gains tax brackets (Married Filing Jointly)
-CAPITAL_GAINS_BRACKETS_MFJ: list[BracketDict] = [
-    {"limit": 89250, "rate": 0.0},
-    {"limit": 553850, "rate": 0.15},
-    {"limit": float("inf"), "rate": 0.20},
+IRMAA_TIERS_SINGLE: list[IRMAATier] = [
+    IRMAATier(103000, 0),
+    IRMAATier(129000, 800),
+    IRMAATier(161000, 2000),
+    IRMAATier(193000, 3200),
+    IRMAATier(500000, 4400),
+    IRMAATier(math.inf, 5600),
 ]
+
+# ---------------------------------------------------------------------------
+# Long-term Capital Gains Tax Brackets
+# ---------------------------------------------------------------------------
+
+CAPITAL_GAINS_BRACKETS_MFJ: list[TaxBracket] = [
+    TaxBracket(89250, 0.0),
+    TaxBracket(553850, 0.15),
+    TaxBracket(math.inf, 0.20),
+]
+
+CAPITAL_GAINS_BRACKETS_SINGLE: list[TaxBracket] = [
+    TaxBracket(47025, 0.0),
+    TaxBracket(518900, 0.15),
+    TaxBracket(math.inf, 0.20),
+]
+
+# ---------------------------------------------------------------------------
+# Standard Deductions
+# ---------------------------------------------------------------------------
+
+STANDARD_DEDUCTION_MFJ = 29200
+STANDARD_DEDUCTION_SINGLE = 14600
+
+# ---------------------------------------------------------------------------
+# Social Security Taxability Thresholds
+# ---------------------------------------------------------------------------
+
+SS_TAXABLE_THRESHOLD_50_MFJ = 32000
+SS_TAXABLE_THRESHOLD_85_MFJ = 44000
+SS_TAXABLE_THRESHOLD_50_SINGLE = 25000
+SS_TAXABLE_THRESHOLD_85_SINGLE = 34000
+
+
+# ---------------------------------------------------------------------------
+# Tax regime bundle — all filing-status-dependent constants in one place
+# ---------------------------------------------------------------------------
+
+
+class TaxRegime(NamedTuple):
+    """Complete set of tax constants for a filing status."""
+
+    federal_brackets: list[TaxBracket]
+    irmaa_tiers: list[IRMAATier]
+    capital_gains_brackets: list[TaxBracket]
+    standard_deduction: float
+    ss_threshold_50: float
+    ss_threshold_85: float
+
+
+TAX_REGIMES: dict[FilingStatus, TaxRegime] = {
+    FilingStatus.MFJ: TaxRegime(
+        federal_brackets=FEDERAL_TAX_BRACKETS_MFJ,
+        irmaa_tiers=IRMAA_TIERS_MFJ,
+        capital_gains_brackets=CAPITAL_GAINS_BRACKETS_MFJ,
+        standard_deduction=STANDARD_DEDUCTION_MFJ,
+        ss_threshold_50=SS_TAXABLE_THRESHOLD_50_MFJ,
+        ss_threshold_85=SS_TAXABLE_THRESHOLD_85_MFJ,
+    ),
+    FilingStatus.SINGLE: TaxRegime(
+        federal_brackets=FEDERAL_TAX_BRACKETS_SINGLE,
+        irmaa_tiers=IRMAA_TIERS_SINGLE,
+        capital_gains_brackets=CAPITAL_GAINS_BRACKETS_SINGLE,
+        standard_deduction=STANDARD_DEDUCTION_SINGLE,
+        ss_threshold_50=SS_TAXABLE_THRESHOLD_50_SINGLE,
+        ss_threshold_85=SS_TAXABLE_THRESHOLD_85_SINGLE,
+    ),
+}
+
+# Legacy aliases kept for backward compat with existing references
+SS_TAXABLE_THRESHOLD_50 = SS_TAXABLE_THRESHOLD_50_MFJ
+SS_TAXABLE_THRESHOLD_85 = SS_TAXABLE_THRESHOLD_85_MFJ
 
 # IRS Uniform Lifetime Table for RMD calculations
 # Maps age to distribution period (divisor)
@@ -100,13 +213,6 @@ RMD_DIVISOR_TABLE = {
 RMD_START_AGE = 73  # Birth years 1951-1959
 RMD_START_AGE_BORN_1960_PLUS = 75
 SECURE_ACT_BIRTH_YEAR_CUTOFF = 1960
-
-# Standard deduction (Married Filing Jointly, 2024)
-STANDARD_DEDUCTION_MFJ = 29200
-
-# Social Security taxability threshold (combined income for MFJ)
-SS_TAXABLE_THRESHOLD_50 = 32000
-SS_TAXABLE_THRESHOLD_85 = 44000
 
 # Default simulation parameters
 DEFAULT_INFLATION_RATE = 0.03

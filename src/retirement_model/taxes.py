@@ -11,30 +11,39 @@ from retirement_model.constants import (
     RMD_START_AGE,
     RMD_START_AGE_BORN_1960_PLUS,
     SECURE_ACT_BIRTH_YEAR_CUTOFF,
+    SS_TAXABLE_THRESHOLD_50_MFJ,
+    SS_TAXABLE_THRESHOLD_50_SINGLE,
+    SS_TAXABLE_THRESHOLD_85_MFJ,
+    SS_TAXABLE_THRESHOLD_85_SINGLE,
     STANDARD_DEDUCTION_MFJ,
-    BracketDict,
+    FilingStatus,
+    IRMAATier,
+    TaxBracket,
 )
 
 
-def inflate_brackets(brackets: list[BracketDict], factor: float) -> list[BracketDict]:
-    """Scale limit/threshold fields in bracket/tier dicts by an inflation factor."""
-    result = []
-    for entry in brackets:
-        adjusted = dict(entry)
-        if "limit" in adjusted and not math.isinf(adjusted["limit"]):
-            adjusted["limit"] = adjusted["limit"] * factor
-        result.append(adjusted)
-    return result
+def inflate_brackets(brackets: list[TaxBracket], factor: float) -> list[TaxBracket]:
+    """Scale bracket limits by an inflation factor."""
+    return [
+        TaxBracket(b.limit * factor if not math.isinf(b.limit) else b.limit, b.rate)
+        for b in brackets
+    ]
 
 
-def get_marginal_tax_rate(income: float, brackets: list[BracketDict] | None = None) -> float:
+def inflate_irmaa_tiers(tiers: list[IRMAATier], factor: float) -> list[IRMAATier]:
+    """Scale IRMAA tier limits by an inflation factor."""
+    return [
+        IRMAATier(t.limit * factor if not math.isinf(t.limit) else t.limit, t.cost) for t in tiers
+    ]
+
+
+def get_marginal_tax_rate(income: float, brackets: list[TaxBracket] | None = None) -> float:
     """Get the marginal federal tax rate for a given income level."""
     bracket_list = brackets or FEDERAL_TAX_BRACKETS_MFJ
-
     for bracket in bracket_list:
-        if income < bracket["limit"]:
-            return bracket["rate"]
-    return bracket_list[-1]["rate"]
+        if income < bracket.limit:
+            return bracket.rate
+    return bracket_list[-1].rate
 
 
 def get_bracket_label(income: float, inflation_factor: float = 1.0) -> str:
@@ -45,19 +54,19 @@ def get_bracket_label(income: float, inflation_factor: float = 1.0) -> str:
     return "10%"
 
 
-def calculate_irmaa_cost(agi: float, tiers: list[dict[str, float]] | None = None) -> float:
+def calculate_irmaa_cost(agi: float, tiers: list[IRMAATier] | None = None) -> float:
     """Calculate annual IRMAA surcharge based on AGI (2-year lookback in practice)."""
     tier_list = tiers or IRMAA_TIERS_MFJ
     for tier in tier_list:
-        if agi <= tier["limit"]:
-            return tier["cost"]
-    return tier_list[-1]["cost"]
+        if agi <= tier.limit:
+            return tier.cost
+    return tier_list[-1].cost
 
 
 def calculate_capital_gains_tax(
     gains: float,
     ordinary_income: float,
-    brackets: list[BracketDict] | None = None,
+    brackets: list[TaxBracket] | None = None,
 ) -> float:
     """Calculate capital gains tax using progressive stacking.
 
@@ -76,11 +85,10 @@ def calculate_capital_gains_tax(
     for bracket in bracket_list:
         if gains_remaining <= 0:
             break
-        bracket_limit = bracket["limit"]
-        if income_floor >= bracket_limit:
+        if income_floor >= bracket.limit:
             continue
-        taxable_in_bracket = min(gains_remaining, bracket_limit - income_floor)
-        tax += taxable_in_bracket * bracket["rate"]
+        taxable_in_bracket = min(gains_remaining, bracket.limit - income_floor)
+        tax += taxable_in_bracket * bracket.rate
         gains_remaining -= taxable_in_bracket
         income_floor += taxable_in_bracket
 
@@ -109,11 +117,10 @@ def calculate_rmd_amount(age: int, balance: float, rmd_start_age: int = RMD_STAR
 
 def calculate_income_tax(
     taxable_income: float,
-    brackets: list[BracketDict] | None = None,
+    brackets: list[TaxBracket] | None = None,
     state_rate: float = 0.0,
 ) -> float:
-    """
-    Calculate total income tax (federal + state) on taxable income.
+    """Calculate total income tax (federal + state) on taxable income.
 
     Uses progressive bracket calculation for federal tax.
     """
@@ -128,10 +135,10 @@ def calculate_income_tax(
     for bracket in bracket_list:
         if taxable_income <= prev_limit:
             break
-        bracket_income = min(taxable_income, bracket["limit"]) - prev_limit
+        bracket_income = min(taxable_income, bracket.limit) - prev_limit
         if bracket_income > 0:
-            federal_tax += bracket_income * bracket["rate"]
-        prev_limit = bracket["limit"]
+            federal_tax += bracket_income * bracket.rate
+        prev_limit = bracket.limit
 
     state_tax = taxable_income * state_rate
     return federal_tax + state_tax
@@ -139,7 +146,7 @@ def calculate_income_tax(
 
 def get_effective_tax_rate(
     agi: float,
-    brackets: list[BracketDict] | None,
+    brackets: list[TaxBracket] | None,
     state_rate: float,
     deduction: float,
 ) -> float:
@@ -151,35 +158,55 @@ def get_effective_tax_rate(
     return tax / agi
 
 
+SS_BENEFIT_COMBINED_INCOME_FACTOR = 0.5
+SS_MAX_TAXABLE_FRACTION = 0.85
+SS_50_PCT_TAXABLE_FRACTION = 0.5
+
+
 def calculate_ss_taxable_portion(
-    ss_income: float, other_income: float, filing_status: str = "mfj"
+    ss_income: float,
+    other_income: float,
+    filing_status: FilingStatus = FilingStatus.MFJ,
 ) -> float:
+    """Calculate the taxable portion of Social Security benefits.
+
+    Uses IRS tiered formula based on combined income (other income + half of SS).
+    Thresholds differ by filing status:
+    - MFJ: $32K / $44K
+    - Single: $25K / $34K
     """
-    Calculate the taxable portion of Social Security benefits.
-
-    For MFJ:
-    - Below $32,000 combined income: 0% taxable
-    - $32,000-$44,000: up to 50% taxable
-    - Above $44,000: up to 85% taxable
-    """
-    if filing_status != "mfj":
-        raise NotImplementedError("Only MFJ filing status currently supported")
-
-    combined_income = other_income + (ss_income * 0.5)
-
-    if combined_income <= 32000:
-        return 0.0
-    elif combined_income <= 44000:
-        return min(ss_income * 0.5, (combined_income - 32000) * 0.5)
+    if filing_status == FilingStatus.SINGLE:
+        threshold_50 = SS_TAXABLE_THRESHOLD_50_SINGLE
+        threshold_85 = SS_TAXABLE_THRESHOLD_85_SINGLE
     else:
-        base_taxable = min(ss_income * 0.5, 6000)
-        additional = min(ss_income * 0.85 - base_taxable, (combined_income - 44000) * 0.85)
-        return min(base_taxable + additional, ss_income * 0.85)
+        threshold_50 = SS_TAXABLE_THRESHOLD_50_MFJ
+        threshold_85 = SS_TAXABLE_THRESHOLD_85_MFJ
+
+    combined_income = other_income + (ss_income * SS_BENEFIT_COMBINED_INCOME_FACTOR)
+    base_50_range = threshold_85 - threshold_50
+
+    if combined_income <= threshold_50:
+        return 0.0
+    elif combined_income <= threshold_85:
+        return min(
+            ss_income * SS_50_PCT_TAXABLE_FRACTION,
+            (combined_income - threshold_50) * SS_50_PCT_TAXABLE_FRACTION,
+        )
+    else:
+        base_taxable = min(
+            ss_income * SS_50_PCT_TAXABLE_FRACTION,
+            base_50_range * SS_50_PCT_TAXABLE_FRACTION,
+        )
+        additional = min(
+            ss_income * SS_MAX_TAXABLE_FRACTION - base_taxable,
+            (combined_income - threshold_85) * SS_MAX_TAXABLE_FRACTION,
+        )
+        return min(base_taxable + additional, ss_income * SS_MAX_TAXABLE_FRACTION)
 
 
 def estimate_effective_tax_rate(
     agi: float,
-    brackets: list[BracketDict] | None = None,
+    brackets: list[TaxBracket] | None = None,
     state_rate: float = 0.0,
     deduction: float = STANDARD_DEDUCTION_MFJ,
 ) -> float:

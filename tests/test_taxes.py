@@ -2,6 +2,7 @@
 
 import pytest
 
+from retirement_model.constants import FilingStatus, IRMAATier, TaxBracket
 from retirement_model.taxes import (
     calculate_capital_gains_tax,
     calculate_income_tax,
@@ -12,6 +13,7 @@ from retirement_model.taxes import (
     get_bracket_label,
     get_marginal_tax_rate,
     inflate_brackets,
+    inflate_irmaa_tiers,
     rmd_start_age_for_birth_year,
 )
 
@@ -35,13 +37,8 @@ class TestGetMarginalTaxRate:
     def test_highest_bracket(self):
         assert get_marginal_tax_rate(1000000) == 0.37
 
-    def test_custom_brackets(self):
-        custom = [{"limit": 50000, "rate": 0.15}, {"limit": 100000, "rate": 0.25}]
-        assert get_marginal_tax_rate(30000, custom) == 0.15
-        assert get_marginal_tax_rate(75000, custom) == 0.25
-
-    def test_dict_brackets(self):
-        custom = [{"limit": 50000, "rate": 0.15}, {"limit": 100000, "rate": 0.25}]
+    def test_named_tuple_brackets(self):
+        custom = [TaxBracket(50000, 0.15), TaxBracket(100000, 0.25)]
         assert get_marginal_tax_rate(30000, custom) == 0.15
         assert get_marginal_tax_rate(75000, custom) == 0.25
 
@@ -92,7 +89,7 @@ class TestCalculateIrmaaCost:
         assert calculate_irmaa_cost(800000) == 11200
 
     def test_custom_tiers(self):
-        custom = [{"limit": 100000, "cost": 0}, {"limit": 200000, "cost": 500}]
+        custom = [IRMAATier(100000, 0), IRMAATier(200000, 500)]
         assert calculate_irmaa_cost(50000, custom) == 0
         assert calculate_irmaa_cost(150000, custom) == 500
 
@@ -129,7 +126,7 @@ class TestCalculateCapitalGainsTax:
         assert tax == pytest.approx(expected, rel=0.01)
 
     def test_custom_brackets(self):
-        brackets = [{"limit": 100000, "rate": 0.0}, {"limit": float("inf"), "rate": 0.20}]
+        brackets = [TaxBracket(100000, 0.0), TaxBracket(float("inf"), 0.20)]
         assert calculate_capital_gains_tax(10000, 50000, brackets) == 0
         # Ordinary $50k + gains $60k → first $50k at 0%, last $10k at 20%
         assert calculate_capital_gains_tax(60000, 50000, brackets) == pytest.approx(10000 * 0.20)
@@ -196,8 +193,8 @@ class TestCalculateIncomeTax:
         federal = 23200 * 0.10 + 26800 * 0.12
         assert tax == pytest.approx(federal + 50000 * 0.05, rel=0.01)
 
-    def test_dict_brackets(self):
-        brackets = [{"limit": 50000, "rate": 0.10}, {"limit": float("inf"), "rate": 0.20}]
+    def test_custom_brackets_income_tax(self):
+        brackets = [TaxBracket(50000, 0.10), TaxBracket(float("inf"), 0.20)]
         tax = calculate_income_tax(80000, brackets)
         expected = 50000 * 0.10 + 30000 * 0.20
         assert tax == pytest.approx(expected, rel=0.01)
@@ -218,45 +215,56 @@ class TestCalculateSsTaxablePortion:
         taxable = calculate_ss_taxable_portion(50000, 100000)
         assert taxable == pytest.approx(50000 * 0.85, rel=0.01)
 
-    def test_unsupported_filing_status(self):
-        with pytest.raises(NotImplementedError):
-            calculate_ss_taxable_portion(30000, 30000, filing_status="single")
+    def test_single_filer_below_threshold(self):
+        # Single: $25K threshold for 50% tier
+        assert calculate_ss_taxable_portion(30000, 5000, FilingStatus.SINGLE) == 0.0
+
+    def test_single_filer_50_pct_tier(self):
+        # Single: combined = 20000 + 15000 = 35000, between $25K and $34K
+        taxable = calculate_ss_taxable_portion(30000, 20000, FilingStatus.SINGLE)
+        assert taxable > 0
+        assert taxable <= 30000 * 0.5
+
+    def test_single_filer_85_pct_tier(self):
+        # Single: combined = 100000 + 25000 = 125000, well above $34K
+        taxable = calculate_ss_taxable_portion(50000, 100000, FilingStatus.SINGLE)
+        assert taxable == pytest.approx(50000 * 0.85, rel=0.01)
 
 
 class TestInflateBrackets:
     def test_scales_limits(self):
-        brackets = [{"limit": 100000, "rate": 0.10}, {"limit": 200000, "rate": 0.20}]
+        brackets = [TaxBracket(100000, 0.10), TaxBracket(200000, 0.20)]
         result = inflate_brackets(brackets, 1.5)
-        assert result[0]["limit"] == 150000
-        assert result[1]["limit"] == 300000
+        assert result[0].limit == 150000
+        assert result[1].limit == 300000
 
     def test_preserves_rates(self):
-        brackets = [{"limit": 100000, "rate": 0.10}]
+        brackets = [TaxBracket(100000, 0.10)]
         result = inflate_brackets(brackets, 2.0)
-        assert result[0]["rate"] == 0.10
+        assert result[0].rate == 0.10
 
-    def test_preserves_cost_fields(self):
-        tiers = [{"limit": 206000, "cost": 0}, {"limit": 258000, "cost": 1600}]
-        result = inflate_brackets(tiers, 1.3)
-        assert result[0]["cost"] == 0
-        assert result[1]["cost"] == 1600
+    def test_preserves_irmaa_cost_fields(self):
+        tiers = [IRMAATier(206000, 0), IRMAATier(258000, 1600)]
+        result = inflate_irmaa_tiers(tiers, 1.3)
+        assert result[0].cost == 0
+        assert result[1].cost == 1600
 
     def test_inf_limit_unchanged(self):
-        brackets = [{"limit": 100000, "rate": 0.10}, {"limit": float("inf"), "rate": 0.37}]
+        brackets = [TaxBracket(100000, 0.10), TaxBracket(float("inf"), 0.37)]
         result = inflate_brackets(brackets, 2.0)
-        assert result[0]["limit"] == 200000
-        assert result[1]["limit"] == float("inf")
+        assert result[0].limit == 200000
+        assert result[1].limit == float("inf")
 
     def test_factor_one_no_change(self):
-        brackets = [{"limit": 23200, "rate": 0.10}, {"limit": 94300, "rate": 0.12}]
+        brackets = [TaxBracket(23200, 0.10), TaxBracket(94300, 0.12)]
         result = inflate_brackets(brackets, 1.0)
-        assert result[0]["limit"] == 23200
-        assert result[1]["limit"] == 94300
+        assert result[0].limit == 23200
+        assert result[1].limit == 94300
 
     def test_does_not_mutate_original(self):
-        brackets = [{"limit": 100000, "rate": 0.10}]
+        brackets = [TaxBracket(100000, 0.10)]
         inflate_brackets(brackets, 2.0)
-        assert brackets[0]["limit"] == 100000
+        assert brackets[0].limit == 100000
 
 
 class TestEstimateEffectiveTaxRate:
