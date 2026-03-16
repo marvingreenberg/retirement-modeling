@@ -68,10 +68,11 @@
    }
 
    function addStream() {
+      const nextNum = incomeStreams.length + 1;
       incomeStreams = [
          ...incomeStreams,
          {
-            name: '',
+            name: `Income ${nextNum}`,
             kind: 'other' as IncomeKind,
             amount: 0,
             start_age: 65,
