@@ -136,10 +136,14 @@
 
    // Clear comparison snapshots when structural portfolio inputs change
    let lastFingerprint = $state(portfolioFingerprint(portfolio.value));
+   let comparisonClearedMsg = $state('');
    $effect(() => {
       const fp = portfolioFingerprint(portfolio.value);
       if (fp !== lastFingerprint && comparisonSnapshots.value.length > 0) {
          comparisonSnapshots.value = [];
+         comparisonClearedMsg =
+            'Comparisons cleared — portfolio inputs changed';
+         setTimeout(() => (comparisonClearedMsg = ''), 5000);
       }
       lastFingerprint = fp;
    });
@@ -242,6 +246,14 @@
    <PortfolioEditor />
 
    <SimulateSettings onrun={handleRun} {loading} />
+
+   {#if comparisonClearedMsg}
+      <div
+         class="text-sm text-surface-600 dark:text-surface-400 bg-surface-200 dark:bg-surface-700 rounded px-3 py-2 transition-opacity"
+      >
+         {comparisonClearedMsg}
+      </div>
+   {/if}
 
    {#if hasResults || error}
       <SimulateView
