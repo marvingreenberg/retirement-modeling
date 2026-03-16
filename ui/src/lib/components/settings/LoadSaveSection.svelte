@@ -48,6 +48,7 @@
          const { profile: loadedProfile, ...portfolioData } = result.data;
          portfolio.value = portfolioData as Portfolio;
          if (loadedProfile) profile.value = loadedProfile;
+         goto('/');
       } catch {
          loadError = 'Invalid JSON file';
       }

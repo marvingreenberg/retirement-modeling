@@ -42,11 +42,11 @@ describe('Settings Page', () => {
          expect(screen.getByText('Advanced Settings')).toBeInTheDocument();
       });
 
-      it('renders Overview link in footer', () => {
+      it('does not render a duplicate Overview link in sidebar', () => {
          render(SettingsPage);
-         const link = screen.getByRole('link', { name: /overview/i });
-         expect(link).toBeInTheDocument();
-         expect(link).toHaveAttribute('href', '/');
+         expect(
+            screen.queryByRole('link', { name: /overview/i }),
+         ).not.toBeInTheDocument();
       });
 
       it('shows avatar header with User icon when no name', () => {
