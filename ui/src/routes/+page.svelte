@@ -20,6 +20,7 @@
    import SimulateSettings from '$lib/components/SimulateSettings.svelte';
    import SimulateView from '$lib/components/SimulateView.svelte';
    import WelcomeState from '$lib/components/WelcomeState.svelte';
+   import { Info } from 'lucide-svelte';
    import type {
       SimulationResponse,
       MonteCarloResponse,
@@ -243,17 +244,18 @@
 </script>
 
 <div class="space-y-6">
-   <PortfolioEditor />
-
-   <SimulateSettings onrun={handleRun} {loading} />
-
    {#if comparisonClearedMsg}
       <div
-         class="text-sm text-surface-600 dark:text-surface-400 bg-surface-200 dark:bg-surface-700 rounded px-3 py-2 transition-opacity"
+         class="flex items-center gap-2 text-sm text-surface-700 dark:text-surface-300 bg-surface-300/60 dark:bg-surface-600/60 rounded px-3 py-2"
       >
+         <Info size={16} class="shrink-0 text-surface-500" />
          {comparisonClearedMsg}
       </div>
    {/if}
+
+   <PortfolioEditor />
+
+   <SimulateSettings onrun={handleRun} {loading} />
 
    {#if hasResults || error}
       <SimulateView
