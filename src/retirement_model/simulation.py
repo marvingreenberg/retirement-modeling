@@ -3,13 +3,11 @@
 import copy
 
 from retirement_model.constants import (
-    CAPITAL_GAINS_BRACKETS_MFJ,
-    FEDERAL_TAX_BRACKETS_MFJ,
-    IRMAA_TIERS_MFJ,
-    STANDARD_DEDUCTION_MFJ,
     TAX_REGIMES,
     BracketDict,
     FilingStatus,
+    IRMAATier,
+    TaxBracket,
 )
 from retirement_model.models import (
     LIMIT_401K_CATCHUP_50,
@@ -47,6 +45,7 @@ from retirement_model.taxes import (
     get_effective_tax_rate,
     get_marginal_tax_rate,
     inflate_brackets,
+    inflate_irmaa_tiers,
     rmd_start_age_for_birth_year,
 )
 from retirement_model.withdrawals import (
@@ -288,12 +287,15 @@ def run_simulation(
         # Determine base tax parameters (regime sequence overrides defaults)
         if tax_regime_sequence and year_idx < len(tax_regime_sequence):
             regime = tax_regime_sequence[year_idx]
-            base_fed: list[BracketDict] = regime["federal_brackets"]  # type: ignore[assignment]
-            base_irmaa: list[BracketDict] = regime["irmaa_tiers"]  # type: ignore[assignment]
-            base_capgains: list[BracketDict] = regime["capital_gains_brackets"]  # type: ignore[assignment]
+            raw_fed: list[BracketDict] = regime["federal_brackets"]  # type: ignore[assignment]
+            raw_irmaa: list[BracketDict] = regime["irmaa_tiers"]  # type: ignore[assignment]
+            raw_capgains: list[BracketDict] = regime["capital_gains_brackets"]  # type: ignore[assignment]
+            base_fed = [TaxBracket(b["limit"], b["rate"]) for b in raw_fed]
+            base_irmaa = [IRMAATier(t["limit"], t["cost"]) for t in raw_irmaa]
+            base_capgains = [TaxBracket(b["limit"], b["rate"]) for b in raw_capgains]
             base_deduction: float = regime["standard_deduction"]  # type: ignore[assignment]
         elif cfg.tax_brackets_federal:
-            base_fed = [{"limit": b.limit, "rate": b.rate} for b in cfg.tax_brackets_federal]
+            base_fed = [TaxBracket(b.limit, b.rate) for b in cfg.tax_brackets_federal]
             base_irmaa = default_regime.irmaa_tiers
             base_capgains = default_regime.capital_gains_brackets
             base_deduction = default_regime.standard_deduction
@@ -305,7 +307,7 @@ def run_simulation(
 
         # Inflation-adjusted tax thresholds
         adj_fed_brackets = inflate_brackets(base_fed, inflation_factor)
-        adj_irmaa_tiers = inflate_brackets(base_irmaa, inflation_factor)
+        adj_irmaa_tiers = inflate_irmaa_tiers(base_irmaa, inflation_factor)
         adj_capgains_brackets = inflate_brackets(base_capgains, inflation_factor)
         adj_deduction = base_deduction * inflation_factor
         conversion_ceiling = get_conversion_ceiling(
