@@ -1,4 +1,0 @@
-105. Clean focus — hide irrelevant sections
-  The app has gotten noisy. If there are no brokerage accounts, don't display them in withdrawal order. Hide roth conversion columns when there aren't any. Maybe hide IRMAA details unless an advanced checkbox "Show IRMAA/Medicare penalty details" is checked. Consider moving some withdrawal configuration under "show advanced".
-
-  105/105b compact account display and 106 growth-from-allocation are done (per-account-growth v2.1.0).
