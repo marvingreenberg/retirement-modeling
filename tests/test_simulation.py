@@ -2,6 +2,7 @@
 
 import pytest
 
+from retirement_model.constants import IRMAATier
 from retirement_model.models import (
     Account,
     AccountType,
@@ -19,8 +20,11 @@ from retirement_model.models import (
 )
 from retirement_model.simulation import (
     EXCESS_INCOME_ACCOUNT_ID,
+    IRMAA_SPENDING_THRESHOLD_FACTOR,
+    MEDICARE_ENROLLMENT_AGE,
     _deposit_excess_income,
     _route_surplus,
+    calculate_irmaa_with_lookback,
     calculate_planned_expenses,
     get_conversion_ceiling,
     run_simulation,
@@ -2077,3 +2081,284 @@ class TestSourcesEqualUses:
         result = run_simulation(portfolio)
         assert any(yr.surplus > 0 for yr in result.years), "Expected surplus years"
         _assert_sources_equal_uses(result)
+
+
+# ---------------------------------------------------------------------------
+# IRMAA lookback tests
+# ---------------------------------------------------------------------------
+
+SAMPLE_IRMAA_TIERS = [
+    IRMAATier(206000, 0),
+    IRMAATier(258000, 1600),
+    IRMAATier(322000, 4000),
+]
+
+
+class TestCalculateIrmaaWithLookback:
+    def test_no_one_on_medicare(self):
+        """Both under 65 — IRMAA should be 0 regardless of AGI."""
+        cost, est = calculate_irmaa_with_lookback(
+            year_idx=5,
+            agi_history=[300000] * 5,
+            annual_spend=200000,
+            irmaa_limit=206000,
+            adj_irmaa_tiers=SAMPLE_IRMAA_TIERS,
+            age_primary=60,
+            age_spouse=55,
+        )
+        assert cost == 0.0
+        assert est is False
+
+    def test_year_0_high_spending_estimated(self):
+        """Year 0, spending above threshold — estimated IRMAA at first surcharge tier."""
+        threshold = 206000 * IRMAA_SPENDING_THRESHOLD_FACTOR
+        cost, est = calculate_irmaa_with_lookback(
+            year_idx=0,
+            agi_history=[],
+            annual_spend=threshold + 1,
+            irmaa_limit=206000,
+            adj_irmaa_tiers=SAMPLE_IRMAA_TIERS,
+            age_primary=67,
+            age_spouse=65,
+        )
+        assert cost == 1600  # first surcharge tier
+        assert est is True
+
+    def test_year_0_low_spending_no_irmaa(self):
+        """Year 0, spending below threshold — no IRMAA estimated."""
+        threshold = 206000 * IRMAA_SPENDING_THRESHOLD_FACTOR
+        cost, est = calculate_irmaa_with_lookback(
+            year_idx=0,
+            agi_history=[],
+            annual_spend=threshold - 1,
+            irmaa_limit=206000,
+            adj_irmaa_tiers=SAMPLE_IRMAA_TIERS,
+            age_primary=67,
+            age_spouse=65,
+        )
+        assert cost == 0.0
+        assert est is True
+
+    def test_year_2_uses_lookback_agi(self):
+        """Year 2 uses AGI from year 0 (2-year lookback)."""
+        cost, est = calculate_irmaa_with_lookback(
+            year_idx=2,
+            agi_history=[250000, 100000],
+            annual_spend=100000,
+            irmaa_limit=206000,
+            adj_irmaa_tiers=SAMPLE_IRMAA_TIERS,
+            age_primary=67,
+            age_spouse=65,
+        )
+        # Lookback AGI = 250000 → falls in 206K-258K tier → $1600
+        assert cost == 1600
+        assert est is False
+
+    def test_year_3_uses_lookback_agi(self):
+        """Year 3 uses AGI from year 1."""
+        cost, est = calculate_irmaa_with_lookback(
+            year_idx=3,
+            agi_history=[250000, 150000, 300000],
+            annual_spend=100000,
+            irmaa_limit=206000,
+            adj_irmaa_tiers=SAMPLE_IRMAA_TIERS,
+            age_primary=67,
+            age_spouse=65,
+        )
+        # Lookback AGI = agi_history[1] = 150000 → below $206K → $0
+        assert cost == 0.0
+
+    def test_one_person_on_medicare_half_cost(self):
+        """Only primary on Medicare (spouse < 65) — half the couple cost."""
+        cost, est = calculate_irmaa_with_lookback(
+            year_idx=2,
+            agi_history=[250000, 100000],
+            annual_spend=100000,
+            irmaa_limit=206000,
+            adj_irmaa_tiers=SAMPLE_IRMAA_TIERS,
+            age_primary=67,
+            age_spouse=60,
+        )
+        assert cost == 800  # 1600 / 2
+
+    def test_no_spouse_full_cost(self):
+        """Single filer (spouse age=0) — full per-person cost."""
+        cost, est = calculate_irmaa_with_lookback(
+            year_idx=2,
+            agi_history=[250000, 100000],
+            annual_spend=100000,
+            irmaa_limit=206000,
+            adj_irmaa_tiers=SAMPLE_IRMAA_TIERS,
+            age_primary=67,
+            age_spouse=0,
+        )
+        # No spouse means has_spouse=False, so no halving
+        assert cost == 1600
+
+
+class TestIrmaaLookbackIntegration:
+    def test_irmaa_estimated_flag_in_early_years(self):
+        """Year 0 and 1 should have irmaa_estimated=True when spending is high."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=67,
+                current_age_spouse=65,
+                simulation_years=4,
+                start_year=2026,
+                annual_spend_net=150000,
+                strategy_target=ConversionStrategy.IRMAA_TIER_1,
+                irmaa_limit_tier_1=206000,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=20000,
+                    primary_start_age=70,
+                    spouse_benefit=15000,
+                    spouse_start_age=67,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="ira",
+                    name="IRA",
+                    balance=500000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="brok",
+                    name="Brokerage",
+                    balance=1000000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        assert result.years[0].irmaa_estimated is True
+        assert result.years[1].irmaa_estimated is True
+        # Year 2+ should use lookback, not estimation
+        assert result.years[2].irmaa_estimated is False
+        assert result.years[3].irmaa_estimated is False
+
+
+class TestTaxAdjustedBalance:
+    def test_tax_adjusted_less_than_total(self):
+        """Tax-adjusted balance should be less than total when pretax > 0."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=70,
+                current_age_spouse=0,
+                simulation_years=3,
+                start_year=2026,
+                annual_spend_net=50000,
+                strategy_target=ConversionStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=30000,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="ira",
+                    name="IRA",
+                    balance=500000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="roth",
+                    name="Roth",
+                    balance=200000,
+                    type=AccountType.ROTH_IRA,
+                    owner=Owner.PRIMARY,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        for yr in result.years:
+            assert yr.tax_adjusted_balance < yr.total_balance
+            assert yr.tax_adjusted_balance > 0
+
+    def test_all_roth_no_discount(self):
+        """All Roth accounts — tax-adjusted should equal total balance."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=70,
+                current_age_spouse=0,
+                simulation_years=2,
+                start_year=2026,
+                annual_spend_net=30000,
+                strategy_target=ConversionStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=30000,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="roth",
+                    name="Roth",
+                    balance=500000,
+                    type=AccountType.ROTH_IRA,
+                    owner=Owner.PRIMARY,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        for yr in result.years:
+            # With no pretax, tax_adjusted ≈ total (RMDs on roth are 0)
+            assert yr.tax_adjusted_balance == pytest.approx(yr.total_balance, abs=1)
+
+
+class TestConversionSolverIntegration:
+    def test_conversion_respects_agi_ceiling(self):
+        """Conversion + gains from tax payment should not push AGI above ceiling."""
+        irmaa_limit = 206000
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=67,
+                current_age_spouse=65,
+                simulation_years=5,
+                start_year=2026,
+                annual_spend_net=144000,
+                strategy_target=ConversionStrategy.IRMAA_TIER_1,
+                irmaa_limit_tier_1=irmaa_limit,
+                inflation_rate=0.03,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=15000,
+                    primary_start_age=67,
+                    spouse_benefit=15000,
+                    spouse_start_age=65,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="ira",
+                    name="IRA",
+                    balance=1500000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="brok",
+                    name="Brokerage",
+                    balance=1500000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.4,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        for yr_idx, yr in enumerate(result.years):
+            if yr.roth_conversion > 0:
+                inflation = 1.03**yr_idx
+                ceiling = irmaa_limit * inflation
+                # AGI should be at or below the inflation-adjusted ceiling
+                assert (
+                    yr.agi <= ceiling + 50
+                ), f"Year {yr.year}: AGI {yr.agi} exceeds ceiling {ceiling:.0f}"

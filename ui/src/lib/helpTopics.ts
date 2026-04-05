@@ -97,7 +97,20 @@ export const helpCategories: HelpCategory[] = [
          {
             id: 'balance-chart',
             name: 'Balance Chart',
-            related: ['spending-chart', 'accounts-tax-treatment'],
+            related: [
+               'spending-chart',
+               'accounts-tax-treatment',
+               'after-tax-balance',
+            ],
+         },
+         {
+            id: 'after-tax-balance',
+            name: 'After-Tax Balance',
+            related: [
+               'balance-chart',
+               'accounts-tax-treatment',
+               'roth-conversions',
+            ],
          },
          {
             id: 'spending-chart',

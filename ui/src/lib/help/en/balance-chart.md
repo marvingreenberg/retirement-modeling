@@ -41,3 +41,7 @@ A **dashed vertical line** marks the retirement age, showing when the transition
 When the total portfolio value trends upward or stays flat, the plan is sustainable. A downward slope indicates drawdown — normal in retirement, but reaching zero before the end of the timeline signals the portfolio is depleted.
 
 **What to look for:** Watch how the colored bands shift over time — if the pre-tax (red) band shrinks while Roth (green) grows, that's Roth conversions at work, moving assets from taxable to tax-free. A large pre-tax band persisting into the late years suggests potential RMD pressure and possibly higher taxes. If brokerage (gold) disappears early, spending is being funded from tax-advantaged accounts — check whether that's optimal for your tax situation.
+
+### After-Tax Estimate
+
+The tooltip shows an **After-Tax Est.** line below the total balance. This discounts pre-tax account balances by the year's effective tax rate to reflect the embedded tax liability — a dollar in a traditional IRA is worth less than a dollar in a Roth after taxes. See the After-Tax Balance help topic for details.

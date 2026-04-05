@@ -90,11 +90,25 @@
                         `${ctx.dataset.label}: $${Math.round(ctx.parsed.y ?? 0).toLocaleString()}`,
                      footer: (items) => {
                         if (items.length === 0) return '';
+                        const idx = items[0]?.dataIndex;
                         const total = items.reduce(
                            (sum, item) => sum + (item.parsed.y ?? 0),
                            0,
                         );
-                        return `Total Balance: $${Math.round(total).toLocaleString()}`;
+                        const lines = [
+                           `Total Balance: $${Math.round(total).toLocaleString()}`,
+                        ];
+                        if (
+                           idx != null &&
+                           years[idx]?.tax_adjusted_balance != null
+                        ) {
+                           const { map: pv } = mapper;
+                           const adj = pv(years[idx].tax_adjusted_balance, idx);
+                           lines.push(
+                              `After-Tax Est: $${Math.round(adj).toLocaleString()}`,
+                           );
+                        }
+                        return lines;
                      },
                   },
                },

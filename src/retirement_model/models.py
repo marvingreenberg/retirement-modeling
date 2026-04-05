@@ -451,11 +451,15 @@ class YearResult(BaseModel):
     brokerage_gains_tax: float = 0.0
     spending_limited: bool = False
 
+    # IRMAA details
+    irmaa_estimated: bool = False
+
     # Account balances by type
     pretax_balance: float = 0.0
     roth_balance: float = 0.0
     roth_conversion_balance: float = 0.0
     brokerage_balance: float = 0.0
+    tax_adjusted_balance: float = 0.0
 
     # Per-account withdrawal details
     withdrawal_details: list[AccountWithdrawal] = []

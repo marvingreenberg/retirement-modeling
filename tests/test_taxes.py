@@ -10,11 +10,13 @@ from retirement_model.taxes import (
     calculate_rmd_amount,
     calculate_ss_taxable_portion,
     estimate_effective_tax_rate,
+    estimate_withdrawal_gains,
     get_bracket_label,
     get_marginal_tax_rate,
     inflate_brackets,
     inflate_irmaa_tiers,
     rmd_start_age_for_birth_year,
+    solve_max_conversion,
 )
 
 
@@ -282,3 +284,211 @@ class TestEstimateEffectiveTaxRate:
         rate_no_state = estimate_effective_tax_rate(100000, state_rate=0)
         rate_with_state = estimate_effective_tax_rate(100000, state_rate=0.05)
         assert rate_with_state > rate_no_state
+
+
+# ---------------------------------------------------------------------------
+# Conversion solver tests
+# ---------------------------------------------------------------------------
+
+SIMPLE_BRACKETS = [
+    TaxBracket(23200, 0.10),
+    TaxBracket(94300, 0.12),
+    TaxBracket(201050, 0.22),
+    TaxBracket(383900, 0.24),
+    TaxBracket(float("inf"), 0.32),
+]
+DEDUCTION = 29200.0
+STATE_RATE = 0.05
+
+
+class TestEstimateWithdrawalGains:
+    def test_zero_tax(self):
+        assert estimate_withdrawal_gains(0, 1000, [(50000, 0.4)]) == 0.0
+
+    def test_paid_entirely_from_cash(self):
+        """Cash pays the full tax bill — no brokerage gains."""
+        gains = estimate_withdrawal_gains(5000, 10000, [(50000, 0.4)])
+        assert gains == 0.0
+
+    def test_single_brokerage_account(self):
+        """Tax paid from one brokerage account with 40% basis (60% gains)."""
+        gains = estimate_withdrawal_gains(10000, 0, [(50000, 0.4)])
+        assert gains == pytest.approx(6000)  # 10000 * (1 - 0.4)
+
+    def test_partial_cash_remainder_from_brokerage(self):
+        """Cash covers part, brokerage covers the rest."""
+        gains = estimate_withdrawal_gains(10000, 3000, [(50000, 0.4)])
+        assert gains == pytest.approx(4200)  # 7000 * 0.6
+
+    def test_piecewise_account_depletion(self):
+        """Two brokerage accounts with different basis ratios."""
+        snapshot = [(5000, 0.4), (50000, 0.8)]
+        gains = estimate_withdrawal_gains(10000, 0, snapshot)
+        # First account: 5000 * 0.6 = 3000, second: 5000 * 0.2 = 1000
+        assert gains == pytest.approx(4000)
+
+    def test_insufficient_brokerage(self):
+        """Not enough brokerage to cover the tax — gains capped at what's available."""
+        gains = estimate_withdrawal_gains(20000, 0, [(5000, 0.5)])
+        assert gains == pytest.approx(2500)  # only 5000 withdrawn, 50% gains
+
+
+class TestSolveMaxConversion:
+    def test_no_headroom(self):
+        """AGI already at ceiling — no conversion possible."""
+        result = solve_max_conversion(
+            base_agi=210000,
+            ceiling=206000,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            cash_available=50000,
+            brokerage_snapshot=[],
+            available_ira=100000,
+        )
+        assert result == 0.0
+
+    def test_no_ira_balance(self):
+        result = solve_max_conversion(
+            base_agi=100000,
+            ceiling=206000,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            cash_available=50000,
+            brokerage_snapshot=[],
+            available_ira=0,
+        )
+        assert result == 0.0
+
+    def test_headroom_below_minimum(self):
+        """Less than $5K headroom — not worth converting."""
+        result = solve_max_conversion(
+            base_agi=202000,
+            ceiling=206000,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            cash_available=50000,
+            brokerage_snapshot=[],
+            available_ira=100000,
+        )
+        assert result == 0.0
+
+    def test_cash_pays_tax_no_feedback(self):
+        """When cash covers the tax bill, no feedback loop — full headroom used."""
+        ceiling = 206000
+        base_agi = 100000
+        result = solve_max_conversion(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            cash_available=500000,
+            brokerage_snapshot=[],
+            available_ira=500000,
+        )
+        # With cash paying tax, conversion = min(headroom, ira)
+        assert result == pytest.approx(ceiling - base_agi, abs=2)
+
+    def test_brokerage_feedback_reduces_conversion(self):
+        """Brokerage gains from tax payment should reduce the conversion amount."""
+        ceiling = 206000
+        base_agi = 100000
+
+        # With cash: full headroom
+        result_cash = solve_max_conversion(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            cash_available=500000,
+            brokerage_snapshot=[],
+            available_ira=500000,
+        )
+        # Without cash, low-basis brokerage: feedback loop reduces conversion
+        result_brokerage = solve_max_conversion(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            cash_available=0,
+            brokerage_snapshot=[(500000, 0.3)],
+            available_ira=500000,
+        )
+        assert result_brokerage < result_cash
+        # The solver should keep total AGI at or below ceiling
+        tax_on_conv = calculate_income_tax(
+            max(0, base_agi + result_brokerage - DEDUCTION), SIMPLE_BRACKETS, STATE_RATE
+        ) - calculate_income_tax(max(0, base_agi - DEDUCTION), SIMPLE_BRACKETS, STATE_RATE)
+        gains = estimate_withdrawal_gains(tax_on_conv, 0, [(500000, 0.3)])
+        total_agi = base_agi + result_brokerage + gains
+        assert total_agi <= ceiling + 2  # within tolerance
+
+    def test_high_basis_less_feedback(self):
+        """High cost basis = less gains = less feedback loop impact."""
+        ceiling = 206000
+        base_agi = 100000
+        result_low_basis = solve_max_conversion(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            cash_available=0,
+            brokerage_snapshot=[(500000, 0.2)],
+            available_ira=500000,
+        )
+        result_high_basis = solve_max_conversion(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            cash_available=0,
+            brokerage_snapshot=[(500000, 0.9)],
+            available_ira=500000,
+        )
+        # Higher basis → less gains → more room → higher conversion
+        assert result_high_basis > result_low_basis
+
+    def test_ira_limited(self):
+        """Conversion capped by available IRA balance, not headroom."""
+        result = solve_max_conversion(
+            base_agi=100000,
+            ceiling=300000,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            cash_available=100000,
+            brokerage_snapshot=[],
+            available_ira=10000,
+        )
+        assert result == pytest.approx(10000, abs=2)
+
+    def test_piecewise_accounts(self):
+        """Multiple brokerage accounts with different basis ratios."""
+        ceiling = 206000
+        base_agi = 150000
+        # First account has high gains, second has low gains
+        snapshot = [(10000, 0.2), (200000, 0.9)]
+        result = solve_max_conversion(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            cash_available=0,
+            brokerage_snapshot=snapshot,
+            available_ira=500000,
+        )
+        assert 0 < result < (ceiling - base_agi)
+        # Verify constraint holds
+        tax_on_conv = calculate_income_tax(
+            max(0, base_agi + result - DEDUCTION), SIMPLE_BRACKETS, STATE_RATE
+        ) - calculate_income_tax(max(0, base_agi - DEDUCTION), SIMPLE_BRACKETS, STATE_RATE)
+        gains = estimate_withdrawal_gains(tax_on_conv, 0, snapshot)
+        assert base_agi + result + gains <= ceiling + 2

@@ -143,8 +143,14 @@
                         const yr = years[idx];
                         return `${yr.year} (Age ${yr.age_primary})`;
                      },
-                     label: (ctx) =>
-                        `${ctx.dataset.label}: $${Math.round(ctx.parsed.y ?? 0).toLocaleString()}`,
+                     label: (ctx) => {
+                        let lbl = ctx.dataset.label ?? '';
+                        const idx = ctx.dataIndex;
+                        if (lbl === 'IRMAA' && years[idx]?.irmaa_estimated) {
+                           lbl = 'IRMAA (Est.)';
+                        }
+                        return `${lbl}: $${Math.round(ctx.parsed.y ?? 0).toLocaleString()}`;
+                     },
                   },
                },
                legend: {

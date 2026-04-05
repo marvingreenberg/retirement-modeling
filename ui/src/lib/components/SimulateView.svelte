@@ -11,6 +11,7 @@
       ChartEvent,
    } from '$lib/types';
    import TrafficLight from './TrafficLight.svelte';
+   import HelpButton from './HelpButton.svelte';
    import { pvMode, portfolio, profile } from '$lib/stores';
    import {
       pvTotalTaxes as calcPvTotalTaxes,
@@ -95,6 +96,22 @@
                >
                   {singleResult
                      ? currency(singleResult.summary.final_balance)
+                     : '—'}
+               </span>
+            </div>
+
+            <div class="flex flex-col gap-0.5">
+               <span class="text-xs text-surface-500"
+                  >After-Tax Est. <HelpButton topic="after-tax-balance" /></span
+               >
+               <span
+                  class="text-base font-bold text-surface-900 dark:text-surface-50"
+               >
+                  {singleResult
+                     ? currency(
+                          singleResult.result.years.at(-1)
+                             ?.tax_adjusted_balance ?? 0,
+                       )
                      : '—'}
                </span>
             </div>

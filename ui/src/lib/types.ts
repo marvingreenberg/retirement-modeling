@@ -302,6 +302,7 @@ export interface YearResult {
    brokerage_withdrawal: number;
    total_tax: number;
    irmaa_cost: number;
+   irmaa_estimated: boolean;
    total_balance: number;
    spending_target: number;
    planned_expense: number;
@@ -315,6 +316,7 @@ export interface YearResult {
    roth_balance: number;
    roth_conversion_balance: number;
    brokerage_balance: number;
+   tax_adjusted_balance: number;
    withdrawal_details: AccountWithdrawal[];
    income_details: IncomeDetail[];
 }

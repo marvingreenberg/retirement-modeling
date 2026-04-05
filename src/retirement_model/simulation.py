@@ -32,6 +32,7 @@ from retirement_model.models import (
     WithdrawalCategory,
     YearResult,
     is_conversion_eligible,
+    tax_category,
 )
 from retirement_model.social_security import generate_ss_streams
 from retirement_model.strategies import calculate_spending_target, create_initial_state
@@ -41,17 +42,20 @@ from retirement_model.taxes import (
     calculate_irmaa_cost,
     calculate_rmd_amount,
     calculate_ss_taxable_portion,
+    estimate_withdrawal_gains,
     get_bracket_label,
     get_effective_tax_rate,
     get_marginal_tax_rate,
     inflate_brackets,
     inflate_irmaa_tiers,
     rmd_start_age_for_birth_year,
+    solve_max_conversion,
 )
 from retirement_model.withdrawals import (
     WithdrawalResult,
     apply_growth,
     deposit_to_account,
+    get_available_balance,
     get_eligible_pretax_balance,
     get_total_balance_by_category,
     get_total_balance_by_owner,
@@ -151,6 +155,68 @@ def get_conversion_ceiling(
             return 0
 
 
+# IRMAA uses a 2-year lookback: year N surcharge is based on AGI from year N-2.
+IRMAA_LOOKBACK_YEARS = 2
+# Heuristic: if annual spending >= IRMAA limit * this factor, assume IRMAA
+# applied in pre-simulation years (higher AGI while working).
+IRMAA_SPENDING_THRESHOLD_FACTOR = 0.7
+MEDICARE_ENROLLMENT_AGE = 65
+
+
+def calculate_irmaa_with_lookback(
+    year_idx: int,
+    agi_history: list[float],
+    annual_spend: float,
+    irmaa_limit: float,
+    adj_irmaa_tiers: list[IRMAATier],
+    age_primary: int,
+    age_spouse: int,
+) -> tuple[float, bool]:
+    """Calculate IRMAA cost with 2-year lookback and Medicare enrollment gating.
+
+    Args:
+        year_idx: Current simulation year index (0-based).
+        agi_history: AGI values for all prior simulation years.
+        annual_spend: Configured annual spending (for pre-lookback estimation).
+        irmaa_limit: First IRMAA tier limit (e.g., $206K for MFJ).
+        adj_irmaa_tiers: Inflation-adjusted IRMAA tiers for this year.
+        age_primary: Primary's age this year.
+        age_spouse: Spouse's age this year (0 if no spouse).
+
+    Returns:
+        (irmaa_cost, is_estimated) — cost and whether this is a year 0-1 estimate.
+    """
+    # Medicare enrollment gating: no IRMAA if nobody is on Medicare
+    primary_on_medicare = age_primary >= MEDICARE_ENROLLMENT_AGE
+    spouse_on_medicare = age_spouse >= MEDICARE_ENROLLMENT_AGE if age_spouse > 0 else False
+    people_on_medicare = int(primary_on_medicare) + int(spouse_on_medicare)
+
+    if people_on_medicare == 0:
+        return 0.0, False
+
+    is_estimated = False
+    if year_idx >= IRMAA_LOOKBACK_YEARS:
+        # Use actual AGI from 2 years prior
+        lookback_agi = agi_history[year_idx - IRMAA_LOOKBACK_YEARS]
+        cost = calculate_irmaa_cost(lookback_agi, adj_irmaa_tiers)
+    else:
+        # Years 0-1: estimate from spending level
+        spending_threshold = irmaa_limit * IRMAA_SPENDING_THRESHOLD_FACTOR
+        if annual_spend >= spending_threshold:
+            # Assume first surcharge tier (index 1 has the first non-zero cost)
+            cost = adj_irmaa_tiers[1].cost if len(adj_irmaa_tiers) > 1 else 0.0
+        else:
+            cost = 0.0
+        is_estimated = True
+
+    # Scale cost by number of people on Medicare (tiers assume both on Medicare)
+    has_spouse = age_spouse > 0
+    if has_spouse and people_on_medicare == 1:
+        cost = cost / 2
+
+    return cost, is_estimated
+
+
 def calculate_planned_expenses(
     expenses: list[PlannedExpense],
     year: int,
@@ -243,6 +309,9 @@ def run_simulation(
 
     # Track cumulative inflation for expense adjustments
     cumulative_inflation = 1.0
+
+    # Track AGI history for IRMAA 2-year lookback
+    agi_history: list[float] = []
 
     for year_idx in range(cfg.simulation_years):
         age_primary = cfg.current_age_primary + year_idx
@@ -419,7 +488,15 @@ def run_simulation(
         cash_from_ss = ss_income - (ss_taxable * est_tax_rate)
         cash_from_streams = stream_income - (stream_taxable * est_tax_rate)
         cash_from_rmd = rmd_withdrawn * (1 - est_tax_rate)
-        est_irmaa = calculate_irmaa_cost(current_agi, adj_irmaa_tiers)
+        est_irmaa, irmaa_is_estimated = calculate_irmaa_with_lookback(
+            year_idx,
+            agi_history,
+            cfg.annual_spend_net,
+            cfg.irmaa_limit_tier_1,
+            adj_irmaa_tiers,
+            age_primary,
+            age_spouse,
+        )
         cash_in_hand = cash_from_ss + cash_from_streams + cash_from_rmd - est_irmaa
 
         remaining_spend = max(0, total_spend_needed - cash_in_hand)
@@ -505,77 +582,88 @@ def run_simulation(
 
         # Roth conversion logic (from IRA-eligible accounts, skip when employed)
         if conversion_ceiling > 0 and not has_employment_income:
-            agi_headroom = max(0, conversion_ceiling - current_agi)
+            available_ira = get_eligible_pretax_balance(accounts)
 
-            if agi_headroom > 5000:
-                available_ira = get_eligible_pretax_balance(accounts)
-                conversion_target = min(agi_headroom, available_ira)
+            # Snapshot brokerage accounts for the solver (read-only)
+            cash_avail = get_available_balance(accounts, TaxCategory.CASH, age_map)
+            brokerage_snapshot = [
+                (acc.balance, acc.cost_basis_ratio)
+                for acc in accounts
+                if tax_category(acc.type) == TaxCategory.BROKERAGE
+                and acc.balance > 0
+                and age_map.get(acc.owner.value, 0) >= acc.available_at_age
+            ]
 
-                if conversion_target > 0:
-                    tax_before = calculate_income_tax(
-                        max(0, current_agi - adj_deduction), adj_fed_brackets, cfg.tax_rate_state
-                    )
-                    tax_after = calculate_income_tax(
-                        max(0, current_agi + conversion_target - adj_deduction),
-                        adj_fed_brackets,
-                        cfg.tax_rate_state,
-                    )
-                    tax_bill = tax_after - tax_before
+            conversion_target = solve_max_conversion(
+                base_agi=current_agi,
+                ceiling=conversion_ceiling,
+                deduction=adj_deduction,
+                fed_brackets=adj_fed_brackets,
+                state_rate=cfg.tax_rate_state,
+                cash_available=cash_avail,
+                brokerage_snapshot=brokerage_snapshot,
+                available_ira=available_ira,
+            )
 
-                    # Pay tax from brokerage/cash
-                    tax_from_cash = withdraw_from_accounts(
-                        tax_bill, accounts, TaxCategory.CASH, age_map
-                    )
-                    remaining_tax = tax_bill - tax_from_cash.amount_withdrawn
-                    tax_result = withdraw_from_accounts(
-                        remaining_tax, accounts, TaxCategory.BROKERAGE, age_map
-                    )
-                    total_tax_withdrawn = (
-                        tax_from_cash.amount_withdrawn + tax_result.amount_withdrawn
-                    )
-                    conversion_tax_paid = total_tax_withdrawn
-                    brokerage_withdrawn += total_tax_withdrawn
-                    conversion_tax_from_brokerage += total_tax_withdrawn
-                    withdrawal_details.extend(_collect_details(tax_from_cash, "tax", account_names))
-                    withdrawal_details.extend(_collect_details(tax_result, "tax", account_names))
+            if conversion_target > 0:
+                tax_before = calculate_income_tax(
+                    max(0, current_agi - adj_deduction), adj_fed_brackets, cfg.tax_rate_state
+                )
+                tax_after = calculate_income_tax(
+                    max(0, current_agi + conversion_target - adj_deduction),
+                    adj_fed_brackets,
+                    cfg.tax_rate_state,
+                )
+                tax_bill = tax_after - tax_before
 
-                    # AGI impact from brokerage gains (cash has no gains)
-                    tax_gains = tax_result.amount_withdrawn * (1 - tax_result.average_basis_ratio)
-                    brokerage_gains_total += tax_gains
-                    brokerage_gains_tax += calculate_capital_gains_tax(
-                        tax_gains, current_agi, adj_capgains_brackets
-                    )
-                    current_agi += tax_gains
+                # Pay tax from cash/brokerage
+                tax_from_cash = withdraw_from_accounts(
+                    tax_bill, accounts, TaxCategory.CASH, age_map
+                )
+                remaining_tax = tax_bill - tax_from_cash.amount_withdrawn
+                tax_result = withdraw_from_accounts(
+                    remaining_tax, accounts, TaxCategory.BROKERAGE, age_map
+                )
+                total_tax_withdrawn = tax_from_cash.amount_withdrawn + tax_result.amount_withdrawn
+                conversion_tax_paid = total_tax_withdrawn
+                brokerage_withdrawn += total_tax_withdrawn
+                conversion_tax_from_brokerage += total_tax_withdrawn
+                withdrawal_details.extend(_collect_details(tax_from_cash, "tax", account_names))
+                withdrawal_details.extend(_collect_details(tax_result, "tax", account_names))
 
-                    # Execute conversion from IRA-eligible accounts only
-                    conv_result = withdraw_from_eligible_pretax(
-                        conversion_target, accounts, age_map, eligible_only=True
-                    )
-                    withdrawal_details.extend(
-                        _collect_details(conv_result, "conversion", account_names)
-                    )
+                # AGI impact from brokerage gains (cash has no gains)
+                tax_gains = tax_result.amount_withdrawn * (1 - tax_result.average_basis_ratio)
+                brokerage_gains_total += tax_gains
+                brokerage_gains_tax += calculate_capital_gains_tax(
+                    tax_gains, current_agi, adj_capgains_brackets
+                )
+                current_agi += tax_gains
 
-                    # If brokerage/cash ran out, net the unpaid tax from deposit
-                    if total_tax_withdrawn < tax_bill:
-                        net_deposit = conv_result.amount_withdrawn - (
-                            tax_bill - total_tax_withdrawn
-                        )
-                    else:
-                        net_deposit = conv_result.amount_withdrawn
+                # Execute conversion from IRA-eligible accounts only
+                conv_result = withdraw_from_eligible_pretax(
+                    conversion_target, accounts, age_map, eligible_only=True
+                )
+                withdrawal_details.extend(
+                    _collect_details(conv_result, "conversion", account_names)
+                )
 
-                    # Deposit net amount proportionally to each owner's Roth Conversion
-                    owner_amounts: dict[Owner, float] = {}
-                    for pa_id, pa_amt in (conv_result.per_account or {}).items():
-                        acc = next(a for a in accounts if a.id == pa_id)
-                        owner_amounts[acc.owner] = owner_amounts.get(acc.owner, 0.0) + pa_amt
-                    for owner, amt in owner_amounts.items():
-                        if conv_result.amount_withdrawn > 0:
-                            owner_net = net_deposit * (amt / conv_result.amount_withdrawn)
-                            deposit_to_account(
-                                owner_net, accounts, AccountType.ROTH_CONVERSION, owner
-                            )
-                    converted_amount += conv_result.amount_withdrawn
-                    current_agi += conv_result.amount_withdrawn
+                # If brokerage/cash ran out, net the unpaid tax from deposit
+                if total_tax_withdrawn < tax_bill:
+                    net_deposit = conv_result.amount_withdrawn - (tax_bill - total_tax_withdrawn)
+                else:
+                    net_deposit = conv_result.amount_withdrawn
+
+                # Deposit net amount proportionally to each owner's Roth Conversion
+                owner_amounts: dict[Owner, float] = {}
+                for pa_id, pa_amt in (conv_result.per_account or {}).items():
+                    acc = next(a for a in accounts if a.id == pa_id)
+                    owner_amounts[acc.owner] = owner_amounts.get(acc.owner, 0.0) + pa_amt
+                for owner, amt in owner_amounts.items():
+                    if conv_result.amount_withdrawn > 0:
+                        owner_net = net_deposit * (amt / conv_result.amount_withdrawn)
+                        deposit_to_account(owner_net, accounts, AccountType.ROTH_CONVERSION, owner)
+                converted_amount += conv_result.amount_withdrawn
+                current_agi += conv_result.amount_withdrawn
 
         # Reinvest surplus through configured routing waterfall
         if surplus_cash > 0:
@@ -595,8 +683,19 @@ def run_simulation(
         ordinary_agi = current_agi - brokerage_gains_total - converted_amount
         taxable_income = max(0, ordinary_agi - adj_deduction)
         income_tax = calculate_income_tax(taxable_income, adj_fed_brackets, cfg.tax_rate_state)
-        irmaa_cost = calculate_irmaa_cost(current_agi, adj_irmaa_tiers)
+        irmaa_cost, irmaa_is_estimated = calculate_irmaa_with_lookback(
+            year_idx,
+            agi_history,
+            cfg.annual_spend_net,
+            cfg.irmaa_limit_tier_1,
+            adj_irmaa_tiers,
+            age_primary,
+            age_spouse,
+        )
         total_tax = income_tax + brokerage_gains_tax
+
+        # Record this year's AGI for future IRMAA lookback
+        agi_history.append(current_agi)
 
         # Withdraw for tax shortfall: non-conversion tax minus amounts already covered.
         # income_tax excludes conversion income (tracked separately as conversion_tax).
@@ -660,6 +759,20 @@ def run_simulation(
             accounts, rate=year_return, conservative=cfg.conservative_growth
         )
 
+        # Compute per-type balances for output
+        pretax_bal = get_total_balance_by_category(accounts, TaxCategory.PRETAX)
+        roth_conv_bal = get_total_balance_by_type(accounts, AccountType.ROTH_CONVERSION)
+        roth_bal = get_total_balance_by_category(accounts, TaxCategory.ROTH) - roth_conv_bal
+        brokerage_bal = get_total_balance_by_category(
+            accounts, TaxCategory.BROKERAGE
+        ) + get_total_balance_by_category(accounts, TaxCategory.CASH)
+
+        # Tax-adjusted balance: discount pre-tax dollars by effective tax rate
+        eff_rate = get_effective_tax_rate(
+            current_agi, adj_fed_brackets, cfg.tax_rate_state, adj_deduction
+        )
+        tax_adjusted_bal = brokerage_bal + roth_bal + roth_conv_bal + pretax_bal * (1 - eff_rate)
+
         results.append(
             YearResult(
                 year=current_year,
@@ -678,6 +791,7 @@ def run_simulation(
                 total_tax=round(total_tax),
                 brokerage_gains_tax=round(brokerage_gains_tax),
                 irmaa_cost=irmaa_cost,
+                irmaa_estimated=irmaa_is_estimated,
                 total_balance=round(total_balance),
                 spending_target=round(total_spend_needed),
                 planned_expense=round(planned_expense_amount),
@@ -685,18 +799,11 @@ def run_simulation(
                 pretax_401k_deposit=round(total_pretax_401k),
                 roth_401k_deposit=round(total_roth_401k),
                 income_tax=round(income_tax),
-                pretax_balance=round(get_total_balance_by_category(accounts, TaxCategory.PRETAX)),
-                roth_balance=round(
-                    get_total_balance_by_category(accounts, TaxCategory.ROTH)
-                    - get_total_balance_by_type(accounts, AccountType.ROTH_CONVERSION)
-                ),
-                roth_conversion_balance=round(
-                    get_total_balance_by_type(accounts, AccountType.ROTH_CONVERSION)
-                ),
-                brokerage_balance=round(
-                    get_total_balance_by_category(accounts, TaxCategory.BROKERAGE)
-                    + get_total_balance_by_category(accounts, TaxCategory.CASH)
-                ),
+                pretax_balance=round(pretax_bal),
+                roth_balance=round(roth_bal),
+                roth_conversion_balance=round(roth_conv_bal),
+                brokerage_balance=round(brokerage_bal),
+                tax_adjusted_balance=round(tax_adjusted_bal),
                 spending_limited=spending_limited,
                 withdrawal_details=withdrawal_details,
                 income_details=income_details,

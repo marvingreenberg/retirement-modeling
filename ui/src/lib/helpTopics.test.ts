@@ -19,8 +19,8 @@ describe('helpTopics', () => {
       ]);
    });
 
-   it('defines 20 topics total', () => {
-      expect(allTopicIds).toHaveLength(20);
+   it('defines 21 topics total', () => {
+      expect(allTopicIds).toHaveLength(21);
    });
 
    it('getTopicMeta returns metadata for known topic', () => {

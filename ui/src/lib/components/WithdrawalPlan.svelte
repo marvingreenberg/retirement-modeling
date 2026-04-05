@@ -323,7 +323,7 @@
                <div>
                   <div class="flex justify-between font-medium">
                      <span>Taxes</span>
-                     <span>{currency(yr.total_tax)}</span>
+                     <span>{currency(yr.total_tax + yr.conversion_tax)}</span>
                   </div>
                   {#if yr.income_tax > 0 && (yr.brokerage_gains_tax > 0 || yr.irmaa_cost > 0 || yr.conversion_tax > 0)}
                      <div
@@ -355,7 +355,11 @@
                {#if yr.irmaa_cost > 0}
                   <div>
                      <div class="flex justify-between font-medium">
-                        <span>IRMAA Surcharge</span>
+                        <span
+                           >IRMAA Surcharge{yr.irmaa_estimated
+                              ? ' (Est.)'
+                              : ''}</span
+                        >
                         <span>{currency(yr.irmaa_cost)}</span>
                      </div>
                   </div>

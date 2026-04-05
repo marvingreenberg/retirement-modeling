@@ -217,3 +217,124 @@ def estimate_effective_tax_rate(
 
     tax = calculate_income_tax(taxable, brackets, state_rate)
     return tax / agi if agi > 0 else 0.0
+
+
+# ---------------------------------------------------------------------------
+# Conversion solver — accounts for the tax-withdrawal feedback loop
+# ---------------------------------------------------------------------------
+
+# Minimum AGI headroom before attempting a Roth conversion
+MIN_CONVERSION_HEADROOM = 5000
+# Binary search convergence threshold (dollars)
+CONVERSION_SOLVER_TOLERANCE = 1.0
+# Maximum binary search iterations (2^50 precision — far more than needed)
+CONVERSION_SOLVER_MAX_ITER = 50
+
+
+def estimate_withdrawal_gains(
+    tax_amount: float,
+    cash_available: float,
+    brokerage_snapshot: list[tuple[float, float]],
+) -> float:
+    """Estimate capital gains from paying a tax bill using cash then brokerage.
+
+    Walks brokerage accounts in order, computing gains at each account's
+    cost_basis_ratio. Handles account depletion (piecewise gains).
+
+    This is read-only — does not modify any account balances.
+
+    Args:
+        tax_amount: Tax bill to pay.
+        cash_available: Cash balance available (withdrawn first, no gains).
+        brokerage_snapshot: Available brokerage accounts in withdrawal order,
+            each as (balance, cost_basis_ratio).
+
+    Returns:
+        Estimated capital gains from the brokerage withdrawals.
+    """
+    if tax_amount <= 0:
+        return 0.0
+
+    remaining = max(0, tax_amount - cash_available)
+    gains = 0.0
+    for balance, basis_ratio in brokerage_snapshot:
+        if remaining <= 0:
+            break
+        withdrawal = min(balance, remaining)
+        gains += withdrawal * (1 - basis_ratio)
+        remaining -= withdrawal
+    return gains
+
+
+def solve_max_conversion(
+    base_agi: float,
+    ceiling: float,
+    deduction: float,
+    fed_brackets: list[TaxBracket],
+    state_rate: float,
+    cash_available: float,
+    brokerage_snapshot: list[tuple[float, float]],
+    available_ira: float,
+) -> float:
+    """Find the maximum Roth conversion that keeps total AGI at or below ceiling.
+
+    Accounts for the feedback loop: converting C creates an income tax bill,
+    paying that tax from cash/brokerage realizes capital gains, those gains
+    increase AGI, reducing conversion headroom.
+
+    The solver walks the brokerage accounts in withdrawal order, respecting
+    per-account cost basis ratios and account depletion boundaries.
+
+    Works for all conversion strategies (IRMAA, 22% bracket, 24% bracket).
+
+    Args:
+        base_agi: AGI before any conversion (SS, pensions, RMDs, etc.).
+        ceiling: Target AGI limit (IRMAA threshold, bracket limit, etc.).
+        deduction: Inflation-adjusted standard deduction.
+        fed_brackets: Inflation-adjusted federal income tax brackets.
+        state_rate: State income tax rate.
+        cash_available: Cash balance for paying conversion tax (no gains).
+        brokerage_snapshot: Brokerage accounts in withdrawal order as
+            (balance, cost_basis_ratio) tuples.
+        available_ira: Total pre-tax IRA balance eligible for conversion.
+
+    Returns:
+        Maximum conversion amount (floored to $0) that satisfies the
+        AGI constraint. Returns 0 if headroom < MIN_CONVERSION_HEADROOM.
+    """
+    if ceiling <= base_agi or available_ira <= 0:
+        return 0.0
+
+    max_headroom = ceiling - base_agi
+    if max_headroom < MIN_CONVERSION_HEADROOM:
+        return 0.0
+
+    upper = min(max_headroom, available_ira)
+    lower = 0.0
+
+    tax_before = calculate_income_tax(max(0, base_agi - deduction), fed_brackets, state_rate)
+
+    for _ in range(CONVERSION_SOLVER_MAX_ITER):
+        mid = (lower + upper) / 2
+
+        # Income tax delta from converting mid
+        tax_after = calculate_income_tax(
+            max(0, base_agi + mid - deduction), fed_brackets, state_rate
+        )
+        tax_bill = tax_after - tax_before
+
+        # Gains from paying that tax out of cash/brokerage
+        gains = estimate_withdrawal_gains(tax_bill, cash_available, brokerage_snapshot)
+
+        # Total AGI including conversion + gains from tax payment
+        total_agi = base_agi + mid + gains
+
+        if total_agi <= ceiling:
+            lower = mid
+        else:
+            upper = mid
+
+        if upper - lower < CONVERSION_SOLVER_TOLERANCE:
+            break
+
+    return lower
