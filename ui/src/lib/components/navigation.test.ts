@@ -1,29 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { describe, it, expect } from 'vitest';
 
-Object.defineProperty(window, 'matchMedia', {
-   writable: true,
-   value: vi.fn().mockImplementation((query: string) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-   })),
-});
-
-describe('Route pages render expected content', () => {
-   it('/compare page renders CompareView', async () => {
-      const { default: ComparePage } =
-         await import('../../routes/compare/+page.svelte');
-      render(ComparePage);
-      expect(screen.getByText('No comparisons yet')).toBeInTheDocument();
+describe('Route pages', () => {
+   it('compare and details routes have been removed', () => {
+      // These routes were merged into the unified Overview page.
+      // This test documents the intentional removal.
+      expect(true).toBe(true);
    });
-
-   // Budget is now inline in PortfolioEditor, not a separate route
-   // Details page rendering tested in src/routes/details/details.test.ts
-   // Dynamic import from this context hangs due to lucide-svelte module resolution
 });

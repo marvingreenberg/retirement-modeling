@@ -47,17 +47,17 @@ describe('AppBar', () => {
          screen.getByRole('link', { name: /overview/i }),
       ).toBeInTheDocument();
       expect(
-         screen.getByRole('link', { name: /compare/i }),
-      ).toBeInTheDocument();
-      expect(
-         screen.getByRole('link', { name: /details/i }),
+         screen.getByRole('link', { name: /settings/i }),
       ).toBeInTheDocument();
    });
 
-   it('does not show a Spending navigation link', () => {
+   it('does not show removed navigation links', () => {
       render(AppBar);
       expect(
-         screen.queryByRole('link', { name: /spending/i }),
+         screen.queryByRole('link', { name: /compare/i }),
+      ).not.toBeInTheDocument();
+      expect(
+         screen.queryByRole('link', { name: /details/i }),
       ).not.toBeInTheDocument();
    });
 
@@ -67,13 +67,9 @@ describe('AppBar', () => {
          'href',
          '/',
       );
-      expect(screen.getByRole('link', { name: /compare/i })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute(
          'href',
-         '/compare',
-      );
-      expect(screen.getByRole('link', { name: /details/i })).toHaveAttribute(
-         'href',
-         '/details',
+         '/settings',
       );
    });
 

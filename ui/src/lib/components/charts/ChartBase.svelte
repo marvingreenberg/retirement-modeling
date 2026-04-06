@@ -1,7 +1,9 @@
 <script lang="ts">
    import { onMount, untrack } from 'svelte';
    import { Chart, registerables } from 'chart.js';
-   import annotationPlugin from 'chartjs-plugin-annotation';
+   import annotationPlugin, {
+      type AnnotationOptions,
+   } from 'chartjs-plugin-annotation';
    import type { YearResult, ChartEvent } from '$lib/types';
    import ChartEventOverlay from './ChartEventOverlay.svelte';
    import HelpButton from '$lib/components/HelpButton.svelte';
@@ -12,10 +14,12 @@
    const RMD_AGE_POST_SECURE_ACT = 75;
    const RMD_AGE_PRE_SECURE_ACT = 73;
 
+   export type ChartAnnotations = Record<string, AnnotationOptions>;
+
    type BuildChartFn = (
       canvas: HTMLCanvasElement,
       mapper: DataMapper,
-      annotations: Record<string, unknown>,
+      annotations: ChartAnnotations,
    ) => Chart;
 
    let {
@@ -47,7 +51,7 @@
 
    Chart.register(...registerables, annotationPlugin);
 
-   function retirementAnnotation(): Record<string, unknown> {
+   function retirementAnnotation(): ChartAnnotations {
       const retirementYear =
          retirementAge != null && startYear > 0 && startAge > 0
             ? startYear + (retirementAge - startAge)
@@ -59,7 +63,7 @@
       if (retirementIdx < 0) return {};
       return {
          retirementLine: {
-            type: 'line',
+            type: 'line' as const,
             xMin: retirementIdx,
             xMax: retirementIdx,
             borderColor: 'rgba(100,100,100,0.6)',
@@ -68,7 +72,7 @@
             label: {
                display: true,
                content: 'Retires',
-               position: 'start',
+               position: 'start' as const,
                backgroundColor: 'rgba(100,100,100,0.7)',
                color: '#fff',
                font: { size: 11 },
@@ -83,7 +87,7 @@
          : RMD_AGE_PRE_SECURE_ACT;
    }
 
-   function rmdAnnotation(): Record<string, unknown> {
+   function rmdAnnotation(): ChartAnnotations {
       if (startYear <= 0 || startAge <= 0) return {};
       const cfg = portfolio.value.config;
       const primaryBirthYear = startYear - cfg.current_age_primary;
@@ -124,7 +128,7 @@
       if (rmdIdx < 0) return {};
       return {
          rmdLine: {
-            type: 'line',
+            type: 'line' as const,
             xMin: rmdIdx,
             xMax: rmdIdx,
             borderColor: 'rgba(180,80,20,0.6)',
@@ -133,7 +137,7 @@
             label: {
                display: true,
                content: labelParts,
-               position: 'start',
+               position: 'start' as const,
                backgroundColor: 'rgba(180,80,20,0.7)',
                color: '#fff',
                font: { size: 11 },

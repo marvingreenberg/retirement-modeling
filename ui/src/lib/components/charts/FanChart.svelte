@@ -2,7 +2,7 @@
    import { Chart } from 'chart.js';
    import type { YearlyResultPercentiles } from '$lib/types';
    import type { DataMapper } from '$lib/presentValue';
-   import ChartBase from './ChartBase.svelte';
+   import ChartBase, { type ChartAnnotations } from './ChartBase.svelte';
    import { formatTick } from './formatTick';
 
    type FanMetric = 'balance' | 'spending';
@@ -36,7 +36,7 @@
    function buildChart(
       canvas: HTMLCanvasElement,
       mapper: DataMapper,
-      annotations: Record<string, unknown>,
+      annotations: ChartAnnotations,
    ): Chart {
       const labels = percentiles.map((p) => `${p.year}`);
       const { map: pv, suffix } = mapper;

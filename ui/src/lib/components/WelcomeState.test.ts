@@ -39,4 +39,15 @@ describe('WelcomeState', () => {
       expect(screen.getByText('Est. Coverage')).toBeInTheDocument();
       expect(screen.getByText(/~\d+ years/)).toBeInTheDocument();
    });
+
+   it('shows simulating heading and hides guidance when loading', () => {
+      portfolio.value = structuredClone(samplePortfolio);
+      render(WelcomeState, { props: { loading: true } });
+      expect(screen.getByText(/simulating scenario/i)).toBeInTheDocument();
+      expect(
+         screen.queryByText(/add your accounts and income/i),
+      ).not.toBeInTheDocument();
+      // Metrics block also hidden
+      expect(screen.queryByText('Total Balance')).not.toBeInTheDocument();
+   });
 });

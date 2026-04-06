@@ -2,7 +2,7 @@
    import { Chart } from 'chart.js';
    import type { YearResult, ChartEvent } from '$lib/types';
    import type { DataMapper } from '$lib/presentValue';
-   import ChartBase from './ChartBase.svelte';
+   import ChartBase, { type ChartAnnotations } from './ChartBase.svelte';
    import { formatTick } from './formatTick';
 
    function totalAvailableForYear(y: YearResult): number {
@@ -32,7 +32,7 @@
    function buildChart(
       canvas: HTMLCanvasElement,
       mapper: DataMapper,
-      annotations: Record<string, unknown>,
+      annotations: ChartAnnotations,
    ): Chart {
       const labels = years.map((y) => `${y.year}`);
       const { map: pv, suffix } = mapper;

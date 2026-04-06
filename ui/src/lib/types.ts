@@ -414,6 +414,20 @@ export interface ComparisonSnapshot {
    withdrawalOrder?: string;
 }
 
+export interface ComparisonEntry {
+   id: string;
+   inflationRate: number;
+   conservativeGrowth: boolean;
+   spendingStrategy: string;
+   conversionStrategy: string;
+   withdrawalOrder: string;
+   afterTaxFinalBalance: number;
+   totalTaxesPV: number;
+   mcSuccessRate?: number;
+   singleResult: SimulationResponse | null;
+   mcResult: MonteCarloResponse | null;
+}
+
 export type WithdrawalCategory = 'cash' | 'brokerage' | 'pretax' | 'roth';
 
 export const WITHDRAWAL_CATEGORY_LABELS: Record<WithdrawalCategory, string> = {

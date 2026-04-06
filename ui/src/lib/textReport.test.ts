@@ -149,10 +149,9 @@ describe('generateTextReport', () => {
       expect(report).toContain('11.0%');
    });
 
-   it('shows cumulative tax PV in year-by-year table', () => {
+   it('shows cumulative tax in year-by-year table', () => {
       const yr = makeYear({ total_tax: 15000 });
-      const report = generateTextReport(makeSim([yr]), 0.03);
-      // First year: PV = 15000 / (1.03^0) = 15000
+      const report = generateTextReport(makeSim([yr]));
       expect(report).toContain('$15,000');
    });
 

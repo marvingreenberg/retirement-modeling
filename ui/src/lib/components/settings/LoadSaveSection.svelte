@@ -3,9 +3,8 @@
    import { portfolio, profile, sampleScenarios } from '$lib/stores';
    import { saveFileSchema } from '$lib/schema';
    import type { Portfolio } from '$lib/types';
-   import { saveJsonFile, loadJsonFile, generateFilename } from '$lib/fileIO';
+   import { generateFilename } from '$lib/fileIO';
 
-   let fileInput = $state<HTMLInputElement>(undefined!);
    let loadError = $state('');
 
    function loadScenario(name: string) {
@@ -14,15 +13,6 @@
       profile.value = structuredClone(scenario.profile);
       portfolio.value = structuredClone(scenario.portfolio);
       goto('/');
-   }
-
-   async function loadFile() {
-      const text = await loadJsonFile();
-      if (text !== null) {
-         parseAndLoad(text);
-      } else {
-         fileInput.click();
-      }
    }
 
    function handleFile(event: Event) {
@@ -54,7 +44,7 @@
       }
    }
 
-   async function saveFile() {
+   function saveFile() {
       const p = $state.snapshot(portfolio.value);
       const profileData = $state.snapshot(profile.value);
       const saveData = { ...p, profile: profileData };
@@ -62,21 +52,27 @@
          profile.value.primaryName,
          profile.value.spouseName,
       );
-      await saveJsonFile(saveData, filename);
+      // Plain blob download — universally supported, no user-gesture quirks.
+      // Use 'application/octet-stream' to force the browser to honor the
+      // download attribute (some browsers ignore it for application/json
+      // and treat it as inline content with the blob URL as the name).
+      const json = JSON.stringify(saveData, null, 2);
+      const blob = new Blob([json], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.rel = 'noopener';
+      // Don't append to DOM (modern browsers don't require it). Click directly.
+      a.click();
+      // Defer cleanup so browser has time to capture the download attribute.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
    }
 </script>
 
 <h2 class="text-xl font-bold text-surface-900 dark:text-surface-50 mb-6">
    Load / Save
 </h2>
-
-<input
-   type="file"
-   accept=".json"
-   bind:this={fileInput}
-   onchange={handleFile}
-   hidden
-/>
 
 <div class="space-y-6 max-w-md">
    <div class="space-y-2">
@@ -86,8 +82,21 @@
       <p class="text-xs text-surface-500">
          Load a previously saved portfolio JSON file.
       </p>
-      <button class="btn preset-tonal" onclick={loadFile}>Choose File...</button
+      <!-- Native <label for> + hidden file input: rock-solid in every browser,
+           no user-activation tracking, no debounce needed. -->
+      <label
+         for="load-portfolio-input"
+         class="btn preset-filled-primary-500 shadow-sm hover:shadow-md hover:brightness-110 active:scale-95 active:brightness-95 transition-all duration-150 cursor-pointer inline-block"
       >
+         Choose File…
+      </label>
+      <input
+         id="load-portfolio-input"
+         type="file"
+         accept=".json"
+         onchange={handleFile}
+         class="sr-only"
+      />
    </div>
 
    {#if loadError}
@@ -125,6 +134,11 @@
       <p class="text-xs text-surface-500">
          Download your portfolio and profile as a JSON file.
       </p>
-      <button class="btn preset-tonal" onclick={saveFile}>Download JSON</button>
+      <button
+         class="btn preset-filled-primary-500 shadow-sm hover:shadow-md hover:brightness-110 active:scale-95 active:brightness-95 transition-all duration-150 cursor-pointer"
+         onclick={saveFile}
+      >
+         Download JSON
+      </button>
    </div>
 </div>

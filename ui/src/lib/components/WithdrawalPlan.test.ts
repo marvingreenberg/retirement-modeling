@@ -184,11 +184,11 @@ describe('WithdrawalPlan', () => {
       expect(screen.getByText('Main IRA')).toBeTruthy();
    });
 
-   it('shows No Roth Conversion when none', () => {
+   it('hides Roth Conversion section when none', () => {
       render(WithdrawalPlan, {
          props: { years: [makeYear({ roth_conversion: 0 })] },
       });
-      expect(screen.getByText('No Roth Conversion')).toBeTruthy();
+      expect(screen.queryByText('Roth Conversion')).toBeNull();
    });
 
    it('shows taxes section', () => {

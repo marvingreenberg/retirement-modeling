@@ -2,6 +2,7 @@ import { SvelteSet } from 'svelte/reactivity';
 import type {
    Portfolio,
    ComparisonSnapshot,
+   ComparisonEntry,
    SimulationResponse,
    MonteCarloResponse,
    UserProfile,
@@ -86,6 +87,13 @@ export const comparisonSnapshots = createStore<ComparisonSnapshot[]>([]);
 export const simulateBlockedSection = createStore<string | null>(null);
 export const numSimulations = createStore<number>(1000);
 export const pvMode = createStore<boolean>(false);
+
+// Unified comparison view stores
+export const comparisonEntries = createStore<ComparisonEntry[]>([]);
+export const selectedEntryIds = createStore<string[]>([]);
+export type ResultPaneTab = 'balance' | 'spending' | 'monte_carlo' | 'details';
+export const resultPaneTab = createStore<ResultPaneTab>('balance');
+export const selectedYearIdx = createStore<number>(0);
 
 export interface SimulationResultsState {
    singleResult: SimulationResponse | null;

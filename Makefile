@@ -73,13 +73,15 @@ clean:
 
 dev:
 	@(set -x; uv sync 2>&1 )| grep -v 'Audited\|Resolved' || true
-	@cleanup() { kill 0 2>/dev/null; wait 2>/dev/null; }; \
+	@cleanup() { exec 2>/dev/null; kill 0; kill -9 $$API_PORT $$VITE_PORT; wait; }; \
 	  trap cleanup INT TERM EXIT; \
-	  uv run uvicorn retirement_model.api:app --reload & API_PID=$$!; \
+	  API_PORT=$$(( (RANDOM % 16384) + 49152 )); \
+	  export VITE_API_TARGET="http://127.0.0.1:$$API_PORT"; \
+	  VITE_PORT=$$(( API_PORT + 2 )); \
+	  uv run uvicorn retirement_model.api:app --reload --port $$API_PORT & API_PID=$$!; \
 	  sleep 1; \
 	  kill -0 $$API_PID 2>/dev/null || { echo "ERROR: API server failed to start (port 8000 in use?)"; exit 1; }; \
-	  VITE_PORT=$$(( (RANDOM % 16384) + 49152 )); \
-	  echo "Started uvicorn API server PID $API_PID"; \
+	  echo "Started uvicorn API server PORT $API_PORT PID $API_PID"; \
 	  (cd ui; set -x; npx vite dev --port $$VITE_PORT --strictPort) & \
 	  for i in 1 2 3 4 5 6 7 8 9 10; do curl -s http://localhost:$$VITE_PORT >/dev/null && break; sleep 1; done; \
 	  echo "Vite dev server on port $$VITE_PORT"; \

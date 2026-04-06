@@ -394,34 +394,28 @@
                      </div>
                   </div>
                {/if}
-
-               <!-- ═══ ROTH CONVERSION ═══ -->
-               {#if yr.roth_conversion > 0}
-                  <div
-                     class="pt-1 border-t-2 border-surface-300 dark:border-surface-500"
-                  >
-                     <div class="flex justify-between font-medium">
-                        <span>Roth Conversion</span>
-                        <span>{currency(yr.roth_conversion)}</span>
-                     </div>
-                     {#each byPurpose(yr.withdrawal_details, 'conversion') as d, i (i)}
-                        <div
-                           class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
-                        >
-                           <span>{d.account_name}</span>
-                           <span>{currency(d.amount)}</span>
-                        </div>
-                     {/each}
-                  </div>
-               {:else}
-                  <div
-                     class="pt-1 border-t-2 border-surface-300 dark:border-surface-500 text-xs italic text-surface-400 dark:text-surface-500"
-                  >
-                     No Roth Conversion
-                  </div>
-               {/if}
             </div>
          </div>
+
+         <!-- ═══ ROTH CONVERSION (full width, below columns) ═══ -->
+         {#if yr.roth_conversion > 0}
+            <div
+               class="pt-2 mt-1 border-t-2 border-surface-300 dark:border-surface-500 text-sm"
+            >
+               <div class="flex justify-between font-medium">
+                  <span>Roth Conversion</span>
+                  <span>{currency(yr.roth_conversion)}</span>
+               </div>
+               {#each byPurpose(yr.withdrawal_details, 'conversion') as d, i (i)}
+                  <div
+                     class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
+                  >
+                     <span>{d.account_name}</span>
+                     <span>{currency(d.amount)}</span>
+                  </div>
+               {/each}
+            </div>
+         {/if}
       </div>
    {/if}
 </div>

@@ -8,7 +8,6 @@
    import { getDefaultTopicId } from '$lib/helpTopics';
    import {
       LayoutDashboard,
-      GitCompareArrows,
       Table,
       CircleHelp,
       LineChart,
@@ -17,8 +16,7 @@
 
    const navItems = [
       { href: '/', label: 'Overview', icon: LayoutDashboard },
-      { href: '/details', label: 'Details', icon: Table },
-      { href: '/compare', label: 'Compare', icon: GitCompareArrows },
+      { href: '/settings', label: 'Settings', icon: Table },
    ] as const;
 
    function isActive(href: string): boolean {
