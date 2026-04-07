@@ -368,6 +368,8 @@ export interface MonteCarloResponse {
    yearly_percentiles: YearlyResultPercentiles[];
    final_balance_p5: number;
    final_balance_p95: number;
+   // Sorted ascending; one entry per simulation. Useful for histograms.
+   final_balances: number[];
 }
 
 export interface ComparisonResult {

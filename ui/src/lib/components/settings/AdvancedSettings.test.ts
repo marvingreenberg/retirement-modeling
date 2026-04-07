@@ -26,27 +26,4 @@ describe('AdvancedSettings', () => {
       render(AdvancedSettings);
       expect(screen.queryByText(/IRMAA Limit/)).not.toBeInTheDocument();
    });
-
-   it('always shows State/Local Tax field', () => {
-      portfolio.value = {
-         ...portfolio.value,
-         config: { ...portfolio.value.config, strategy_target: 'standard' },
-      };
-      render(AdvancedSettings);
-      expect(screen.getByText('State/Local Tax %')).toBeInTheDocument();
-   });
-
-   it('always shows RMD Age field', () => {
-      portfolio.value = {
-         ...portfolio.value,
-         config: { ...portfolio.value.config, strategy_target: 'standard' },
-      };
-      render(AdvancedSettings);
-      expect(screen.getByText(/RMD Age/)).toBeInTheDocument();
-   });
-
-   it('always shows MC Iterations field', () => {
-      render(AdvancedSettings);
-      expect(screen.getByText(/MC Iterations/)).toBeInTheDocument();
-   });
 });

@@ -79,6 +79,9 @@ class FullMonteCarloResult(BaseModel):
     yearly_percentiles: list[YearlyResultPercentiles]
     final_balance_p5: float
     final_balance_p95: float
+    # Sorted ascending. Exposed so callers (and tests) can inspect the
+    # distribution shape directly rather than relying solely on percentiles.
+    final_balances: list[float] = []
 
 
 @dataclass
@@ -471,6 +474,7 @@ def run_full_monte_carlo(
         yearly_percentiles=yearly_percentiles,
         final_balance_p5=final_balances[int(n * 0.05)],
         final_balance_p95=final_balances[int(n * 0.95)],
+        final_balances=final_balances,
     )
 
 

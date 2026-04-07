@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import {
    portfolio,
    samplePortfolio,
@@ -157,20 +158,26 @@ describe('SimulateSettings', () => {
       expect(screen.queryByText(/Conversion/)).not.toBeInTheDocument();
    });
 
-   it('resets strategy_target to standard when pretax accounts removed', () => {
+   it('resets strategy_target to standard when pretax accounts removed', async () => {
       portfolio.value = {
          ...portfolio.value,
          config: { ...portfolio.value.config, strategy_target: 'irmaa_tier_1' },
       };
       renderSettings();
-      const selects = screen.getAllByRole('combobox');
-      const conversionSelect = selects.find((s) =>
+      // Sanity: with pretax accounts present, the conversion select shows
+      // the current strategy.
+      const initialSelects = screen.getAllByRole('combobox');
+      const initialConversionSelect = initialSelects.find((s) =>
          Array.from(s.querySelectorAll('option')).some(
             (o) => o.value === 'irmaa_tier_1',
          ),
       );
-      expect(conversionSelect).toHaveValue('irmaa_tier_1');
+      expect(initialConversionSelect).toHaveValue('irmaa_tier_1');
 
+      // Remove all pretax accounts by retyping them as brokerage. The
+      // SimulateSettings $effect should observe the change and reset
+      // strategy_target back to 'standard'. The conversion select then
+      // disappears entirely (it lives behind {#if showConversion}).
       portfolio.value = {
          ...portfolio.value,
          accounts: portfolio.value.accounts.map((a) => ({
@@ -178,6 +185,16 @@ describe('SimulateSettings', () => {
             type: 'brokerage' as const,
          })),
       };
-      // $effect resets to 'standard'
+      await tick();
+
+      expect(portfolio.value.config.strategy_target).toBe('standard');
+      // No combobox containing the irmaa option should remain.
+      const remainingSelects = screen.queryAllByRole('combobox');
+      const remainingConversionSelect = remainingSelects.find((s) =>
+         Array.from(s.querySelectorAll('option')).some(
+            (o) => o.value === 'irmaa_tier_1',
+         ),
+      );
+      expect(remainingConversionSelect).toBeUndefined();
    });
 });

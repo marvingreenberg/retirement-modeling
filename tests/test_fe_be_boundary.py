@@ -358,15 +358,22 @@ class TestMonteCarloInputSensitivity:
         assert r_fixed["final_balance_p5"] != r_pct["final_balance_p5"]
 
     def test_vary_tax_regimes_changes_mc(self, client, base_portfolio):
+        """vary_tax_regimes=True should produce a different distribution shape than False."""
         without = copy.deepcopy(base_portfolio)
         without["config"]["vary_tax_regimes"] = False
         with_vary = copy.deepcopy(base_portfolio)
         with_vary["config"]["vary_tax_regimes"] = True
         r_without = _monte_carlo(client, without, seed=42)
         r_with = _monte_carlo(client, with_vary, seed=42)
-        # Both should complete without error; vary_tax_regimes adds regime variation.
-        assert r_without["success_rate"] >= 0
-        assert r_with["success_rate"] >= 0
+        # Each run should produce a non-degenerate distribution (p95 > p5).
+        assert r_without["final_balance_p95"] > r_without["final_balance_p5"]
+        assert r_with["final_balance_p95"] > r_with["final_balance_p5"]
+        # Regime variation must actually change the distribution. Identical p5/p95
+        # would indicate vary_tax_regimes had no effect.
+        assert (
+            r_without["final_balance_p5"] != r_with["final_balance_p5"]
+            or r_without["final_balance_p95"] != r_with["final_balance_p95"]
+        )
 
 
 class TestYearByYearResponseStructure:

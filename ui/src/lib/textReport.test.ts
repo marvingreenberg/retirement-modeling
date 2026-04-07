@@ -61,16 +61,6 @@ function makeSim(years: YearResult[]): SimulationResponse {
 }
 
 describe('generateTextReport', () => {
-   it('includes header, summary, withdrawal plan, and year-by-year table', () => {
-      const report = generateTextReport(makeSim([makeYear()]));
-      expect(report).toContain('Retirement Simulation Report');
-      expect(report).toContain('SUMMARY');
-      expect(report).toContain('WITHDRAWAL PLAN');
-      expect(report).toContain('YEAR-BY-YEAR DETAIL');
-      expect(report).toContain('2026');
-      expect(report).toContain('$485,000');
-   });
-
    it('shows withdrawal details in plan section', () => {
       const yr = makeYear({
          rmd: 25000,

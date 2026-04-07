@@ -101,6 +101,7 @@ export const helpCategories: HelpCategory[] = [
                'spending-chart',
                'accounts-tax-treatment',
                'after-tax-balance',
+               'scenarios-tab',
             ],
          },
          {
@@ -108,6 +109,7 @@ export const helpCategories: HelpCategory[] = [
             name: 'After-Tax Balance',
             related: [
                'balance-chart',
+               'scenarios-tab',
                'accounts-tax-treatment',
                'roth-conversions',
             ],
@@ -128,19 +130,19 @@ export const helpCategories: HelpCategory[] = [
             related: ['monte-carlo', 'spending-strategies'],
          },
          {
-            id: 'details-page',
-            name: 'Details View',
-            related: ['balance-chart', 'spending-chart'],
+            id: 'scenarios-tab',
+            name: 'Scenarios & Comparison',
+            related: ['details-tab', 'after-tax-balance', 'monte-carlo'],
          },
          {
-            id: 'compare-page',
-            name: 'Compare View',
-            related: ['details-page', 'monte-carlo'],
+            id: 'details-tab',
+            name: 'Details Tab',
+            related: ['scenarios-tab', 'after-tax-balance', 'balance-chart'],
          },
          {
             id: 'present-value',
             name: 'Present Value (PV $)',
-            related: ['details-page', 'compare-page'],
+            related: ['scenarios-tab', 'details-tab'],
          },
       ],
    },
@@ -168,9 +170,7 @@ export function getCategoryForTopic(id: string): HelpCategory | undefined {
 
 const routeTopicMap: Record<string, string> = {
    '/': 'getting-started',
-   '/spending': 'spending-strategies',
-   '/compare': 'compare-page',
-   '/details': 'details-page',
+   '/settings': 'accounts-tax-treatment',
 };
 
 export function getDefaultTopicId(pathname: string): string {

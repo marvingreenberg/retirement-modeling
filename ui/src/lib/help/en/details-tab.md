@@ -1,40 +1,53 @@
-## Details View
+## Details Tab
 
-The Details page shows a year-by-year breakdown of the simulation — every number behind the charts, laid out in a table.
+The **Details** tab shows two views of the selected scenario(s): the year-specific Withdrawal Plan card and the year-by-year breakdown table.
 
-### What the Columns Show
+### Withdrawal Plan Card
 
-Each row is one simulation year. Key columns include:
+A cash-flow breakdown for the highlighted year, organized into Sources and Uses (with Roth Conversion as a separate full-width row when present):
 
-- **Year / Age** — calendar year and the primary person's age
-- **Spending** — total spending for the year (base + planned expenses)
-- **Income** — total income from all streams (Social Security, pensions, employment)
-- **Withdrawals** — amounts drawn from each account type to cover any spending gap
-- **Taxes** — federal income tax, conversion tax, and IRMAA surcharges
-- **Balances** — end-of-year balance for each account type
-- **Roth Conversions** — amount converted from pre-tax to Roth that year
+- **Sources** — RMDs, income streams (Social Security, pensions, employment), and withdrawals from accounts grouped by purpose (spending, tax)
+- **Uses** — base spending, planned expenses, taxes (Federal Income, State, Capital Gains, Conversion), IRMAA surcharges, employer 401(k) deposits, and any reinvested surplus
+- **Roth Conversion** — when present, shown below the columns with per-account amounts
 
-### Effective Tax Rate
+The accounting identity holds — Sources total equals Uses total — so you can verify where every dollar came from and went.
 
-The **Eff Tax %** column replaces the old bracket column. It shows the overall tax burden for the year as a percentage:
+### Year-by-Year Table
 
-> (income tax + cap gains tax + conversion tax) ÷ (all income + all withdrawals)
+Each row is one simulation year. Click a row to update the Withdrawal Plan card above for that year.
 
-Color coding gives a quick read on tax efficiency: green below 18%, blending to red at 23% and above.
+Key columns:
+
+- **Year** / **Total Balance** / **AGI**
+- **Eff Tax Rate** — combined federal + state + capital gains burden as a percentage of total cash flow. Color-coded: green below 18%, blending to red at 23%+.
+- **Spending** — total spending (base + planned expenses)
+- **Income Tax** — federal ordinary-income tax (excludes capital gains and conversion tax)
+- **State Tax** — flat-rate state income tax (excludes Social Security for VA)
+- **Cap Gains Tax** — federal long-term capital gains tax
+- **Conv Tax** — federal tax on Roth conversions (state portion is included in State Tax)
+- **Roth Conv** — amount converted from pre-tax to Roth that year
+- **IRMAA** — Medicare premium surcharge (with 2-year lookback)
+- **Income** — total income from all streams
+- Per-account withdrawals: **Brok WD**, **PreTax WD**, **RMD**, **Roth WD**
 
 ### Conditional Columns
 
-Some columns are hidden when their values are zero across all simulated years: 401k deposits, cap gains tax, conversion tax, Roth conversions, IRMAA, income, and per-account withdrawal columns. This keeps the table readable for simpler scenarios. All columns are always included in CSV exports.
+Columns are hidden when their values are zero across all simulated years (e.g., 401k deposits, conversion tax, IRMAA, capital gains tax). This keeps the table readable for simpler scenarios.
 
-### Row Selection
+### Side-by-Side Comparison
 
-Click any row to see that year's detailed withdrawal plan displayed above the table. The breakdown shows exactly how spending was covered — which accounts were tapped and in what order.
+When two scenarios are selected in the Scenarios table, both Details panes appear side by side with **synced scrolling** — change the scroll position in one and the other follows. Click the same year in either to update both Withdrawal Plan cards.
+
+### After-Tax Considerations
+
+The Details table shows raw **Total Balance**, not the after-tax estimate. The after-tax value of each year's balance depends on how much is in pre-tax versus Roth/brokerage — see the _After-Tax Balance_ topic for the formula. For a quick after-tax comparison across scenarios, use the _After-Tax Final Balance_ column in the Scenarios table.
 
 ### When to Use Details
 
-The charts show trends — Details shows exact numbers. Use it when you want to:
+The charts show trends; Details shows exact numbers. Use it to:
 
-- Check a specific year's tax bill or withdrawal amount
-- Understand why a chart shows an unusual spike or dip
-- Verify that income streams start and stop at the right ages
-- See how Roth conversions interact with tax rates year by year
+- Trace exactly how a year's spending was funded
+- Understand a chart spike — find the responsible income event or planned expense
+- Verify the federal vs. state vs. capital gains tax breakdown
+- Check that income streams start and stop at the right ages
+- See how Roth conversions interact with tax brackets year by year

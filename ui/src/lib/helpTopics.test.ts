@@ -42,9 +42,7 @@ describe('helpTopics', () => {
 
    it('getDefaultTopicId maps routes to topics', () => {
       expect(getDefaultTopicId('/')).toBe('getting-started');
-      expect(getDefaultTopicId('/details')).toBe('details-page');
-      expect(getDefaultTopicId('/compare')).toBe('compare-page');
-      expect(getDefaultTopicId('/spending')).toBe('spending-strategies');
+      expect(getDefaultTopicId('/settings')).toBe('accounts-tax-treatment');
    });
 
    it('getDefaultTopicId falls back for unknown routes', () => {

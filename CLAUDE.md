@@ -16,7 +16,7 @@ Full-stack retirement planning simulator: Python/FastAPI backend + SvelteKit fro
 - **Chart.js** for balance/fan charts
 - **Zod** for client-side validation matching backend Pydantic constraints
 - Package manager: **pnpm**
-- Routes: `/` (Overview), `/spending` (Budget), `/compare`, `/details`
+- Routes: `/` (unified view — Approach/Scenarios tabs, result panes for Balance/Spending/Monte Carlo/Details) and `/settings` (profile, accounts, income, advanced). The old `/spending`, `/compare`, `/details` routes were merged into `/` — do not assume they still exist.
 
 ### Key Frontend Files
 - `ui/src/lib/types.ts` — TypeScript interfaces matching backend models
@@ -74,10 +74,20 @@ Keep the Makefile lint/format targets up to date as the project evolves.
 
 ### Testing
 
-**Backend**: `python -m pytest tests/ -x -q` (currently ~353 tests, 95% coverage)
-**Frontend unit**: `cd ui && npx vitest run` (currently ~227 tests across 24 test files)
-**Frontend E2E**: `cd ui && npx playwright test` (currently ~30 tests)
+**Backend**: `python -m pytest tests/ -x -q`
+**Frontend unit**: `cd ui && npx vitest run`
+**Frontend E2E**: `cd ui && npx playwright test`
 **Svelte type check**: `cd ui && npx svelte-check --tsconfig ./tsconfig.json`
+
+**Test value rule (see global CLAUDE.md §5):** Every test must catch a real bug. In the completion summary, name the concrete implementation mistake each new test would catch. If you can't name one, delete or rewrite the test. No `is not None`, `isinstance`, or vacuous `> 0` smoke checks. No "renders the heading" component tests without an event or conditional-render assertion.
+
+**Prefer invariants for simulator logic.** This project's highest-leverage tests are accounting identities — fields rolled up from components must equal their components:
+
+- **Sources = Uses** (`tests/test_simulation.py::TestSourcesEqualUses` and the `_assert_sources_equal_uses` helper): income + withdrawals = spending + taxes + deposits + surplus for every live year
+- **Balance decomposition** (`TestSimulationInvariants::test_balance_components_sum_to_total`): `pretax + roth + roth_conversion + brokerage = total_balance`
+- **Tax decomposition** (`TestSimulationInvariants::test_tax_components_sum_to_total`): `income_tax + state_income_tax + brokerage_gains_tax = total_tax` (IRMAA and conversion_tax are separate by design)
+
+When adding simulation logic, prefer adding an assertion to one of these invariant tests (or adding a new invariant class in the same style) over writing a single-scenario regression test. One invariant catches a class of bugs across every test fixture and every simulated year.
 
 ### Docker
 - Single multi-stage Dockerfile: Node builds SvelteKit → Python copies static + installs backend

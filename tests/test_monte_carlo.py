@@ -249,8 +249,29 @@ class TestFullMonteCarlo:
         result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
         assert result.num_simulations == 20
         assert 0 <= result.success_rate <= 1
-        assert result.median_simulation is not None
         assert len(result.yearly_percentiles) == simple_portfolio.config.simulation_years
+
+    def test_full_mc_produces_distribution(self, simple_portfolio: Portfolio):
+        """MC must produce a non-degenerate distribution across simulations.
+
+        Replaces an earlier vacuous test that asserted variation against a
+        single-element list. With 20 sims and stochastic returns, we expect
+        multiple distinct outcomes, p95 strictly above p5, and the median
+        bracketed by the percentile range.
+        """
+        result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
+        # final_balances must be exposed and have one entry per simulation.
+        assert len(result.final_balances) == 20
+        # At least 2 distinct outcomes — single-value collapse would mean
+        # randomness had no effect.
+        assert len(set(result.final_balances)) > 1
+        # Non-degenerate distribution: p95 strictly above p5.
+        assert result.final_balance_p95 > result.final_balance_p5
+        # Median simulation's final balance must lie within the percentile band.
+        median_final = result.median_simulation.years[-1].total_balance
+        assert result.final_balance_p5 <= median_final <= result.final_balance_p95
+        # final_balances list must be sorted ascending (consumer contract).
+        assert result.final_balances == sorted(result.final_balances)
 
     def test_full_monte_carlo_percentiles_ordered(self, simple_portfolio: Portfolio):
         result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)

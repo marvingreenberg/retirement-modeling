@@ -1,34 +1,45 @@
-## Compare View
+## Scenarios & Comparison
 
-The Compare page shows simulation results side by side, letting you see how different settings affect outcomes.
+The unified results view lets you build up a list of simulation runs and compare them side by side.
 
-### How Snapshots Work
+### Approach vs Scenarios
 
-Every time you run a simulation, a snapshot is automatically added to the Compare table. Each snapshot captures the key settings (inflation, growth, spending strategy, conversion strategy, withdrawal order) along with the results.
+The results panel has two top-level tabs:
 
-### What Makes a "Different" Run
+- **Approach** — configure the simulation: inflation, growth, spending strategy, conversion strategy, withdrawal order, and Monte Carlo iteration count
+- **Scenarios** — the saved runs from this session, shown as a selectable table
 
-The Compare table uses your simulation settings to decide whether a run is new or a repeat:
+Click **Simulate** in the Approach tab to run with the current settings. The result is appended to the Scenarios table, the new row is auto-selected, and the view switches to Scenarios.
 
-- **Changed settings** (inflation rate, growth mode, spending strategy, conversion target, withdrawal order) → a **new row** appears
-- **Same settings** re-run → the existing row is **replaced** with updated results
-- **Changed inputs** (accounts, balances, ages, income streams) → the table is **cleared** because the old snapshots are no longer comparable — they were based on different financial inputs
+### How runs are saved
 
-### How to Use Compare
+Every Simulate click adds (or replaces) one row in Scenarios. Each row records the settings used and the resulting metrics.
 
-1. Run a simulation with your current settings
-2. Change one setting (e.g., switch from "No Conversion" to "22% Bracket")
-3. Run again — both results appear side by side
-4. Repeat to build up a comparison across multiple scenarios
+- **Same settings re-run** — the existing row is _replaced_ with the new results (deduped by inflation rate, growth mode, spending strategy, conversion strategy, and withdrawal order)
+- **Different settings** — a new row is appended
+- **Portfolio inputs change** (accounts, balances, ages, income streams) — the entire Scenarios table is _cleared_ because the old runs are no longer comparable. You'll see a notice when this happens.
 
-The **Clear All** button removes all snapshots and starts fresh.
+### Selecting scenarios
 
-### Reading the Table
+Click any row's checkbox to select it for viewing. Up to **two** scenarios can be selected at once.
 
-Single Run and Monte Carlo results are shown in separate sections. Key columns:
+- One selected → the result panes (Balance / Spending / Monte Carlo / Details) show that single scenario
+- Two selected → result panes show both side by side for direct comparison
 
-- **Withdrawal** — spending strategy and withdrawal order priority
-- **Final Balance** — ending portfolio value (red if depleted)
-- **Total Taxes / IRMAA** — lifetime totals (red highlights indicate high values)
-- **Roth Conv Acct** — total converted to Roth over the simulation
-- **Spending Range** (Monte Carlo) — range of actual spending across simulated paths
+The **×** button on a row removes it. **Clear All** removes everything.
+
+### Columns
+
+- **Withdrawal** — the spending strategy and withdrawal order priority
+- **Conversion** — the Roth conversion strategy
+- **Final Balance** — the simulation's ending portfolio value
+- **After-Tax Final Balance** — the same value adjusted for embedded tax liability on pre-tax accounts. This is usually the more meaningful comparison than raw Final Balance — see the _After-Tax Balance_ topic for how it's computed and why brokerage isn't discounted.
+- **Total Taxes (PV)** — lifetime taxes paid in present-value dollars
+- **Success Rate** — Monte Carlo success percentage (if MC was run)
+
+### Tips
+
+- Run the same configuration with two different conversion strategies to see the after-tax impact
+- Switch withdrawal order (brokerage-first vs IRA-first) on an otherwise identical run to see the trade-off
+- Use the side-by-side **Details** tab to drill into a specific year and see exactly where the strategies diverge
+- The **Balance** tab tooltips show the year's after-tax estimate alongside the raw total

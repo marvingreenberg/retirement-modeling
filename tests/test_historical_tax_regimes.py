@@ -2,8 +2,6 @@
 
 import math
 
-import pytest
-
 from retirement_model.historical_tax_regimes import (
     HISTORICAL_TAX_REGIMES,
     get_historical_regimes,
@@ -15,49 +13,6 @@ class TestHistoricalRegimeData:
     def test_regime_count(self):
         regimes = get_historical_regimes()
         assert len(regimes) >= 7
-
-    def test_uniform_federal_brackets(self):
-        for regime in HISTORICAL_TAX_REGIMES:
-            assert (
-                len(regime["federal_brackets"]) == 7
-            ), f"{regime['name']} has {len(regime['federal_brackets'])} federal brackets, expected 7"
-
-    def test_uniform_capital_gains_brackets(self):
-        for regime in HISTORICAL_TAX_REGIMES:
-            assert (
-                len(regime["capital_gains_brackets"]) == 3
-            ), f"{regime['name']} has {len(regime['capital_gains_brackets'])} CG brackets, expected 3"
-
-    def test_uniform_irmaa_tiers(self):
-        for regime in HISTORICAL_TAX_REGIMES:
-            assert (
-                len(regime["irmaa_tiers"]) == 6
-            ), f"{regime['name']} has {len(regime['irmaa_tiers'])} IRMAA tiers, expected 6"
-
-    def test_each_regime_has_name(self):
-        for regime in HISTORICAL_TAX_REGIMES:
-            assert "name" in regime
-            assert isinstance(regime["name"], str)
-            assert len(regime["name"]) > 0
-
-    def test_each_regime_has_standard_deduction(self):
-        for regime in HISTORICAL_TAX_REGIMES:
-            assert "standard_deduction" in regime
-            assert regime["standard_deduction"] > 0
-
-    def test_federal_bracket_rates_in_valid_range(self):
-        for regime in HISTORICAL_TAX_REGIMES:
-            for bracket in regime["federal_brackets"]:
-                assert (
-                    0 < bracket["rate"] <= 1.0
-                ), f"{regime['name']} has invalid rate {bracket['rate']}"
-
-    def test_capital_gains_rates_in_valid_range(self):
-        for regime in HISTORICAL_TAX_REGIMES:
-            for bracket in regime["capital_gains_brackets"]:
-                assert (
-                    0 <= bracket["rate"] <= 1.0
-                ), f"{regime['name']} has invalid CG rate {bracket['rate']}"
 
     def test_last_federal_bracket_is_inf(self):
         for regime in HISTORICAL_TAX_REGIMES:

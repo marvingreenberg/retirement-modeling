@@ -2457,3 +2457,179 @@ class TestConversionSolverIntegration:
                 assert (
                     yr.agi <= ceiling + 50
                 ), f"Year {yr.year}: AGI {yr.agi} exceeds ceiling {ceiling:.0f}"
+
+
+# Tolerance for accounting identity checks: each component is independently
+# rounded to int dollars, so a sum of 4 components can drift up to ~2 from
+# the rounded total. 3.0 gives a small safety margin.
+INVARIANT_TOLERANCE = 3.0
+
+
+class TestSimulationInvariants:
+    """Year-by-year accounting identities that must always hold.
+
+    These tests assert structural relationships between fields on YearResult
+    rather than computed numeric outcomes. They catch a class of regression
+    where one component (e.g., state tax) is added or refactored and the
+    rolled-up totals (e.g., total_tax) silently fall out of sync.
+    """
+
+    def test_tax_components_sum_to_total(self, sample_portfolio):
+        """total_tax must equal income_tax + state_income_tax + brokerage_gains_tax.
+
+        conversion_tax and irmaa_cost are reported separately and intentionally
+        excluded from total_tax. If anyone changes that contract, this test
+        breaks loudly. Catches: state-tax separation regressions, capital-gains
+        accounting leaks, double-counting between federal and conversion tax.
+        """
+        result = run_simulation(sample_portfolio)
+        for yr in result.years:
+            expected = yr.income_tax + yr.state_income_tax + yr.brokerage_gains_tax
+            assert abs(yr.total_tax - expected) < INVARIANT_TOLERANCE, (
+                f"Year {yr.year}: total_tax={yr.total_tax} != "
+                f"income_tax({yr.income_tax}) + state({yr.state_income_tax}) "
+                f"+ cap_gains({yr.brokerage_gains_tax}) = {expected}"
+            )
+
+    def test_balance_components_sum_to_total(self, sample_portfolio):
+        """Per-category balances must sum to total_balance for every live year.
+
+        pretax + roth + roth_conversion + brokerage (which includes cash)
+        should equal total_balance. Catches: any case where withdrawals,
+        deposits, or growth leak money out of the per-category accounting,
+        or where new account types are introduced without updating the
+        per-category aggregation.
+        """
+        result = run_simulation(sample_portfolio)
+        for yr in result.years:
+            if yr.total_balance <= 0:
+                # Depleted portfolio: rounding can push individual categories
+                # slightly negative. Skip.
+                break
+            expected = (
+                yr.pretax_balance
+                + yr.roth_balance
+                + yr.roth_conversion_balance
+                + yr.brokerage_balance
+            )
+            assert abs(yr.total_balance - expected) < INVARIANT_TOLERANCE, (
+                f"Year {yr.year}: total_balance={yr.total_balance} != "
+                f"pretax({yr.pretax_balance}) + roth({yr.roth_balance}) "
+                f"+ roth_conv({yr.roth_conversion_balance}) "
+                f"+ brokerage({yr.brokerage_balance}) = {expected}"
+            )
+
+    def test_mandatory_uses_bounded_by_total_sources(self, sample_portfolio):
+        """spending + total_tax + IRMAA + conversion_tax must always be <=
+        the year's total cash sources (income + RMD + voluntary withdrawals).
+
+        Mathematically a one-sided form of sources=uses (already enforced by
+        TestSourcesEqualUses), but kept as a separate explicit invariant
+        because it isolates the *oversipending* failure mode with a clearer
+        error message: "mandatory cash needs exceed available cash flow by N".
+        """
+        result = run_simulation(sample_portfolio)
+        for yr in result.years:
+            if yr.total_balance <= 0:
+                break
+            sources = (
+                yr.total_income
+                + yr.rmd
+                + yr.pretax_withdrawal
+                + yr.roth_withdrawal
+                + yr.brokerage_withdrawal
+            )
+            mandatory_uses = yr.spending_target + yr.total_tax + yr.irmaa_cost + yr.conversion_tax
+            assert mandatory_uses <= sources + INVARIANT_TOLERANCE, (
+                f"Year {yr.year} (age {yr.age_primary}): mandatory uses "
+                f"({mandatory_uses:.0f}) exceed available cash sources "
+                f"({sources:.0f}) by {mandatory_uses - sources:.0f}"
+            )
+
+    def test_no_voluntary_withdrawals_when_forced_sources_cover_uses(self):
+        """When RMD + income already cover all mandatory uses (spending +
+        taxes + IRMAA + conversion_tax + 401k_deposits), the simulator must
+        NOT make voluntary withdrawals from any account.
+
+        Catches: surplus/withdrawal routing regressions where the simulator
+        pulls from accounts despite forced cash flow already covering the
+        year's needs. Specifically guards the year-end tax shortfall logic
+        against the feedback-loop bug class where shortfall withdrawal fires
+        even when RMD surplus is available to absorb it.
+
+        Uses a high-pretax / modest-spend fixture so the precondition (forced
+        sources >= mandatory uses) actually fires for some years. Asserts at
+        the end that the precondition fired so the test isn't vacuously
+        passing — if a future fixture change suppresses the precondition,
+        the test will fail loudly instead of silently providing no coverage.
+        """
+        # strategy_target=STANDARD disables Roth conversions. Conversions
+        # would create additional tax burden that legitimately requires
+        # account withdrawals to fund — we want to test the "no extra
+        # withdrawals needed" branch, which only applies when there's no
+        # conversion-driven cash demand.
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=72,
+                current_age_spouse=70,
+                simulation_years=15,
+                start_year=2026,
+                annual_spend_net=100000,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=40000,
+                    primary_start_age=70,
+                    spouse_benefit=30000,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="ira",
+                    name="Large IRA",
+                    balance=2000000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
+                ),
+                Account(
+                    id="brok",
+                    name="Brokerage",
+                    balance=200000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.5,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+
+        precondition_fired = False
+        for yr in result.years:
+            if yr.total_balance <= 0:
+                break
+            forced_sources = yr.total_income + yr.rmd
+            mandatory_uses = (
+                yr.spending_target
+                + yr.total_tax
+                + yr.irmaa_cost
+                + yr.conversion_tax
+                + yr.pretax_401k_deposit
+                + yr.roth_401k_deposit
+            )
+            if forced_sources >= mandatory_uses:
+                precondition_fired = True
+                voluntary_wd = yr.pretax_withdrawal + yr.roth_withdrawal + yr.brokerage_withdrawal
+                assert voluntary_wd < INVARIANT_TOLERANCE, (
+                    f"Year {yr.year} (age {yr.age_primary}): forced sources "
+                    f"({forced_sources:.0f}) cover mandatory uses "
+                    f"({mandatory_uses:.0f}), but voluntary withdrawals = "
+                    f"{voluntary_wd:.0f} (pretax={yr.pretax_withdrawal:.0f}, "
+                    f"roth={yr.roth_withdrawal:.0f}, "
+                    f"brokerage={yr.brokerage_withdrawal:.0f})"
+                )
+
+        assert precondition_fired, (
+            "Test fixture produced no year where RMD + income covers mandatory "
+            "uses — the test is vacuously passing. Adjust the fixture (more "
+            "pretax balance or lower spending) to exercise the invariant."
+        )

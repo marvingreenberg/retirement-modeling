@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { getTopicHtml } from './helpContent';
 
 describe('helpContent (markdown loader)', () => {
-   it('returns HTML for a known topic', () => {
+   it('returns rendered HTML with expected heading for a known topic', () => {
       const html = getTopicHtml('getting-started');
-      expect(html).toContain('<');
-      expect(html.length).toBeGreaterThan(50);
+      // The marked renderer assigns id="getting-started" to the H2 heading;
+      // this verifies markdown → HTML rendering and id-slugging both work.
+      expect(html).toContain('<h2 id="getting-started">Getting Started</h2>');
    });
 
    it('returns fallback for unknown topic', () => {

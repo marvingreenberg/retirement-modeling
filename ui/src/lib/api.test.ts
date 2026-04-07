@@ -74,8 +74,11 @@ describe('runSimulation', () => {
             headers: { 'Content-Type': 'application/json' },
          }),
       );
+      // Verify the portfolio round-trips through JSON serialization without
+      // mutation. Catches any future regression where the API client
+      // strips/transforms fields before send.
       const callBody = JSON.parse((fetch as any).mock.calls[0][1].body);
-      expect(callBody.portfolio).toBeDefined();
+      expect(callBody.portfolio).toEqual(mockPortfolio);
    });
 
    it('throws with detail message on 400', async () => {
