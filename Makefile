@@ -187,6 +187,7 @@ run-cli:
 lint-api:
 	uv run black --check src/ tests/
 	uv run isort --check-only src/ tests/
+	uv run ruff check src/ tests/
 	uv run mypy src/
 
 lint-ui:
