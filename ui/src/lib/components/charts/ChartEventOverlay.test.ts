@@ -35,6 +35,7 @@ function makeYears(count: number, startYear = 2026): YearResult[] {
       planned_expense: 0,
       total_income: 0,
       income_tax: 0,
+      state_income_tax: 0,
       pretax_balance: 400_000,
       roth_balance: 300_000,
       roth_conversion_balance: 0,

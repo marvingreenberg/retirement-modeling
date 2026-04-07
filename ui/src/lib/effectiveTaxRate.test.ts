@@ -5,6 +5,7 @@ describe('effectiveTaxRate', () => {
    it('calculates rate correctly', () => {
       const yr = {
          income_tax: 10000,
+         state_income_tax: 0,
          brokerage_gains_tax: 3000,
          conversion_tax: 2000,
          total_income: 50000,
@@ -20,6 +21,7 @@ describe('effectiveTaxRate', () => {
    it('returns 0 when no income or withdrawals', () => {
       const yr = {
          income_tax: 0,
+         state_income_tax: 0,
          brokerage_gains_tax: 0,
          conversion_tax: 0,
          total_income: 0,
@@ -34,6 +36,7 @@ describe('effectiveTaxRate', () => {
    it('includes RMD in denominator', () => {
       const yr = {
          income_tax: 20000,
+         state_income_tax: 0,
          brokerage_gains_tax: 0,
          conversion_tax: 0,
          total_income: 0,
@@ -49,6 +52,7 @@ describe('effectiveTaxRate', () => {
    it('returns 0 for rate of exactly 0 (zero tax, nonzero income)', () => {
       const yr = {
          income_tax: 0,
+         state_income_tax: 0,
          brokerage_gains_tax: 0,
          conversion_tax: 0,
          total_income: 50000,

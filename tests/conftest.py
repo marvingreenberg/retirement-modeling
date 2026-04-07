@@ -6,7 +6,6 @@ from retirement_model.models import (
     Account,
     AccountType,
     Owner,
-    PlannedExpense,
     Portfolio,
     SimulationConfig,
     SocialSecurityConfig,

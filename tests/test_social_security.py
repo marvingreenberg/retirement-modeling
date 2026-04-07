@@ -2,7 +2,7 @@
 
 import pytest
 
-from retirement_model.models import IncomeStream, SSAutoConfig
+from retirement_model.models import SSAutoConfig
 from retirement_model.social_security import (
     SS_TAXABLE_PCT,
     compute_ss_benefit,

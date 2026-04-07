@@ -168,7 +168,6 @@ def run_single_simulation(
             cfg.spending_strategy,
             year_idx,
             current_balance,
-            age_primary,
             inflation_rate,
             spending_state,
         )

@@ -325,29 +325,35 @@
                      <span>Taxes</span>
                      <span>{currency(yr.total_tax + yr.conversion_tax)}</span>
                   </div>
-                  {#if yr.income_tax > 0 && (yr.brokerage_gains_tax > 0 || yr.irmaa_cost > 0 || yr.conversion_tax > 0)}
+                  {#if yr.total_tax + yr.conversion_tax > 0}
                      <div
                         class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                      >
-                        <span>Income Tax</span>
+                        <span>Income Tax (IRS)</span>
                         <span>{currency(yr.income_tax)}</span>
                      </div>
-                  {/if}
-                  {#if yr.brokerage_gains_tax > 0}
                      <div
                         class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
                      >
-                        <span>Capital Gains Tax</span>
-                        <span>{currency(yr.brokerage_gains_tax)}</span>
+                        <span>State Taxes</span>
+                        <span>{currency(yr.state_income_tax)}</span>
                      </div>
-                  {/if}
-                  {#if yr.conversion_tax > 0}
-                     <div
-                        class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
-                     >
-                        <span>Conversion Tax</span>
-                        <span>{currency(yr.conversion_tax)}</span>
-                     </div>
+                     {#if yr.brokerage_gains_tax > 0}
+                        <div
+                           class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
+                        >
+                           <span>Capital Gains Tax</span>
+                           <span>{currency(yr.brokerage_gains_tax)}</span>
+                        </div>
+                     {/if}
+                     {#if yr.conversion_tax > 0}
+                        <div
+                           class="flex justify-between pl-3 text-surface-500 dark:text-surface-400"
+                        >
+                           <span>Conversion Tax</span>
+                           <span>{currency(yr.conversion_tax)}</span>
+                        </div>
+                     {/if}
                   {/if}
                </div>
 

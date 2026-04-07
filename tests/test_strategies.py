@@ -30,7 +30,6 @@ class TestFixedDollarSpending:
             SpendingStrategy.FIXED_DOLLAR,
             year_idx=0,
             total_balance=2000000,
-            age_primary=65,
             inflation_rate=0.03,
             state=state,
         )
@@ -39,12 +38,10 @@ class TestFixedDollarSpending:
     def test_with_inflation(self):
         state = create_initial_state(100000, 2000000)
         # First year
-        _, state = calculate_spending_target(
-            SpendingStrategy.FIXED_DOLLAR, 0, 2000000, 65, 0.03, state
-        )
+        _, state = calculate_spending_target(SpendingStrategy.FIXED_DOLLAR, 0, 2000000, 0.03, state)
         # Second year
         spending, _ = calculate_spending_target(
-            SpendingStrategy.FIXED_DOLLAR, 1, 2100000, 66, 0.03, state
+            SpendingStrategy.FIXED_DOLLAR, 1, 2100000, 0.03, state
         )
         assert spending == pytest.approx(103000, rel=0.01)
 
@@ -56,7 +53,6 @@ class TestPercentOfPortfolioSpending:
             SpendingStrategy.PERCENT_OF_PORTFOLIO,
             0,
             2000000,
-            65,
             0.03,
             state,
             withdrawal_rate=0.04,
@@ -69,7 +65,6 @@ class TestPercentOfPortfolioSpending:
             SpendingStrategy.PERCENT_OF_PORTFOLIO,
             0,
             3000000,
-            65,
             0.03,
             state,
             withdrawal_rate=0.04,
@@ -80,7 +75,6 @@ class TestPercentOfPortfolioSpending:
             SpendingStrategy.PERCENT_OF_PORTFOLIO,
             0,
             1000000,
-            65,
             0.03,
             state,
             withdrawal_rate=0.04,
@@ -94,7 +88,6 @@ class TestPercentOfPortfolioSpending:
             SpendingStrategy.PERCENT_OF_PORTFOLIO,
             0,
             2000000,
-            65,
             0.03,
             state,
             withdrawal_rate=0.04,
@@ -108,7 +101,6 @@ class TestPercentOfPortfolioSpending:
             SpendingStrategy.PERCENT_OF_PORTFOLIO,
             0,
             2000000,
-            65,
             0.03,
             state,
             withdrawal_rate=0.06,
@@ -126,7 +118,7 @@ class TestGuardrailsSpending:
         )
         state = create_initial_state(100000, 2000000, config)
         spending, new_state = calculate_spending_target(
-            SpendingStrategy.GUARDRAILS, 0, 2000000, 65, 0.03, state
+            SpendingStrategy.GUARDRAILS, 0, 2000000, 0.03, state
         )
         assert spending == 100000  # 5% of 2M
 
@@ -140,15 +132,13 @@ class TestGuardrailsSpending:
         state = create_initial_state(100000, 2000000, config)
 
         # Year 0
-        _, state = calculate_spending_target(
-            SpendingStrategy.GUARDRAILS, 0, 2000000, 65, 0.03, state
-        )
+        _, state = calculate_spending_target(SpendingStrategy.GUARDRAILS, 0, 2000000, 0.03, state)
 
         # Year 1 with significant portfolio drop
         # Current spending would be 103000 (inflated), but portfolio is now 1500000
         # Rate would be 103000/1500000 = 6.87%, ceiling is 6% (120% of 5%)
         spending, _ = calculate_spending_target(
-            SpendingStrategy.GUARDRAILS, 1, 1500000, 66, 0.03, state
+            SpendingStrategy.GUARDRAILS, 1, 1500000, 0.03, state
         )
         # Should reduce by 10%
         assert spending < 103000
@@ -163,15 +153,13 @@ class TestGuardrailsSpending:
         state = create_initial_state(100000, 2000000, config)
 
         # Year 0
-        _, state = calculate_spending_target(
-            SpendingStrategy.GUARDRAILS, 0, 2000000, 65, 0.03, state
-        )
+        _, state = calculate_spending_target(SpendingStrategy.GUARDRAILS, 0, 2000000, 0.03, state)
 
         # Year 1 with significant portfolio growth
         # Current spending would be 103000 (inflated), portfolio is now 3500000
         # Rate would be 103000/3500000 = 2.94%, floor is 4% (80% of 5%)
         spending, _ = calculate_spending_target(
-            SpendingStrategy.GUARDRAILS, 1, 3500000, 66, 0.03, state
+            SpendingStrategy.GUARDRAILS, 1, 3500000, 0.03, state
         )
         # Should increase by 10%
         assert spending > 103000

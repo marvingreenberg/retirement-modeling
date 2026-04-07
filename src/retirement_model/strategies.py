@@ -19,7 +19,6 @@ def calculate_spending_target(
     strategy: SpendingStrategy,
     year_idx: int,
     total_balance: float,
-    age_primary: int,
     inflation_rate: float,
     state: SpendingState,
     withdrawal_rate: float = 0.04,

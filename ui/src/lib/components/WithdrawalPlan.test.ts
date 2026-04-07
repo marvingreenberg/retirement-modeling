@@ -32,6 +32,7 @@ function makeYear(overrides: Partial<YearResult> = {}): YearResult {
       planned_expense: 0,
       total_income: 0,
       income_tax: 12000,
+      state_income_tax: 0,
       pretax_balance: 400000,
       roth_balance: 200000,
       roth_conversion_balance: 0,
@@ -255,7 +256,7 @@ describe('WithdrawalPlan', () => {
          conversion_tax: 3600,
       });
       render(WithdrawalPlan, { props: { years: [yr] } });
-      expect(screen.getByText('Income Tax')).toBeInTheDocument();
+      expect(screen.getByText('Income Tax (IRS)')).toBeInTheDocument();
       expect(screen.getByText('IRMAA Surcharge')).toBeInTheDocument();
       expect(screen.getByText('Conversion Tax')).toBeInTheDocument();
    });
@@ -354,7 +355,7 @@ describe('WithdrawalPlan', () => {
          brokerage_gains_tax: 3000,
       });
       render(WithdrawalPlan, { props: { years: [yr] } });
-      expect(screen.getByText('Income Tax')).toBeInTheDocument();
+      expect(screen.getByText('Income Tax (IRS)')).toBeInTheDocument();
    });
 
    it('shows pretax 401k deposit when present', () => {

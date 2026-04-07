@@ -12,7 +12,6 @@ from retirement_model.models import (
     SimulationConfig,
     SimulationResult,
     SocialSecurityConfig,
-    TaxBracket,
     WithdrawalStrategy,
     YearResult,
 )

@@ -463,6 +463,10 @@
                               ><div>Income</div>
                               <div>Tax</div></th
                            >
+                           {#if columnVis.stateTax}<th
+                                 ><div>State</div>
+                                 <div>Tax</div></th
+                              >{/if}
                            {#if columnVis.capGainsTax}<th
                                  ><div>Cap Gains</div>
                                  <div>Tax</div></th
@@ -517,6 +521,9 @@
                                     )}</td
                                  >{/if}
                               <td>{currency(yr.income_tax)}</td>
+                              {#if columnVis.stateTax}<td
+                                    >{currency(yr.state_income_tax)}</td
+                                 >{/if}
                               {#if columnVis.capGainsTax}<td
                                     >{currency(yr.brokerage_gains_tax)}</td
                                  >{/if}

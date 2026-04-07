@@ -6,7 +6,6 @@ import pytest
 
 from retirement_model.models import ConversionStrategy, SimulationResult, YearResult
 from retirement_model.output import (
-    OutputFormat,
     compare_results,
     format_csv,
     format_json,

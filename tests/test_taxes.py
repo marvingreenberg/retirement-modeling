@@ -5,10 +5,11 @@ import pytest
 from retirement_model.constants import FilingStatus, IRMAATier, TaxBracket
 from retirement_model.taxes import (
     calculate_capital_gains_tax,
-    calculate_income_tax,
+    calculate_federal_income_tax,
     calculate_irmaa_cost,
     calculate_rmd_amount,
     calculate_ss_taxable_portion,
+    calculate_state_income_tax,
     estimate_effective_tax_rate,
     estimate_withdrawal_gains,
     get_bracket_label,
@@ -172,34 +173,49 @@ class TestRmdStartAgeForBirthYear:
         assert rmd_start_age_for_birth_year(1951) == 73
 
 
-class TestCalculateIncomeTax:
+class TestCalculateFederalIncomeTax:
     def test_zero_income(self):
-        assert calculate_income_tax(0) == 0
+        assert calculate_federal_income_tax(0) == 0
 
     def test_negative_income(self):
-        assert calculate_income_tax(-10000) == 0
+        assert calculate_federal_income_tax(-10000) == 0
 
     def test_progressive_brackets(self):
         # First $23,200 at 10%
-        tax_low = calculate_income_tax(23200)
+        tax_low = calculate_federal_income_tax(23200)
         assert tax_low == pytest.approx(2320, rel=0.01)
 
         # $50,000: $23,200 at 10% + $26,800 at 12%
-        tax_mid = calculate_income_tax(50000)
+        tax_mid = calculate_federal_income_tax(50000)
         expected = 23200 * 0.10 + 26800 * 0.12
         assert tax_mid == pytest.approx(expected, rel=0.01)
 
-    def test_with_state_tax(self):
-        tax = calculate_income_tax(50000, state_rate=0.05)
-        # Federal + 5% state
-        federal = 23200 * 0.10 + 26800 * 0.12
-        assert tax == pytest.approx(federal + 50000 * 0.05, rel=0.01)
+    def test_no_state_in_federal(self):
+        # Federal function should NOT add any state component
+        fed = calculate_federal_income_tax(50000)
+        expected = 23200 * 0.10 + 26800 * 0.12
+        assert fed == pytest.approx(expected, rel=0.01)
 
-    def test_custom_brackets_income_tax(self):
+    def test_custom_brackets(self):
         brackets = [TaxBracket(50000, 0.10), TaxBracket(float("inf"), 0.20)]
-        tax = calculate_income_tax(80000, brackets)
+        tax = calculate_federal_income_tax(80000, brackets)
         expected = 50000 * 0.10 + 30000 * 0.20
         assert tax == pytest.approx(expected, rel=0.01)
+
+
+class TestCalculateStateIncomeTax:
+    def test_zero_income(self):
+        assert calculate_state_income_tax(0, 0.05) == 0
+
+    def test_negative_income(self):
+        assert calculate_state_income_tax(-1000, 0.05) == 0
+
+    def test_flat_rate(self):
+        # 5% of $100,000 = $5,000
+        assert calculate_state_income_tax(100000, 0.05) == pytest.approx(5000)
+
+    def test_zero_rate(self):
+        assert calculate_state_income_tax(100000, 0.0) == 0
 
 
 class TestCalculateSsTaxablePortion:
@@ -299,6 +315,13 @@ SIMPLE_BRACKETS = [
 ]
 DEDUCTION = 29200.0
 STATE_RATE = 0.05
+
+
+def _combined_tax(agi: float, deduction: float) -> float:
+    """Helper: federal + state combined tax used by solver constraint checks."""
+    fed = calculate_federal_income_tax(max(0, agi - deduction), SIMPLE_BRACKETS)
+    state = calculate_state_income_tax(max(0, agi - deduction), STATE_RATE)
+    return fed + state
 
 
 class TestEstimateWithdrawalGains:
@@ -421,9 +444,9 @@ class TestSolveMaxConversion:
         )
         assert result_brokerage < result_cash
         # The solver should keep total AGI at or below ceiling
-        tax_on_conv = calculate_income_tax(
-            max(0, base_agi + result_brokerage - DEDUCTION), SIMPLE_BRACKETS, STATE_RATE
-        ) - calculate_income_tax(max(0, base_agi - DEDUCTION), SIMPLE_BRACKETS, STATE_RATE)
+        tax_on_conv = _combined_tax(base_agi + result_brokerage, DEDUCTION) - _combined_tax(
+            base_agi, DEDUCTION
+        )
         gains = estimate_withdrawal_gains(tax_on_conv, 0, [(500000, 0.3)])
         total_agi = base_agi + result_brokerage + gains
         assert total_agi <= ceiling + 2  # within tolerance
@@ -487,8 +510,8 @@ class TestSolveMaxConversion:
         )
         assert 0 < result < (ceiling - base_agi)
         # Verify constraint holds
-        tax_on_conv = calculate_income_tax(
-            max(0, base_agi + result - DEDUCTION), SIMPLE_BRACKETS, STATE_RATE
-        ) - calculate_income_tax(max(0, base_agi - DEDUCTION), SIMPLE_BRACKETS, STATE_RATE)
+        tax_on_conv = _combined_tax(base_agi + result, DEDUCTION) - _combined_tax(
+            base_agi, DEDUCTION
+        )
         gains = estimate_withdrawal_gains(tax_on_conv, 0, snapshot)
         assert base_agi + result + gains <= ceiling + 2

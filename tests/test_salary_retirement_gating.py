@@ -1,11 +1,8 @@
 """Tests for SalaryAutoConfig model and retirement gating behavior."""
 
-import pytest
-
 from retirement_model.models import (
     Account,
     AccountType,
-    IncomeKind,
     IncomeStream,
     Owner,
     Portfolio,

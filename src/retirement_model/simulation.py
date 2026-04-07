@@ -15,7 +15,6 @@ from retirement_model.models import (
     LIMIT_IRA_CATCHUP_50,
     LIMIT_IRA_UNDER_50,
     ROTH_IRA_MAGI_PHASEOUT_MFJ,
-    WITHDRAWAL_TO_TAX,
     Account,
     AccountType,
     AccountWithdrawal,
@@ -38,14 +37,13 @@ from retirement_model.social_security import generate_ss_streams
 from retirement_model.strategies import calculate_spending_target, create_initial_state
 from retirement_model.taxes import (
     calculate_capital_gains_tax,
-    calculate_income_tax,
+    calculate_federal_income_tax,
     calculate_irmaa_cost,
     calculate_rmd_amount,
     calculate_ss_taxable_portion,
-    estimate_withdrawal_gains,
+    calculate_state_income_tax,
     get_bracket_label,
     get_effective_tax_rate,
-    get_marginal_tax_rate,
     inflate_brackets,
     inflate_irmaa_tiers,
     rmd_start_age_for_birth_year,
@@ -138,6 +136,7 @@ def _route_surplus(
         _deposit_excess_income(remaining, accounts)
 
 
+# TODO: bug conversion ceilings don't consider filing status S or MFJ
 def get_conversion_ceiling(
     strategy: ConversionStrategy, irmaa_tier_1_limit: float, inflation_factor: float = 1.0
 ) -> float:
@@ -342,7 +341,6 @@ def run_simulation(
             cfg.spending_strategy,
             year_idx,
             current_total_balance,
-            age_primary,
             year_inflation,
             spending_state,
             withdrawal_rate=cfg.withdrawal_rate,
@@ -374,6 +372,7 @@ def run_simulation(
             base_capgains = default_regime.capital_gains_brackets
             base_deduction = default_regime.standard_deduction
 
+        # TODO BUG, inflation adjusted?  Or adjusted according to legislative definitions
         # Inflation-adjusted tax thresholds
         adj_fed_brackets = inflate_brackets(base_fed, inflation_factor)
         adj_irmaa_tiers = inflate_irmaa_tiers(base_irmaa, inflation_factor)
@@ -606,15 +605,24 @@ def run_simulation(
             )
 
             if conversion_target > 0:
-                tax_before = calculate_income_tax(
-                    max(0, current_agi - adj_deduction), adj_fed_brackets, cfg.tax_rate_state
+                # Marginal tax bill on the conversion amount: federal + state.
+                # Federal uses the standard deduction; state uses no deduction
+                # in this simplified model (see calculate_state_income_tax).
+                fed_before = calculate_federal_income_tax(
+                    max(0, current_agi - adj_deduction), adj_fed_brackets
                 )
-                tax_after = calculate_income_tax(
+                state_before = calculate_state_income_tax(
+                    max(0, current_agi - ss_taxable), cfg.tax_rate_state
+                )
+                fed_after = calculate_federal_income_tax(
                     max(0, current_agi + conversion_target - adj_deduction),
                     adj_fed_brackets,
+                )
+                state_after = calculate_state_income_tax(
+                    max(0, current_agi + conversion_target - ss_taxable),
                     cfg.tax_rate_state,
                 )
-                tax_bill = tax_after - tax_before
+                tax_bill = (fed_after + state_after) - (fed_before + state_before)
 
                 # Pay tax from cash/brokerage
                 tax_from_cash = withdraw_from_accounts(
@@ -676,13 +684,23 @@ def run_simulation(
                 has_employment_income,
             )
 
-        # Total tax calculation using progressive brackets.
-        # Exclude brokerage gains (taxed separately via brokerage_gains_tax)
-        # and conversion income (taxed separately via conversion_tax) from
-        # ordinary income to avoid double-counting in the balance equation.
+        # ── Year-end income tax calculation ───────────────────────────
+        # Federal: progressive brackets on ordinary income above the
+        # standard deduction. Capital gains and Roth conversion income
+        # are excluded here — they're taxed separately (cap gains via
+        # brokerage_gains_tax; conversions via conversion_tax).
+        #
+        # State (VA model): flat rate × (AGI − SS_taxable). VA exempts
+        # Social Security but taxes capital gains, IRA withdrawals,
+        # pensions, conversions, and employment as ordinary income.
+        # No federal standard deduction is applied at the state level.
         ordinary_agi = current_agi - brokerage_gains_total - converted_amount
-        taxable_income = max(0, ordinary_agi - adj_deduction)
-        income_tax = calculate_income_tax(taxable_income, adj_fed_brackets, cfg.tax_rate_state)
+        federal_taxable = max(0, ordinary_agi - adj_deduction)
+        income_tax = calculate_federal_income_tax(federal_taxable, adj_fed_brackets)
+
+        state_taxable_base = max(0, current_agi - ss_taxable)
+        state_income_tax = calculate_state_income_tax(state_taxable_base, cfg.tax_rate_state)
+
         irmaa_cost, irmaa_is_estimated = calculate_irmaa_with_lookback(
             year_idx,
             agi_history,
@@ -692,7 +710,7 @@ def run_simulation(
             age_primary,
             age_spouse,
         )
-        total_tax = income_tax + brokerage_gains_tax
+        total_tax = income_tax + state_income_tax + brokerage_gains_tax
 
         # Record this year's AGI for future IRMAA lookback
         agi_history.append(current_agi)
@@ -703,7 +721,7 @@ def run_simulation(
         estimated_withholding = (
             ss_taxable + stream_taxable + rmd_withdrawn + voluntary_pretax
         ) * est_tax_rate + est_irmaa
-        actual_tax_owed = income_tax + brokerage_gains_tax + irmaa_cost
+        actual_tax_owed = income_tax + state_income_tax + brokerage_gains_tax + irmaa_cost
         tax_shortfall = max(0, actual_tax_owed - estimated_withholding)
 
         # Over-withholding refund: estimated withholding exceeded actual tax liability.
@@ -789,6 +807,8 @@ def run_simulation(
                 roth_withdrawal=round(roth_withdrawn),
                 brokerage_withdrawal=round(brokerage_withdrawn),
                 total_tax=round(total_tax),
+                income_tax=round(income_tax),
+                state_income_tax=round(state_income_tax),
                 brokerage_gains_tax=round(brokerage_gains_tax),
                 irmaa_cost=irmaa_cost,
                 irmaa_estimated=irmaa_is_estimated,
@@ -798,7 +818,6 @@ def run_simulation(
                 total_income=round(ss_income + gross_stream_income),
                 pretax_401k_deposit=round(total_pretax_401k),
                 roth_401k_deposit=round(total_roth_401k),
-                income_tax=round(income_tax),
                 pretax_balance=round(pretax_bal),
                 roth_balance=round(roth_bal),
                 roth_conversion_balance=round(roth_conv_bal),

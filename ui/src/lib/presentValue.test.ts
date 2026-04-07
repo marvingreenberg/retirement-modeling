@@ -32,6 +32,7 @@ function makeYear(overrides: Partial<YearResult> = {}): YearResult {
       planned_expense: 0,
       total_income: 0,
       income_tax: 0,
+      state_income_tax: 0,
       pretax_balance: 0,
       roth_balance: 0,
       roth_conversion_balance: 0,

@@ -4,7 +4,6 @@ import pytest
 
 from retirement_model.constants import CONSERVATIVE_GROWTH_FACTOR
 from retirement_model.models import (
-    ACCOUNT_TYPE_DEFAULTS,
     BOND_TAX_DRAG,
     STOCK_TAX_DRAG,
     Account,

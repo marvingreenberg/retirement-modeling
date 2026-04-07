@@ -21,6 +21,7 @@ describe('getVisibleColumns', () => {
       const result = getVisibleColumns([]);
       expect(result).toEqual({
          dep401k: false,
+         stateTax: false,
          capGainsTax: false,
          convTax: false,
          rothConv: false,
@@ -41,6 +42,7 @@ describe('getVisibleColumns', () => {
       const result = getVisibleColumns(years);
       expect(result).toEqual({
          dep401k: false,
+         stateTax: false,
          capGainsTax: false,
          convTax: false,
          rothConv: false,

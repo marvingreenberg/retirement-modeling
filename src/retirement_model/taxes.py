@@ -115,23 +115,22 @@ def calculate_rmd_amount(age: int, balance: float, rmd_start_age: int = RMD_STAR
     return balance / divisor
 
 
-def calculate_income_tax(
+def calculate_federal_income_tax(
     taxable_income: float,
     brackets: list[TaxBracket] | None = None,
-    state_rate: float = 0.0,
 ) -> float:
-    """Calculate total income tax (federal + state) on taxable income.
+    """Federal ordinary-income tax via progressive brackets.
 
-    Uses progressive bracket calculation for federal tax.
+    `taxable_income` should be ordinary income above the federal standard
+    deduction. Long-term capital gains are taxed separately via
+    `calculate_capital_gains_tax` and should NOT be included here.
     """
     if taxable_income <= 0:
         return 0.0
 
     bracket_list = brackets or FEDERAL_TAX_BRACKETS_MFJ
-
     federal_tax = 0.0
     prev_limit = 0.0
-
     for bracket in bracket_list:
         if taxable_income <= prev_limit:
             break
@@ -139,9 +138,27 @@ def calculate_income_tax(
         if bracket_income > 0:
             federal_tax += bracket_income * bracket.rate
         prev_limit = bracket.limit
+    return federal_tax
 
-    state_tax = taxable_income * state_rate
-    return federal_tax + state_tax
+
+def calculate_state_income_tax(
+    state_taxable_income: float,
+    state_rate: float,
+) -> float:
+    """Flat-rate state income tax on the state-specific taxable base.
+
+    For Virginia, capital gains are taxed as ordinary income at the state
+    level, and Social Security is exempt — so the caller should pass:
+
+        state_taxable = AGI - SS_taxable_portion
+
+    where AGI already includes IRA/401k withdrawals, RMDs, pensions,
+    capital gains, employment income, and Roth conversions. This is a
+    simplified single-rate model; real VA brackets are 2/3/5/5.75%.
+    """
+    if state_taxable_income <= 0:
+        return 0.0
+    return state_taxable_income * state_rate
 
 
 def get_effective_tax_rate(
@@ -149,13 +166,21 @@ def get_effective_tax_rate(
     brackets: list[TaxBracket] | None,
     state_rate: float,
     deduction: float,
+    ss_taxable: float = 0.0,
 ) -> float:
-    """Get the effective (average) tax rate on AGI, accounting for deduction and progressive brackets."""
+    """Get the effective (average) tax rate on AGI for withholding estimates.
+
+    Combines federal + state. Federal applies the standard deduction;
+    state (VA-style) applies to (AGI - ss_taxable) with no deduction.
+    Pass `ss_taxable` to exclude Social Security from the state base.
+    """
     if agi <= 0:
         return 0.0
-    taxable = max(0, agi - deduction)
-    tax = calculate_income_tax(taxable, brackets, state_rate)
-    return tax / agi
+    federal_taxable = max(0, agi - deduction)
+    state_taxable = max(0, agi - ss_taxable)
+    fed = calculate_federal_income_tax(federal_taxable, brackets)
+    state = calculate_state_income_tax(state_taxable, state_rate)
+    return (fed + state) / agi
 
 
 SS_BENEFIT_COMBINED_INCOME_FACTOR = 0.5
@@ -210,13 +235,16 @@ def estimate_effective_tax_rate(
     state_rate: float = 0.0,
     deduction: float = STANDARD_DEDUCTION_MFJ,
 ) -> float:
-    """Estimate effective tax rate for withholding calculations."""
+    """Estimate effective tax rate for withholding calculations.
+
+    Combines federal + state. Approximate (doesn't subtract SS).
+    """
     taxable = max(0, agi - deduction)
     if taxable <= 0:
         return 0.0
-
-    tax = calculate_income_tax(taxable, brackets, state_rate)
-    return tax / agi if agi > 0 else 0.0
+    fed = calculate_federal_income_tax(taxable, brackets)
+    state = calculate_state_income_tax(taxable, state_rate)
+    return (fed + state) / agi if agi > 0 else 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -312,15 +340,19 @@ def solve_max_conversion(
     upper = min(max_headroom, available_ira)
     lower = 0.0
 
-    tax_before = calculate_income_tax(max(0, base_agi - deduction), fed_brackets, state_rate)
+    # Pre-conversion combined federal+state tax (used as the baseline; the
+    # conversion adds to AGI, so the marginal tax bill is tax_after - tax_before).
+    fed_before = calculate_federal_income_tax(max(0, base_agi - deduction), fed_brackets)
+    state_before = calculate_state_income_tax(max(0, base_agi - deduction), state_rate)
+    tax_before = fed_before + state_before
 
     for _ in range(CONVERSION_SOLVER_MAX_ITER):
         mid = (lower + upper) / 2
 
-        # Income tax delta from converting mid
-        tax_after = calculate_income_tax(
-            max(0, base_agi + mid - deduction), fed_brackets, state_rate
-        )
+        # Income tax delta from converting mid (federal + state)
+        fed_after = calculate_federal_income_tax(max(0, base_agi + mid - deduction), fed_brackets)
+        state_after = calculate_state_income_tax(max(0, base_agi + mid - deduction), state_rate)
+        tax_after = fed_after + state_after
         tax_bill = tax_after - tax_before
 
         # Gains from paying that tax out of cash/brokerage

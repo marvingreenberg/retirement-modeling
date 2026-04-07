@@ -58,20 +58,27 @@ function withdrawalPlanText(years: YearResult[]): string {
             ),
          );
       }
-      lines.push(`  Taxes: ${$(yr.total_tax)}`);
-      if (yr.irmaa_cost > 0)
-         lines.push(`    IRMAA Surcharge: ${$(yr.irmaa_cost)}`);
+      lines.push(`  Taxes: ${$(yr.total_tax + yr.conversion_tax)}`);
+      if (yr.income_tax > 0) lines.push(`    Income Tax: ${$(yr.income_tax)}`);
+      if (yr.state_income_tax > 0)
+         lines.push(`    State Taxes: ${$(yr.state_income_tax)}`);
+      if (yr.brokerage_gains_tax > 0)
+         lines.push(`    Capital Gains Tax: ${$(yr.brokerage_gains_tax)}`);
       if (yr.conversion_tax > 0)
          lines.push(`    Conversion Tax: ${$(yr.conversion_tax)}`);
+      if (yr.irmaa_cost > 0)
+         lines.push(`    IRMAA Surcharge: ${$(yr.irmaa_cost)}`);
       lines.push('');
    }
    return lines.join('\n');
 }
 
 // Column order: Year | Total Balance | AGI | Eff Rate | Spending | 401k Dep |
-//   Income Tax | Cap Gains Tax | Conv Tax | Roth Conv | IRMAA |
+//   Income Tax | State Tax | Cap Gains Tax | Conv Tax | Roth Conv | IRMAA |
 //   Income | Brokerage WD | PreTax WD | Roth WD
-const COL_WIDTHS = [6, 14, 12, 10, 12, 10, 12, 14, 12, 12, 10, 12, 14, 12, 10];
+const COL_WIDTHS = [
+   6, 14, 12, 10, 12, 10, 12, 12, 14, 12, 12, 10, 12, 14, 12, 10,
+];
 const HEADERS = [
    'Year',
    'Total Balance',
@@ -80,6 +87,7 @@ const HEADERS = [
    'Spending',
    '401k Dep',
    'Income Tax',
+   'State Tax',
    'Cap Gains Tax',
    'Conv Tax',
    'Roth Conv',
@@ -109,6 +117,7 @@ function yearByYearText(years: YearResult[]): string {
             $(yr.spending_target),
             $(yr.pretax_401k_deposit),
             $(yr.income_tax),
+            $(yr.state_income_tax),
             $(yr.brokerage_gains_tax),
             $(yr.conversion_tax),
             $(yr.roth_conversion),

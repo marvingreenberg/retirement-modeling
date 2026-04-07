@@ -2,6 +2,7 @@ import type { YearResult } from '$lib/types';
 
 export interface ColumnVisibility {
    dep401k: boolean;
+   stateTax: boolean;
    capGainsTax: boolean;
    convTax: boolean;
    rothConv: boolean;
@@ -29,6 +30,7 @@ export function getVisibleColumns(years: YearResult[]): ColumnVisibility {
          years,
          (yr) => yr.pretax_401k_deposit + yr.roth_401k_deposit,
       ),
+      stateTax: anyNonZero(years, (yr) => yr.state_income_tax),
       capGainsTax: anyNonZero(years, (yr) => yr.brokerage_gains_tax),
       convTax: anyNonZero(years, (yr) => yr.conversion_tax),
       rothConv: anyNonZero(years, (yr) => yr.roth_conversion),

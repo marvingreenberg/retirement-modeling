@@ -445,7 +445,10 @@ class YearResult(BaseModel):
     spending_target: float = 0.0
     planned_expense: float = 0.0
     total_income: float = 0.0
+    # Federal ordinary-income tax (excludes capital gains, conversion, IRMAA)
     income_tax: float = 0.0
+    # State income tax (flat-rate × state-taxable base, excludes SS for VA)
+    state_income_tax: float = 0.0
     pretax_401k_deposit: float = 0.0
     roth_401k_deposit: float = 0.0
     brokerage_gains_tax: float = 0.0

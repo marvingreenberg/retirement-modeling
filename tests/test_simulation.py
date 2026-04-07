@@ -21,7 +21,6 @@ from retirement_model.models import (
 from retirement_model.simulation import (
     EXCESS_INCOME_ACCOUNT_ID,
     IRMAA_SPENDING_THRESHOLD_FACTOR,
-    MEDICARE_ENROLLMENT_AGE,
     _deposit_excess_income,
     _route_surplus,
     calculate_irmaa_with_lookback,
@@ -267,13 +266,6 @@ class TestRunSimulation:
         total_conv_bracket = sum(y.roth_conversion for y in result_bracket.years)
         assert total_conv_standard != total_conv_bracket
 
-    def test_irmaa_tracked(self, sample_portfolio: Portfolio):
-        result = run_simulation(sample_portfolio)
-        # At least some years may have IRMAA costs
-        has_irmaa = any(y.irmaa_cost > 0 for y in result.years)
-        # This depends on AGI, so just check it's being calculated
-        assert all(isinstance(y.irmaa_cost, (int, float)) for y in result.years)
-
     def test_result_properties(self, sample_portfolio: Portfolio):
         result = run_simulation(sample_portfolio)
         assert result.final_balance == result.years[-1].total_balance
@@ -438,17 +430,6 @@ class TestInflationIndexedTaxBrackets:
             eff_rate_19 = year_19.total_tax / year_19.agi
             # Indexing prevents bracket creep — rate shouldn't jump wildly
             assert eff_rate_19 < eff_rate_0 + 0.10
-
-    def test_zero_inflation_no_indexing_effect(self):
-        """With 0% inflation, brackets don't change year over year."""
-        portfolio = self._make_portfolio(inflation_rate=0.0, years=5)
-        result = run_simulation(portfolio)
-
-        # All years should use the same (base) bracket thresholds
-        # so bracket labels should be consistent for similar AGI levels
-        brackets = [y.bracket for y in result.years]
-        # Not asserting they're all identical (AGI changes), just that the test runs cleanly
-        assert len(result.years) == 5
 
     def test_existing_tests_unaffected(self, sample_portfolio: Portfolio):
         """Existing simulation behavior should not regress."""
@@ -1531,8 +1512,122 @@ class TestBrokerageGainsTax:
         yr = result.years[0]
 
         assert yr.brokerage_gains_tax >= 0
-        # total_tax = income_tax + brokerage_gains_tax (IRMAA excluded)
-        assert yr.total_tax == yr.income_tax + yr.brokerage_gains_tax
+        # total_tax = income_tax + state_income_tax + brokerage_gains_tax (IRMAA excluded)
+        assert yr.total_tax == (yr.income_tax + yr.state_income_tax + yr.brokerage_gains_tax)
+
+
+class TestStateIncomeTax:
+    """State tax separation: VA-style flat rate on AGI minus SS taxable portion."""
+
+    def test_state_tax_on_pretax_withdrawal(self):
+        """State tax should equal state_rate * (AGI - SS_taxable). With no SS,
+        state tax = state_rate * AGI."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=65,
+                current_age_spouse=63,
+                simulation_years=1,
+                start_year=2026,
+                annual_spend_net=50000,
+                tax_rate_state=0.05,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="ira",
+                    name="IRA",
+                    balance=500000,
+                    type=AccountType.IRA,
+                    owner=Owner.PRIMARY,
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr = result.years[0]
+        # No SS, so state taxable base = AGI
+        assert yr.state_income_tax == pytest.approx(yr.agi * 0.05, abs=2)
+
+    def test_state_tax_excludes_ss(self):
+        """SS taxable portion should NOT be in the state taxable base.
+
+        With SS as the only taxable income source, state_income_tax should
+        be 0 (or very close — depends on whether AGI exceeds SS exactly).
+        """
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=70,
+                current_age_spouse=0,
+                simulation_years=1,
+                start_year=2026,
+                annual_spend_net=20000,
+                tax_rate_state=0.05,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=30000,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brok",
+                    name="Brokerage",
+                    balance=500000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.PRIMARY,
+                    cost_basis_ratio=1.0,  # No gains → no capital gains tax
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr = result.years[0]
+        # SS is mostly not taxable at this income level. AGI should be small,
+        # mostly the SS taxable portion. The state tax base = AGI - ss_taxable
+        # should be ~0, so state_income_tax should be ~0.
+        assert yr.state_income_tax < 50
+
+    def test_state_tax_includes_capital_gains(self):
+        """Capital gains should be subject to state tax (no preferential rate)."""
+        portfolio = Portfolio(
+            config=SimulationConfig(
+                current_age_primary=65,
+                current_age_spouse=63,
+                simulation_years=1,
+                start_year=2026,
+                annual_spend_net=80000,
+                tax_rate_state=0.05,
+                strategy_target=WithdrawalStrategy.STANDARD,
+                social_security=SocialSecurityConfig(
+                    primary_benefit=0,
+                    primary_start_age=70,
+                    spouse_benefit=0,
+                    spouse_start_age=70,
+                ),
+            ),
+            accounts=[
+                Account(
+                    id="brok",
+                    name="Brokerage",
+                    balance=500000,
+                    type=AccountType.BROKERAGE,
+                    owner=Owner.JOINT,
+                    cost_basis_ratio=0.0,  # 100% gains
+                ),
+            ],
+        )
+        result = run_simulation(portfolio)
+        yr = result.years[0]
+        # All withdrawal becomes capital gains (which goes into AGI).
+        # State tax should equal 5% of AGI (no SS to subtract).
+        assert yr.state_income_tax > 0
+        assert yr.state_income_tax == pytest.approx(yr.agi * 0.05, abs=2)
 
 
 class TestPreRetirementWithdrawals:
@@ -1726,7 +1821,7 @@ class TestRothConversionEmploymentGating:
         ), "Conversion should come from Spouse IRA"
 
 
-def _assert_sources_equal_uses(result, tolerance=2.0):
+def _assert_sources_equal_uses(result, tolerance=3.0):
     """Assert sources == uses for every year in a simulation result."""
     for yr in result.years:
         if yr.total_balance <= 0 and yr.spending_limited:

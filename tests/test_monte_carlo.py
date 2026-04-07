@@ -5,7 +5,6 @@ import pytest
 from retirement_model.historical_returns import (
     get_historical_inflation,
     get_historical_returns,
-    get_return_statistics,
 )
 from retirement_model.models import (
     Account,
@@ -37,13 +36,6 @@ class TestHistoricalReturns:
         inflation = get_historical_inflation()
         assert len(inflation) > 90
         assert all(isinstance(i, float) for i in inflation)
-
-    def test_return_statistics(self):
-        stats = get_return_statistics()
-        assert "mean" in stats
-        assert "std_dev" in stats
-        assert 0.05 < stats["mean"] < 0.15
-        assert 0.10 < stats["std_dev"] < 0.25
 
 
 class TestSampleHistoricalSequence:
@@ -301,11 +293,12 @@ class TestFullMonteCarlo:
         assert result.median_simulation is not None
 
     def test_vary_tax_regimes_produces_variation(self, simple_portfolio: Portfolio):
-        """With regime variation, different seeds should produce more variation."""
+        """With regime variation, different seeds should produce different MC outcomes."""
         simple_portfolio.config.vary_tax_regimes = True
-        result = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
-        # Valid results with a numeric success rate
-        assert isinstance(result.success_rate, float)
-        # Final balances should show variation
-        balances = [r.total_balance for r in [result.median_simulation.years[-1]]]
-        assert len(result.yearly_percentiles) > 0
+        # Same seed is reproducible
+        result1 = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
+        result2 = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=42)
+        result3 = run_full_monte_carlo(simple_portfolio, num_simulations=20, seed=2727)
+        assert result1.success_rate == result2.success_rate
+        # Different seed → different success rate (proves regime variation took effect)
+        assert result1.success_rate != result3.success_rate

@@ -1,5 +1,6 @@
 interface TaxRateInput {
    income_tax: number;
+   state_income_tax: number;
    brokerage_gains_tax: number;
    conversion_tax: number;
    total_income: number;
@@ -10,7 +11,11 @@ interface TaxRateInput {
 }
 
 export function effectiveTaxRate(yr: TaxRateInput): number {
-   const totalTax = yr.income_tax + yr.brokerage_gains_tax + yr.conversion_tax;
+   const totalTax =
+      yr.income_tax +
+      yr.state_income_tax +
+      yr.brokerage_gains_tax +
+      yr.conversion_tax;
    const totalGross =
       yr.total_income +
       yr.rmd +

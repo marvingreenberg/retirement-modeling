@@ -190,11 +190,12 @@ def apply_growth(
                         spct = ACCOUNT_TYPE_DEFAULTS[acc.type]["default_stock_pct"]
                     drag = calculate_tax_drag(float(spct))
                 acc.balance *= 1 + acc_rate - drag
+                if acc.balance > 0:
+                    acc.cost_basis_ratio = old_basis / acc.balance
             else:
                 acc.balance *= 1 + acc_rate
             acc.balance = round(acc.balance, 2)
-            if is_brokerage and acc.balance > 0:
-                acc.cost_basis_ratio = old_basis / acc.balance
+
         total += acc.balance
     return total
 

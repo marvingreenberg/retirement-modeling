@@ -308,6 +308,7 @@ export interface YearResult {
    planned_expense: number;
    total_income: number;
    income_tax: number;
+   state_income_tax: number;
    pretax_401k_deposit: number;
    roth_401k_deposit: number;
    brokerage_gains_tax: number;

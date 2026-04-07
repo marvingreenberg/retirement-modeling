@@ -540,7 +540,10 @@ class TestWithdrawalDetailsSumBalance:
     def test_tax_purpose_withdrawals_exist_when_taxes_positive(self, client, base_portfolio):
         """Years with positive taxes should have 'tax' purpose withdrawal entries."""
         result = _simulate(client, base_portfolio)
-        total_tax_amount = lambda yr: yr["total_tax"] + yr.get("conversion_tax", 0)
+
+        def total_tax_amount(yr) -> float:
+            return yr["total_tax"] + yr.get("conversion_tax", 0)
+
         years_with_tax = [yr for yr in result["result"]["years"] if total_tax_amount(yr) > 1000]
         assert len(years_with_tax) > 0, "Expected some years with significant taxes"
         years_with_tax_details = [
