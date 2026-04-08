@@ -24,6 +24,39 @@ class WithdrawalResult:
     per_account: dict[str, float] | None = None
 
 
+def _owner_age_for_sort(acc: Account, owner_age_map: dict[str, int]) -> int:
+    """Effective age for the pretax withdrawal sort key.
+
+    Joint pretax accounts (rare; the editor disallows them via
+    INDIVIDUAL_ONLY_TYPES, but the model technically allows the type) sort
+    with the older spouse, consistent with how the per-spouse balance
+    helper attributes joint pretax balances.
+    """
+    if acc.owner == Owner.JOINT:
+        return max(
+            owner_age_map.get(Owner.PRIMARY.value, 0),
+            owner_age_map.get(Owner.SPOUSE.value, 0),
+        )
+    return owner_age_map.get(acc.owner.value, 0)
+
+
+def _sorted_pretax_for_withdrawal(
+    accounts: list[Account], owner_age_map: dict[str, int]
+) -> list[Account]:
+    """Return accounts ordered for pretax withdrawal: older owner first,
+    then smaller balance first within the same owner.
+
+    Drains the older spouse's pretax first (reduces future forced RMDs)
+    and clears small "dust" accounts within an owner before larger ones.
+    Non-pretax accounts are filtered out — callers still re-check the
+    category in their loop, so it's safe.
+    """
+    return sorted(
+        accounts,
+        key=lambda a: (-_owner_age_for_sort(a, owner_age_map), a.balance),
+    )
+
+
 def withdraw_from_accounts(
     amount_needed: float,
     accounts: list[Account],
@@ -36,6 +69,10 @@ def withdraw_from_accounts(
     Returns the amount actually withdrawn and the weighted average cost basis ratio.
     Modifies account balances in place.
     When owner_filter is set, only withdraws from accounts owned by that owner.
+
+    For PRETAX withdrawals, accounts are iterated in
+    (owner age desc, balance asc) order. All other categories use the
+    incoming list order.
     """
     if amount_needed <= 0:
         return WithdrawalResult(0.0, 0.0, {})
@@ -45,7 +82,13 @@ def withdraw_from_accounts(
     weighted_basis_accum = 0.0
     per_account: dict[str, float] = {}
 
-    for acc in accounts:
+    iter_accounts = (
+        _sorted_pretax_for_withdrawal(accounts, owner_age_map)
+        if category == TaxCategory.PRETAX
+        else accounts
+    )
+
+    for acc in iter_accounts:
         if remaining_need <= 1.0:
             break
         if tax_category(acc.type) != category:
@@ -75,7 +118,11 @@ def withdraw_from_eligible_pretax(
     owner_age_map: dict[str, int],
     eligible_only: bool = False,
 ) -> WithdrawalResult:
-    """Withdraw from pre-tax accounts. When eligible_only=True, only IRA-category accounts."""
+    """Withdraw from pre-tax accounts. When eligible_only=True, only IRA-category accounts.
+
+    Iterates accounts in (owner age desc, balance asc) order — same rule as
+    withdraw_from_accounts for the PRETAX category.
+    """
     from retirement_model.models import is_conversion_eligible
 
     if amount_needed <= 0:
@@ -86,7 +133,7 @@ def withdraw_from_eligible_pretax(
     weighted_basis_accum = 0.0
     per_account: dict[str, float] = {}
 
-    for acc in accounts:
+    for acc in _sorted_pretax_for_withdrawal(accounts, owner_age_map):
         if remaining_need <= 1.0:
             break
         if tax_category(acc.type) != TaxCategory.PRETAX:
@@ -240,3 +287,53 @@ def get_eligible_pretax_balance(accounts: list[Account]) -> float:
     from retirement_model.models import is_conversion_eligible
 
     return sum(acc.balance for acc in accounts if is_conversion_eligible(acc.type))
+
+
+def get_pretax_balance_per_spouse(
+    accounts: list[Account], owner_age_map: dict[str, int]
+) -> tuple[float, float]:
+    """Return (primary_pretax_total, spouse_pretax_total).
+
+    Joint pretax accounts (defensive — never created via the editor)
+    are attributed to the older spouse, matching the withdrawal-ordering
+    rule that drains the older spouse's pretax first.
+    """
+    primary_age = owner_age_map.get(Owner.PRIMARY.value, 0)
+    spouse_age = owner_age_map.get(Owner.SPOUSE.value, 0)
+    primary_total = 0.0
+    spouse_total = 0.0
+    for acc in accounts:
+        if tax_category(acc.type) != TaxCategory.PRETAX:
+            continue
+        if acc.owner == Owner.PRIMARY:
+            primary_total += acc.balance
+        elif acc.owner == Owner.SPOUSE:
+            spouse_total += acc.balance
+        elif acc.owner == Owner.JOINT:
+            if primary_age >= spouse_age:
+                primary_total += acc.balance
+            else:
+                spouse_total += acc.balance
+    return primary_total, spouse_total
+
+
+def compute_brokerage_after_tax(accounts: list[Account], cap_gains_rate: float) -> float:
+    """Return the after-liquidation value of brokerage and cash holdings.
+
+    Brokerage accounts: face value minus cap-gains tax on the gain
+    portion (1 - cost_basis_ratio). Cash accounts: face value (no gain).
+
+    Used to compute YearResult.after_tax_value, which models a full
+    liquidation rather than the step-up-at-death scenario captured by
+    YearResult.tax_adjusted_balance.
+    """
+    total = 0.0
+    for acc in accounts:
+        cat = tax_category(acc.type)
+        if cat == TaxCategory.BROKERAGE:
+            gain_fraction = max(0.0, 1.0 - acc.cost_basis_ratio)
+            discount = acc.balance * gain_fraction * cap_gains_rate
+            total += acc.balance - discount
+        elif cat == TaxCategory.CASH:
+            total += acc.balance
+    return total

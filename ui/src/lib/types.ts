@@ -314,10 +314,17 @@ export interface YearResult {
    brokerage_gains_tax: number;
    spending_limited: boolean;
    pretax_balance: number;
+   pretax_balance_primary: number;
+   pretax_balance_spouse: number;
    roth_balance: number;
    roth_conversion_balance: number;
    brokerage_balance: number;
+   // "Estate value" — discounts pre-tax by ordinary effective rate, treats
+   // brokerage at face value (assumes step-up at death).
    tax_adjusted_balance: number;
+   // "After-tax value" — additionally discounts brokerage by
+   // (1 - cost_basis_ratio) × cap_gains_rate (15% federal).
+   after_tax_value: number;
    withdrawal_details: AccountWithdrawal[];
    income_details: IncomeDetail[];
 }

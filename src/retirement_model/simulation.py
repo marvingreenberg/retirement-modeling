@@ -52,9 +52,11 @@ from retirement_model.taxes import (
 from retirement_model.withdrawals import (
     WithdrawalResult,
     apply_growth,
+    compute_brokerage_after_tax,
     deposit_to_account,
     get_available_balance,
     get_eligible_pretax_balance,
+    get_pretax_balance_per_spouse,
     get_total_balance_by_category,
     get_total_balance_by_owner,
     get_total_balance_by_type,
@@ -63,6 +65,13 @@ from retirement_model.withdrawals import (
 )
 
 EXCESS_INCOME_ACCOUNT_ID = "excess_income"
+
+# Federal long-term capital gains rate used for the after_tax_value
+# discount on brokerage holdings. 15% covers most retirees in the
+# 22-35% federal bracket. State cap gains (Virginia: ordinary-income
+# rate) and the 0/15/20% federal tier structure are intentional
+# simplifications — promote to a config field if it ever needs tuning.
+AFTER_TAX_CAP_GAINS_RATE = 0.15
 
 
 def _collect_details(
@@ -779,17 +788,27 @@ def run_simulation(
 
         # Compute per-type balances for output
         pretax_bal = get_total_balance_by_category(accounts, TaxCategory.PRETAX)
+        pretax_bal_p, pretax_bal_s = get_pretax_balance_per_spouse(accounts, age_map)
         roth_conv_bal = get_total_balance_by_type(accounts, AccountType.ROTH_CONVERSION)
         roth_bal = get_total_balance_by_category(accounts, TaxCategory.ROTH) - roth_conv_bal
         brokerage_bal = get_total_balance_by_category(
             accounts, TaxCategory.BROKERAGE
         ) + get_total_balance_by_category(accounts, TaxCategory.CASH)
 
-        # Tax-adjusted balance: discount pre-tax dollars by effective tax rate
+        # Estate value (tax_adjusted_balance): discounts pre-tax by the
+        # effective ordinary rate, leaves brokerage at face value (assumes
+        # step-up at death). The frontend label and tooltip both use this.
         eff_rate = get_effective_tax_rate(
             current_agi, adj_fed_brackets, cfg.tax_rate_state, adj_deduction
         )
         tax_adjusted_bal = brokerage_bal + roth_bal + roth_conv_bal + pretax_bal * (1 - eff_rate)
+
+        # After-tax value: same as tax_adjusted_bal but additionally
+        # discounts brokerage by (1 - cost_basis_ratio) * cap_gains_rate.
+        # Models a liquidation rather than an inheritance — always less
+        # than or equal to tax_adjusted_bal.
+        brokerage_after_tax = compute_brokerage_after_tax(accounts, AFTER_TAX_CAP_GAINS_RATE)
+        after_tax_val = brokerage_after_tax + roth_bal + roth_conv_bal + pretax_bal * (1 - eff_rate)
 
         results.append(
             YearResult(
@@ -819,10 +838,13 @@ def run_simulation(
                 pretax_401k_deposit=round(total_pretax_401k),
                 roth_401k_deposit=round(total_roth_401k),
                 pretax_balance=round(pretax_bal),
+                pretax_balance_primary=round(pretax_bal_p),
+                pretax_balance_spouse=round(pretax_bal_s),
                 roth_balance=round(roth_bal),
                 roth_conversion_balance=round(roth_conv_bal),
                 brokerage_balance=round(brokerage_bal),
                 tax_adjusted_balance=round(tax_adjusted_bal),
+                after_tax_value=round(after_tax_val),
                 spending_limited=spending_limited,
                 withdrawal_details=withdrawal_details,
                 income_details=income_details,

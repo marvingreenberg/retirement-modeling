@@ -389,6 +389,7 @@
                   {entry}
                   activeTab={resultPaneTab.value}
                   config={portfolio.value.config}
+                  compact={isSideBySide}
                />
             {/each}
          </div>

@@ -13,6 +13,25 @@
       return data.some((v) => v > 0);
    }
 
+   // Build a year/ages title that shows both ages older-first when there's
+   // a spouse. Mirrors the BalanceChart helper.
+   //
+   // Spouse detection uses years[0].age_spouse rather than yr.age_spouse:
+   // the simulator increments age_spouse year-by-year from
+   // current_age_spouse, so for a single-person portfolio (where
+   // current_age_spouse = 0) the value drifts up to whatever the
+   // simulation length is — making per-year checks falsely positive.
+   // years[0].age_spouse is 0 IFF the portfolio has no spouse.
+   function yearAgesTitle(yr: YearResult): string {
+      const hasSpouse = (years[0]?.age_spouse ?? 0) > 0;
+      if (hasSpouse) {
+         const older = Math.max(yr.age_primary, yr.age_spouse);
+         const younger = Math.min(yr.age_primary, yr.age_spouse);
+         return `${yr.year} (Ages ${older}, ${younger})`;
+      }
+      return `${yr.year} (Age ${yr.age_primary})`;
+   }
+
    let {
       years,
       retirementAge = null,
@@ -140,8 +159,7 @@
                      title: (items) => {
                         const idx = items[0]?.dataIndex;
                         if (idx == null || !years[idx]) return '';
-                        const yr = years[idx];
-                        return `${yr.year} (Age ${yr.age_primary})`;
+                        return yearAgesTitle(years[idx]);
                      },
                      label: (ctx) => {
                         let lbl = ctx.dataset.label ?? '';
@@ -149,7 +167,7 @@
                         if (lbl === 'IRMAA' && years[idx]?.irmaa_estimated) {
                            lbl = 'IRMAA (Est.)';
                         }
-                        return `${lbl}: $${Math.round(ctx.parsed.y ?? 0).toLocaleString()}`;
+                        return `${lbl}: ${formatTick(ctx.parsed.y ?? 0)}`;
                      },
                   },
                },

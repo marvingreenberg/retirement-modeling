@@ -15,10 +15,12 @@
       entry,
       activeTab,
       config = null,
+      compact = false,
    }: {
       entry: ComparisonEntry;
       activeTab: ResultPaneTab;
       config?: SimulationConfig | null;
+      compact?: boolean;
    } = $props();
 
    let years = $derived(entry.singleResult?.result.years ?? []);
@@ -71,6 +73,7 @@
          startAge={config?.current_age_primary ?? 0}
          startYear={config?.start_year ?? 0}
          events={chartEvents}
+         {compact}
       />
    {:else if activeTab === 'spending'}
       <SpendingChart

@@ -1,6 +1,7 @@
 <script lang="ts">
    import {
       portfolio,
+      profile,
       validationErrors,
       formTouched,
       markFormTouched,
@@ -16,6 +17,7 @@
    import ImportPortfolio from './ImportPortfolio.svelte';
    import IncomeEditor from './IncomeEditor.svelte';
    import SpendingEditor from './SpendingEditor.svelte';
+   import { SALARY_PRIMARY, SALARY_SPOUSE } from './incomeUtils';
    import { currency, compactCurrency } from '$lib/format';
    import { Landmark, Briefcase, Wallet, AlertTriangle } from 'lucide-svelte';
 
@@ -40,6 +42,19 @@
       portfolio.value.accounts.reduce((sum, a) => sum + a.balance, 0),
    );
 
+   // Map salary-auto sentinel names (e.g. "__salary_primary") to friendly
+   // labels for display in the income summary. Other streams use their
+   // user-supplied name as-is.
+   function streamDisplayName(name: string): string {
+      if (name === SALARY_PRIMARY) {
+         return `${profile.value.primaryName || 'Primary'} salary`;
+      }
+      if (name === SALARY_SPOUSE) {
+         return `${profile.value.spouseName || 'Spouse'} salary`;
+      }
+      return name;
+   }
+
    let incomeSummary = $derived.by(() => {
       const parts: string[] = [];
       const ss = portfolio.value.config.social_security;
@@ -55,7 +70,7 @@
             s.amount >= 1000
                ? `$${Math.round(s.amount / 1000)}K`
                : `$${s.amount}`;
-         parts.push(`${s.name} ${amt}/yr`);
+         parts.push(`${streamDisplayName(s.name)} ${amt}/yr`);
       }
       return parts.length > 0 ? parts.join(', ') : 'None configured';
    });

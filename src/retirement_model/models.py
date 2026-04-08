@@ -462,7 +462,20 @@ class YearResult(BaseModel):
     roth_balance: float = 0.0
     roth_conversion_balance: float = 0.0
     brokerage_balance: float = 0.0
+    # Per-spouse pretax balance breakdown. Joint pretax accounts (rare; the
+    # editor disallows them via INDIVIDUAL_ONLY_TYPES) are attributed to the
+    # older spouse, so the strict RMD-line check downstream stays consistent
+    # with the withdrawal-ordering rule that drains the older spouse first.
+    pretax_balance_primary: float = 0.0
+    pretax_balance_spouse: float = 0.0
+    # "Estate value" — discounts pre-tax by ordinary effective rate, treats
+    # brokerage at face value (assumes step-up at death). Same definition as
+    # the existing tax_adjusted_balance field.
     tax_adjusted_balance: float = 0.0
+    # "After-tax value" — additionally discounts brokerage by
+    # (1 - cost_basis_ratio) × cap_gains_rate, modeling a liquidation rather
+    # than an inheritance. Always ≤ tax_adjusted_balance.
+    after_tax_value: float = 0.0
 
     # Per-account withdrawal details
     withdrawal_details: list[AccountWithdrawal] = []

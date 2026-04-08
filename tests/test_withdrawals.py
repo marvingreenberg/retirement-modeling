@@ -193,7 +193,11 @@ class TestWithdrawFromEligiblePretaxPerAccount:
         age_map = {"primary": 65}
         result = withdraw_from_eligible_pretax(60000, accounts, age_map, eligible_only=True)
 
-        assert result.per_account == {"ira1": 50000, "sep_ira": 10000}
+        # Pretax withdrawals iterate accounts in (owner-age desc, balance
+        # asc) order. Both accounts share an owner, so the smaller SEP IRA
+        # ($30k) drains in full first, then the IRA covers the remaining
+        # $30k.
+        assert result.per_account == {"sep_ira": 30000, "ira1": 30000}
 
     def test_skips_non_eligible(self):
         accounts = [
