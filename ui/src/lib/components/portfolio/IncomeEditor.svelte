@@ -256,42 +256,45 @@
             {#if warning}
                <span class="text-xs text-warning-500 w-full">{warning}</span>
             {/if}
-         </div>
 
-         <!-- 401k contribution fields for employment income -->
-         {#if stream.kind === 'employment'}
-            <div
-               class="flex gap-3 items-center px-3 pb-3 ml-6 text-sm flex-wrap"
-            >
-               <label class="flex items-center gap-1">
-                  <span class="text-xs text-surface-500">Pre-tax 401k</span>
-                  <input
-                     type="number"
-                     class="input w-28 text-sm"
-                     bind:value={incomeStreams[idx].pretax_401k}
-                     onfocus={(e) => e.currentTarget.select()}
-                     min="0"
-                     step="500"
-                     aria-label="Pre-tax 401k"
-                  />
-               </label>
-               <label class="flex items-center gap-1">
-                  <span class="text-xs text-surface-500">Roth 401k</span>
-                  <input
-                     type="number"
-                     class="input w-28 text-sm"
-                     bind:value={incomeStreams[idx].roth_401k}
-                     onfocus={(e) => e.currentTarget.select()}
-                     min="0"
-                     step="500"
-                     aria-label="Roth 401k"
-                  />
-               </label>
-               <span class="text-xs text-surface-400"
-                  >2025 limit: $23,500 (under 50) / $31,000 (50+)</span
+            <!-- 401k contribution fields for employment income.
+                 w-full forces this row to wrap onto a new line within the
+                 parent flex-wrap container, keeping it inside the shaded
+                 income-stream card instead of escaping below it. -->
+            {#if stream.kind === 'employment'}
+               <div
+                  class="flex gap-3 items-center pl-6 text-sm flex-wrap w-full"
                >
-            </div>
-         {/if}
+                  <label class="flex items-center gap-1">
+                     <span class="text-xs text-surface-500">Pre-tax 401k</span>
+                     <input
+                        type="number"
+                        class="input w-28 text-sm"
+                        bind:value={incomeStreams[idx].pretax_401k}
+                        onfocus={(e) => e.currentTarget.select()}
+                        min="0"
+                        step="500"
+                        aria-label="Pre-tax 401k"
+                     />
+                  </label>
+                  <label class="flex items-center gap-1">
+                     <span class="text-xs text-surface-500">Roth 401k</span>
+                     <input
+                        type="number"
+                        class="input w-28 text-sm"
+                        bind:value={incomeStreams[idx].roth_401k}
+                        onfocus={(e) => e.currentTarget.select()}
+                        min="0"
+                        step="500"
+                        aria-label="Roth 401k"
+                     />
+                  </label>
+                  <span class="text-xs text-surface-400"
+                     >2025 limit: $23,500 (under 50) / $31,000 (50+)</span
+                  >
+               </div>
+            {/if}
+         </div>
       {/each}
       <button class="btn btn-sm preset-tonal mt-1" onclick={addStream}
          >Add Income</button
