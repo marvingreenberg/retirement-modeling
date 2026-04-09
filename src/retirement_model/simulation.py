@@ -42,12 +42,12 @@ from retirement_model.taxes import (
     calculate_rmd_amount,
     calculate_ss_taxable_portion,
     calculate_state_income_tax,
+    compute_conversion_plan,
     get_bracket_label,
     get_effective_tax_rate,
     inflate_brackets,
     inflate_irmaa_tiers,
     rmd_start_age_for_birth_year,
-    solve_max_conversion,
 )
 from retirement_model.withdrawals import (
     WithdrawalResult,
@@ -72,6 +72,16 @@ EXCESS_INCOME_ACCOUNT_ID = "excess_income"
 # rate) and the 0/15/20% federal tier structure are intentional
 # simplifications — promote to a config field if it ever needs tuning.
 AFTER_TAX_CAP_GAINS_RATE = 0.15
+
+# Map category-name strings (as used by ConversionPlan.tax_payments and
+# WithdrawalCategory enum values) to TaxCategory enum values for the
+# withdraw_from_accounts API.
+_CATEGORY_BY_NAME: dict[str, TaxCategory] = {
+    WithdrawalCategory.CASH.value: TaxCategory.CASH,
+    WithdrawalCategory.PRETAX.value: TaxCategory.PRETAX,
+    WithdrawalCategory.BROKERAGE.value: TaxCategory.BROKERAGE,
+    WithdrawalCategory.ROTH.value: TaxCategory.ROTH,
+}
 
 
 def _collect_details(
@@ -257,6 +267,7 @@ def run_simulation(
     returns_sequence: list[float] | None = None,
     inflation_sequence: list[float] | None = None,
     tax_regime_sequence: list[dict[str, object]] | None = None,
+    bond_returns_sequence: list[float] | None = None,
 ) -> SimulationResult:
     """Run the retirement simulation and return year-by-year results."""
     cfg = portfolio.config
@@ -336,10 +347,25 @@ def run_simulation(
             if inflation_sequence and year_idx < len(inflation_sequence)
             else cfg.inflation_rate
         )
-        year_return = (
+        # Two distinct sources of "this year's return":
+        # - MC: returns_sequence is provided -> sampled equity rate this
+        #   year, blended per-account in apply_growth via equity_rate.
+        # - Deterministic with override: cfg.growth_rate_override is set
+        #   -> a flat rate every account uses, via flat_rate.
+        # - Deterministic default: neither set -> per-account blend from
+        #   account_growth_rate(stock_pct, type).
+        year_equity_rate: float | None = (
             returns_sequence[year_idx]
             if returns_sequence and year_idx < len(returns_sequence)
-            else cfg.growth_rate_override
+            else None
+        )
+        year_bond_return: float | None = (
+            bond_returns_sequence[year_idx]
+            if bond_returns_sequence and year_idx < len(bond_returns_sequence)
+            else None
+        )
+        year_flat_rate: float | None = (
+            cfg.growth_rate_override if year_equity_rate is None else None
         )
 
         # Calculate current total balance for spending strategies that need it
@@ -592,8 +618,12 @@ def run_simulation(
         if conversion_ceiling > 0 and not has_employment_income:
             available_ira = get_eligible_pretax_balance(accounts)
 
-            # Snapshot brokerage accounts for the solver (read-only)
+            # Snapshot brokerage accounts for the planner (read-only). The
+            # snapshot order matches the order withdraw_from_accounts will
+            # actually drain them, so per-account basis ratios are honored.
             cash_avail = get_available_balance(accounts, TaxCategory.CASH, age_map)
+            pretax_avail = get_available_balance(accounts, TaxCategory.PRETAX, age_map)
+            roth_avail = get_available_balance(accounts, TaxCategory.ROTH, age_map)
             brokerage_snapshot = [
                 (acc.balance, acc.cost_basis_ratio)
                 for acc in accounts
@@ -602,71 +632,81 @@ def run_simulation(
                 and age_map.get(acc.owner.value, 0) >= acc.available_at_age
             ]
 
-            conversion_target = solve_max_conversion(
+            # Closed-form conversion planner. Returns the conversion amount
+            # plus a per-category tax-funding plan that walks the configured
+            # withdrawal_order. See taxes.compute_conversion_plan for the
+            # math.
+            plan = compute_conversion_plan(
                 base_agi=current_agi,
                 ceiling=conversion_ceiling,
                 deduction=adj_deduction,
                 fed_brackets=adj_fed_brackets,
                 state_rate=cfg.tax_rate_state,
-                cash_available=cash_avail,
-                brokerage_snapshot=brokerage_snapshot,
+                ss_taxable=ss_taxable,
                 available_ira=available_ira,
+                withdrawal_order=[c.value for c in cfg.withdrawal_order],
+                cash_available=cash_avail,
+                pretax_available=pretax_avail,
+                roth_available=roth_avail,
+                brokerage_snapshot=brokerage_snapshot,
             )
 
-            if conversion_target > 0:
-                # Marginal tax bill on the conversion amount: federal + state.
-                # Federal uses the standard deduction; state uses no deduction
-                # in this simplified model (see calculate_state_income_tax).
-                fed_before = calculate_federal_income_tax(
-                    max(0, current_agi - adj_deduction), adj_fed_brackets
-                )
-                state_before = calculate_state_income_tax(
-                    max(0, current_agi - ss_taxable), cfg.tax_rate_state
-                )
-                fed_after = calculate_federal_income_tax(
-                    max(0, current_agi + conversion_target - adj_deduction),
-                    adj_fed_brackets,
-                )
-                state_after = calculate_state_income_tax(
-                    max(0, current_agi + conversion_target - ss_taxable),
-                    cfg.tax_rate_state,
-                )
-                tax_bill = (fed_after + state_after) - (fed_before + state_before)
+            if plan.conversion > 0:
+                # Walk the planner's tax_payments and execute each one.
+                # The planner already verified availability and chose
+                # categories per the withdrawal_order, so each call below
+                # just realizes the plan.
+                total_tax_withdrawn = 0.0
+                for cat_str, amount in plan.tax_payments:
+                    category = _CATEGORY_BY_NAME[cat_str]
+                    result = withdraw_from_accounts(amount, accounts, category, age_map)
+                    total_tax_withdrawn += result.amount_withdrawn
+                    withdrawal_details.extend(_collect_details(result, "tax", account_names))
 
-                # Pay tax from cash/brokerage
-                tax_from_cash = withdraw_from_accounts(
-                    tax_bill, accounts, TaxCategory.CASH, age_map
-                )
-                remaining_tax = tax_bill - tax_from_cash.amount_withdrawn
-                tax_result = withdraw_from_accounts(
-                    remaining_tax, accounts, TaxCategory.BROKERAGE, age_map
-                )
-                total_tax_withdrawn = tax_from_cash.amount_withdrawn + tax_result.amount_withdrawn
+                    if category == TaxCategory.BROKERAGE:
+                        # Cap gains realized on this brokerage tap. These add
+                        # to AGI and incur cap-gains tax (taxed separately
+                        # from ordinary income).
+                        gains = result.amount_withdrawn * (1 - result.average_basis_ratio)
+                        brokerage_gains_total += gains
+                        brokerage_gains_tax += calculate_capital_gains_tax(
+                            gains, current_agi, adj_capgains_brackets
+                        )
+                        current_agi += gains
+                        brokerage_withdrawn += result.amount_withdrawn
+                        conversion_tax_from_brokerage += result.amount_withdrawn
+                    elif category == TaxCategory.PRETAX:
+                        # Pretax tax-funding withdrawal: full amount is
+                        # ordinary income, so it lands in current_agi
+                        # directly. The income tax on it will be picked up
+                        # at year-end (it's part of the marginal tax that
+                        # the planner already accounted for).
+                        voluntary_pretax += result.amount_withdrawn
+                        current_agi += result.amount_withdrawn
+                    elif category == TaxCategory.ROTH:
+                        # Roth distributions are tax-free; no AGI impact.
+                        roth_withdrawn += result.amount_withdrawn
+                    elif category == TaxCategory.CASH:
+                        # Cash spending — also no AGI impact.
+                        brokerage_withdrawn += result.amount_withdrawn
+
                 conversion_tax_paid = total_tax_withdrawn
-                brokerage_withdrawn += total_tax_withdrawn
-                conversion_tax_from_brokerage += total_tax_withdrawn
-                withdrawal_details.extend(_collect_details(tax_from_cash, "tax", account_names))
-                withdrawal_details.extend(_collect_details(tax_result, "tax", account_names))
 
-                # AGI impact from brokerage gains (cash has no gains)
-                tax_gains = tax_result.amount_withdrawn * (1 - tax_result.average_basis_ratio)
-                brokerage_gains_total += tax_gains
-                brokerage_gains_tax += calculate_capital_gains_tax(
-                    tax_gains, current_agi, adj_capgains_brackets
-                )
-                current_agi += tax_gains
-
-                # Execute conversion from IRA-eligible accounts only
+                # Execute conversion from IRA-eligible accounts only.
                 conv_result = withdraw_from_eligible_pretax(
-                    conversion_target, accounts, age_map, eligible_only=True
+                    plan.conversion, accounts, age_map, eligible_only=True
                 )
                 withdrawal_details.extend(
                     _collect_details(conv_result, "conversion", account_names)
                 )
 
-                # If brokerage/cash ran out, net the unpaid tax from deposit
-                if total_tax_withdrawn < tax_bill:
-                    net_deposit = conv_result.amount_withdrawn - (tax_bill - total_tax_withdrawn)
+                # Under-funded tax case: if some categories ran short and
+                # the plan couldn't cover the full marginal tax bill, net
+                # the unpaid portion from the conversion deposit (the
+                # "withhold from conversion" model — IRS does allow this).
+                unfunded_tax = plan.marginal_tax - total_tax_withdrawn
+                if unfunded_tax > 1.0:
+                    net_deposit = conv_result.amount_withdrawn - unfunded_tax
                 else:
                     net_deposit = conv_result.amount_withdrawn
 
@@ -783,7 +823,11 @@ def run_simulation(
 
         # Apply growth and get balances
         total_balance = apply_growth(
-            accounts, rate=year_return, conservative=cfg.conservative_growth
+            accounts,
+            flat_rate=year_flat_rate,
+            equity_rate=year_equity_rate,
+            bond_rate=year_bond_return,
+            conservative=cfg.conservative_growth,
         )
 
         # Compute per-type balances for output
@@ -795,18 +839,20 @@ def run_simulation(
             accounts, TaxCategory.BROKERAGE
         ) + get_total_balance_by_category(accounts, TaxCategory.CASH)
 
-        # Estate value (tax_adjusted_balance): discounts pre-tax by the
-        # effective ordinary rate, leaves brokerage at face value (assumes
-        # step-up at death). The frontend label and tooltip both use this.
+        # Inherited value: what an heir receives. Discounts pre-tax by the
+        # owner's effective ordinary rate (heir owes income tax on
+        # traditional IRA / 401k withdrawals) but leaves brokerage at face
+        # value -- the step-up in cost basis at death wipes out the
+        # embedded capital gain.
         eff_rate = get_effective_tax_rate(
             current_agi, adj_fed_brackets, cfg.tax_rate_state, adj_deduction
         )
-        tax_adjusted_bal = brokerage_bal + roth_bal + roth_conv_bal + pretax_bal * (1 - eff_rate)
+        inherited_val = brokerage_bal + roth_bal + roth_conv_bal + pretax_bal * (1 - eff_rate)
 
-        # After-tax value: same as tax_adjusted_bal but additionally
-        # discounts brokerage by (1 - cost_basis_ratio) * cap_gains_rate.
-        # Models a liquidation rather than an inheritance — always less
-        # than or equal to tax_adjusted_bal.
+        # After-tax value: what the owner nets by liquidating today.
+        # Same as inherited_val but additionally discounts brokerage by
+        # (1 - cost_basis_ratio) * cap_gains_rate. Models a sale rather
+        # than an inheritance -- always less than or equal to inherited_val.
         brokerage_after_tax = compute_brokerage_after_tax(accounts, AFTER_TAX_CAP_GAINS_RATE)
         after_tax_val = brokerage_after_tax + roth_bal + roth_conv_bal + pretax_bal * (1 - eff_rate)
 
@@ -843,7 +889,7 @@ def run_simulation(
                 roth_balance=round(roth_bal),
                 roth_conversion_balance=round(roth_conv_bal),
                 brokerage_balance=round(brokerage_bal),
-                tax_adjusted_balance=round(tax_adjusted_bal),
+                inherited_value=round(inherited_val),
                 after_tax_value=round(after_tax_val),
                 spending_limited=spending_limited,
                 withdrawal_details=withdrawal_details,

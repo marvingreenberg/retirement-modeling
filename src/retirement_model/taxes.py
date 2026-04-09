@@ -1,6 +1,7 @@
 """Tax calculation functions for retirement simulation."""
 
 import math
+from dataclasses import dataclass, field
 
 from retirement_model.constants import (
     BRACKET_LABELS,
@@ -248,15 +249,12 @@ def estimate_effective_tax_rate(
 
 
 # ---------------------------------------------------------------------------
-# Conversion solver — accounts for the tax-withdrawal feedback loop
+# Conversion planner — closed-form, withdrawal-order aware
 # ---------------------------------------------------------------------------
 
-# Minimum AGI headroom before attempting a Roth conversion
+# Minimum AGI headroom before attempting a Roth conversion. Below this the
+# resulting conversion would be rounding noise.
 MIN_CONVERSION_HEADROOM = 5000
-# Binary search convergence threshold (dollars)
-CONVERSION_SOLVER_TOLERANCE = 1.0
-# Maximum binary search iterations (2^50 precision — far more than needed)
-CONVERSION_SOLVER_MAX_ITER = 50
 
 
 def estimate_withdrawal_gains(
@@ -294,79 +292,163 @@ def estimate_withdrawal_gains(
     return gains
 
 
-def solve_max_conversion(
+@dataclass
+class ConversionPlan:
+    """Result of computing a year's Roth conversion + tax-funding plan.
+
+    `conversion` is the amount to move from IRA-eligible pretax to Roth.
+    `tax_payments` is the per-category breakdown of where to draw the
+    marginal tax bill from, in walked order. Each entry is a (category, amount)
+    tuple where category is one of 'cash', 'brokerage', 'pretax', 'roth'.
+    `agi_impact` is the additional AGI created by paying the marginal tax
+    (zero for cash/roth, full amount for pretax, gain portion for brokerage).
+    `marginal_tax` is the total marginal tax bill T(ceiling) - T(base_agi).
+    """
+
+    conversion: float
+    tax_payments: list[tuple[str, float]] = field(default_factory=list)
+    agi_impact: float = 0.0
+    marginal_tax: float = 0.0
+
+
+# AGI impact factor per category for paying $1 of conversion tax. Cash and
+# Roth distributions don't create taxable income; pretax withdrawals are
+# fully taxable as ordinary income; brokerage is handled separately because
+# its impact depends on per-account basis ratios (handled inline below).
+_NON_BROKERAGE_AGI_FACTOR: dict[str, float] = {
+    "cash": 0.0,
+    "pretax": 1.0,
+    "roth": 0.0,
+}
+
+
+def compute_conversion_plan(
+    *,
     base_agi: float,
     ceiling: float,
     deduction: float,
     fed_brackets: list[TaxBracket],
     state_rate: float,
-    cash_available: float,
-    brokerage_snapshot: list[tuple[float, float]],
+    ss_taxable: float,
     available_ira: float,
-) -> float:
-    """Find the maximum Roth conversion that keeps total AGI at or below ceiling.
+    withdrawal_order: list[str],
+    cash_available: float,
+    pretax_available: float,
+    roth_available: float,
+    brokerage_snapshot: list[tuple[float, float]],
+) -> ConversionPlan:
+    """Compute a closed-form Roth conversion plan for one simulation year.
 
-    Accounts for the feedback loop: converting C creates an income tax bill,
-    paying that tax from cash/brokerage realizes capital gains, those gains
-    increase AGI, reducing conversion headroom.
+    Why this is closed form: given a base AGI and a target ceiling, the
+    marginal tax bill `T(ceiling) - T(base)` is fixed by the bracket
+    structure regardless of how the marginal income is split between the
+    conversion `C` and the tax-funding withdrawals. The "AGI impact" of
+    paying that tax depends on which account funds it (zero for cash/Roth,
+    full amount for pretax, capital-gain portion for brokerage). Once
+    you know the AGI impact, the conversion is whatever's left of the
+    headroom: `C = headroom - agi_impact`.
 
-    The solver walks the brokerage accounts in withdrawal order, respecting
-    per-account cost basis ratios and account depletion boundaries.
+    The tax-funding source follows the configured withdrawal_order — so a
+    pretax-first portfolio will fund conversion tax from pretax, a
+    brokerage-first portfolio from brokerage, etc. Falls through to the
+    next category when one depletes. This matches the user's mental model
+    that "pretax first should mean pretax everywhere" and avoids the
+    surprise of seeing a brokerage withdrawal that the user didn't expect.
 
-    Works for all conversion strategies (IRMAA, 22% bracket, 24% bracket).
+    Conservative AGI semantics: capital gains realized when paying the
+    conversion tax from brokerage are counted toward the ceiling, even
+    for ordinary-income bracket strategies (BRACKET_22, BRACKET_24).
+    Technically those gains have their own LTCG bracket structure and
+    don't push you into a higher ordinary bracket — but the user prefers
+    the conservative interpretation: the bracket limit is meant to bound
+    total tax exposure, and letting gains escape the headroom would just
+    trade one kind of tax for another.
 
     Args:
-        base_agi: AGI before any conversion (SS, pensions, RMDs, etc.).
-        ceiling: Target AGI limit (IRMAA threshold, bracket limit, etc.).
+        base_agi: AGI after forced sources + spending withdrawals already
+            booked, before any conversion or conversion-tax withdrawal.
+        ceiling: Target AGI ceiling (per the chosen ConversionStrategy).
         deduction: Inflation-adjusted standard deduction.
         fed_brackets: Inflation-adjusted federal income tax brackets.
         state_rate: State income tax rate.
-        cash_available: Cash balance for paying conversion tax (no gains).
+        ss_taxable: Taxable Social Security portion (excluded from VA state
+            tax base).
+        available_ira: Total IRA-eligible pretax balance available for
+            conversion (the source of the conversion itself).
+        withdrawal_order: Categories in priority order for funding the
+            conversion tax. Strings: 'cash', 'pretax', 'brokerage', 'roth'.
+        cash_available: Available cash account balance for tax payment.
+        pretax_available: Available pretax balance NOT counted in
+            available_ira (e.g., 401k that isn't IRA-eligible for conversion
+            but can fund the tax payment as ordinary income).
+        roth_available: Available Roth balance for tax payment.
         brokerage_snapshot: Brokerage accounts in withdrawal order as
-            (balance, cost_basis_ratio) tuples.
-        available_ira: Total pre-tax IRA balance eligible for conversion.
+            (balance, cost_basis_ratio) tuples; basis-aware gains.
 
     Returns:
-        Maximum conversion amount (floored to $0) that satisfies the
-        AGI constraint. Returns 0 if headroom < MIN_CONVERSION_HEADROOM.
+        ConversionPlan with the conversion amount, per-category tax
+        payment plan, total AGI impact of paying the tax, and the
+        marginal tax bill itself.
     """
     if ceiling <= base_agi or available_ira <= 0:
-        return 0.0
+        return ConversionPlan(conversion=0)
 
-    max_headroom = ceiling - base_agi
-    if max_headroom < MIN_CONVERSION_HEADROOM:
-        return 0.0
+    headroom = ceiling - base_agi
+    if headroom < MIN_CONVERSION_HEADROOM:
+        return ConversionPlan(conversion=0)
 
-    upper = min(max_headroom, available_ira)
-    lower = 0.0
+    # Step 1: total marginal tax bill IF we use up all the headroom.
+    # This is invariant under how the marginal income is split between
+    # the conversion and the tax-funding pulls — both add ordinary-income
+    # AGI to the same brackets, so T(base + H) is fixed.
+    fed_at_ceiling = calculate_federal_income_tax(max(0, ceiling - deduction), fed_brackets)
+    state_at_ceiling = calculate_state_income_tax(max(0, ceiling - ss_taxable), state_rate)
+    fed_at_base = calculate_federal_income_tax(max(0, base_agi - deduction), fed_brackets)
+    state_at_base = calculate_state_income_tax(max(0, base_agi - ss_taxable), state_rate)
+    marginal_tax = (fed_at_ceiling + state_at_ceiling) - (fed_at_base + state_at_base)
+    if marginal_tax <= 0:
+        return ConversionPlan(conversion=0)
 
-    # Pre-conversion combined federal+state tax (used as the baseline; the
-    # conversion adds to AGI, so the marginal tax bill is tax_after - tax_before).
-    fed_before = calculate_federal_income_tax(max(0, base_agi - deduction), fed_brackets)
-    state_before = calculate_state_income_tax(max(0, base_agi - deduction), state_rate)
-    tax_before = fed_before + state_before
+    # Step 2: walk withdrawal_order, allocating marginal_tax across categories.
+    # For brokerage, the available capacity is the snapshot total and the
+    # AGI impact is computed via estimate_withdrawal_gains so the per-account
+    # basis ratios are honored.
+    total_brokerage = sum(b for b, _ in brokerage_snapshot)
+    available_by_cat: dict[str, float] = {
+        "cash": max(0.0, cash_available),
+        "pretax": max(0.0, pretax_available),
+        "brokerage": max(0.0, total_brokerage),
+        "roth": max(0.0, roth_available),
+    }
 
-    for _ in range(CONVERSION_SOLVER_MAX_ITER):
-        mid = (lower + upper) / 2
+    remaining_tax = marginal_tax
+    tax_payments: list[tuple[str, float]] = []
+    agi_impact = 0.0
 
-        # Income tax delta from converting mid (federal + state)
-        fed_after = calculate_federal_income_tax(max(0, base_agi + mid - deduction), fed_brackets)
-        state_after = calculate_state_income_tax(max(0, base_agi + mid - deduction), state_rate)
-        tax_after = fed_after + state_after
-        tax_bill = tax_after - tax_before
-
-        # Gains from paying that tax out of cash/brokerage
-        gains = estimate_withdrawal_gains(tax_bill, cash_available, brokerage_snapshot)
-
-        # Total AGI including conversion + gains from tax payment
-        total_agi = base_agi + mid + gains
-
-        if total_agi <= ceiling:
-            lower = mid
-        else:
-            upper = mid
-
-        if upper - lower < CONVERSION_SOLVER_TOLERANCE:
+    for cat in withdrawal_order:
+        if remaining_tax <= 1.0:
             break
+        avail = available_by_cat.get(cat, 0.0)
+        if avail <= 0:
+            continue
+        take = min(avail, remaining_tax)
+        if cat == "brokerage":
+            # Cost-basis-aware gain calculation, walking the snapshot in
+            # the order the accounts will actually be drained.
+            agi_impact += estimate_withdrawal_gains(take, 0, brokerage_snapshot)
+        else:
+            agi_impact += take * _NON_BROKERAGE_AGI_FACTOR.get(cat, 0.0)
+        tax_payments.append((cat, take))
+        remaining_tax -= take
 
-    return lower
+    # Step 3: conversion is what's left of the headroom after the tax
+    # payment's AGI impact is accounted for. Capped at IRA availability.
+    conversion = max(0.0, headroom - agi_impact)
+    conversion = min(conversion, available_ira)
+
+    return ConversionPlan(
+        conversion=conversion,
+        tax_payments=tax_payments,
+        agi_impact=agi_impact,
+        marginal_tax=marginal_tax,
+    )

@@ -2373,8 +2373,8 @@ class TestTaxAdjustedBalance:
         )
         result = run_simulation(portfolio)
         for yr in result.years:
-            assert yr.tax_adjusted_balance < yr.total_balance
-            assert yr.tax_adjusted_balance > 0
+            assert yr.inherited_value < yr.total_balance
+            assert yr.inherited_value > 0
 
     def test_all_roth_no_discount(self):
         """All Roth accounts — tax-adjusted should equal total balance."""
@@ -2406,7 +2406,7 @@ class TestTaxAdjustedBalance:
         result = run_simulation(portfolio)
         for yr in result.years:
             # With no pretax, tax_adjusted ≈ total (RMDs on roth are 0)
-            assert yr.tax_adjusted_balance == pytest.approx(yr.total_balance, abs=1)
+            assert yr.inherited_value == pytest.approx(yr.total_balance, abs=1)
 
 
 class TestConversionSolverIntegration:

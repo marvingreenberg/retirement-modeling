@@ -468,13 +468,15 @@ class YearResult(BaseModel):
     # with the withdrawal-ordering rule that drains the older spouse first.
     pretax_balance_primary: float = 0.0
     pretax_balance_spouse: float = 0.0
-    # "Estate value" — discounts pre-tax by ordinary effective rate, treats
-    # brokerage at face value (assumes step-up at death). Same definition as
-    # the existing tax_adjusted_balance field.
-    tax_adjusted_balance: float = 0.0
-    # "After-tax value" — additionally discounts brokerage by
-    # (1 - cost_basis_ratio) × cap_gains_rate, modeling a liquidation rather
-    # than an inheritance. Always ≤ tax_adjusted_balance.
+    # "Inherited value" — what an heir would receive: discounts pre-tax by
+    # the ordinary effective rate (the heir owes income tax on traditional
+    # IRA / 401k withdrawals) but treats brokerage at face value (step-up
+    # in cost basis at death wipes out the embedded capital gain).
+    inherited_value: float = 0.0
+    # "After-tax value" — what the owner would net by liquidating today:
+    # additionally discounts brokerage by (1 - cost_basis_ratio) ×
+    # cap_gains_rate, modeling a sale rather than an inheritance.
+    # Always ≤ inherited_value.
     after_tax_value: float = 0.0
 
     # Per-account withdrawal details

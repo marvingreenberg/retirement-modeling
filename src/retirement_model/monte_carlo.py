@@ -6,7 +6,11 @@ from dataclasses import dataclass, field
 
 from pydantic import BaseModel
 
-from retirement_model.historical_returns import get_historical_inflation, get_historical_returns
+from retirement_model.historical_returns import (
+    get_historical_bond_returns,
+    get_historical_inflation,
+    get_historical_returns,
+)
 from retirement_model.models import Portfolio, SimulationResult, SpendingStrategy
 from retirement_model.strategies import calculate_spending_target, create_initial_state
 
@@ -97,19 +101,27 @@ class SimulationPath:
 
 
 def sample_historical_sequence(
-    num_years: int, returns: list[float], inflation: list[float], seed: int | None = None
-) -> tuple[list[float], list[float]]:
+    num_years: int,
+    returns: list[float],
+    bond_returns: list[float],
+    inflation: list[float],
+    seed: int | None = None,
+) -> tuple[list[float], list[float], list[float]]:
     """
-    Sample a sequence of returns and inflation from historical data.
+    Sample paired (equity, bond, inflation) sequences from historical data.
 
-    Uses block sampling to preserve some autocorrelation.
+    All three series are sampled at identical year indices so the
+    historical cross-correlation between stocks, bonds, and inflation
+    is preserved within each block. Uses block sampling to preserve
+    some autocorrelation.
     """
     if seed is not None:
         random.seed(seed)
 
     n_historical = len(returns)
-    sampled_returns = []
-    sampled_inflation = []
+    sampled_returns: list[float] = []
+    sampled_bond_returns: list[float] = []
+    sampled_inflation: list[float] = []
 
     block_size = min(5, num_years)
     i = 0
@@ -119,10 +131,15 @@ def sample_historical_sequence(
             if i + j >= num_years:
                 break
             sampled_returns.append(returns[start_idx + j])
+            sampled_bond_returns.append(bond_returns[start_idx + j])
             sampled_inflation.append(inflation[start_idx + j])
         i += block_size
 
-    return sampled_returns[:num_years], sampled_inflation[:num_years]
+    return (
+        sampled_returns[:num_years],
+        sampled_bond_returns[:num_years],
+        sampled_inflation[:num_years],
+    )
 
 
 def run_single_simulation(
@@ -216,6 +233,7 @@ def run_monte_carlo(
         random.seed(seed)
 
     historical_returns = get_historical_returns()
+    historical_bond_returns = get_historical_bond_returns()
     historical_inflation = get_historical_inflation()
 
     paths: list[SimulationPath] = []
@@ -227,9 +245,12 @@ def run_monte_carlo(
         sim_seed = seed + i if seed is not None else None
 
         if use_historical:
-            returns_seq, inflation_seq = sample_historical_sequence(
+            # Simplified path: bond series is sampled but ignored
+            # (run_single_simulation uses a flat growth rate by design).
+            returns_seq, _bond_seq, inflation_seq = sample_historical_sequence(
                 portfolio.config.simulation_years,
                 historical_returns,
+                historical_bond_returns,
                 historical_inflation,
                 sim_seed,
             )
@@ -380,6 +401,7 @@ def run_full_monte_carlo(
         random.seed(seed)
 
     historical_returns = get_historical_returns()
+    historical_bond_returns = get_historical_bond_returns()
     historical_inflation = get_historical_inflation()
     vary_taxes = portfolio.config.vary_tax_regimes
 
@@ -388,9 +410,10 @@ def run_full_monte_carlo(
     for i in range(num_simulations):
         sim_seed = seed + i if seed is not None else None
 
-        returns_seq, inflation_seq = sample_historical_sequence(
+        returns_seq, bond_seq, inflation_seq = sample_historical_sequence(
             portfolio.config.simulation_years,
             historical_returns,
+            historical_bond_returns,
             historical_inflation,
             sim_seed,
         )
@@ -399,7 +422,13 @@ def run_full_monte_carlo(
         if vary_taxes:
             regime_seq = sample_regime_sequence(portfolio.config.simulation_years, seed=sim_seed)
 
-        result = run_simulation(portfolio, returns_seq, inflation_seq, regime_seq)
+        result = run_simulation(
+            portfolio,
+            returns_seq,
+            inflation_seq,
+            regime_seq,
+            bond_returns_sequence=bond_seq,
+        )
         all_results.append(result)
 
     # Calculate success rate (portfolios that didn't deplete)

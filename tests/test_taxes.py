@@ -10,6 +10,7 @@ from retirement_model.taxes import (
     calculate_rmd_amount,
     calculate_ss_taxable_portion,
     calculate_state_income_tax,
+    compute_conversion_plan,
     estimate_effective_tax_rate,
     estimate_withdrawal_gains,
     get_bracket_label,
@@ -17,7 +18,6 @@ from retirement_model.taxes import (
     inflate_brackets,
     inflate_irmaa_tiers,
     rmd_start_age_for_birth_year,
-    solve_max_conversion,
 )
 
 
@@ -317,13 +317,6 @@ DEDUCTION = 29200.0
 STATE_RATE = 0.05
 
 
-def _combined_tax(agi: float, deduction: float) -> float:
-    """Helper: federal + state combined tax used by solver constraint checks."""
-    fed = calculate_federal_income_tax(max(0, agi - deduction), SIMPLE_BRACKETS)
-    state = calculate_state_income_tax(max(0, agi - deduction), STATE_RATE)
-    return fed + state
-
-
 class TestEstimateWithdrawalGains:
     def test_zero_tax(self):
         assert estimate_withdrawal_gains(0, 1000, [(50000, 0.4)]) == 0.0
@@ -356,162 +349,325 @@ class TestEstimateWithdrawalGains:
         assert gains == pytest.approx(2500)  # only 5000 withdrawn, 50% gains
 
 
-class TestSolveMaxConversion:
+def _marginal_tax(base_agi: float, ceiling: float) -> float:
+    """Helper: compute the marginal tax from base_agi up to ceiling using
+    the same formula compute_conversion_plan uses internally (federal with
+    standard deduction, state on full AGI with no deduction since these
+    tests pass ss_taxable=0)."""
+    fed_at_ceiling = calculate_federal_income_tax(max(0, ceiling - DEDUCTION), SIMPLE_BRACKETS)
+    state_at_ceiling = calculate_state_income_tax(max(0, ceiling), STATE_RATE)
+    fed_at_base = calculate_federal_income_tax(max(0, base_agi - DEDUCTION), SIMPLE_BRACKETS)
+    state_at_base = calculate_state_income_tax(max(0, base_agi), STATE_RATE)
+    return (fed_at_ceiling + state_at_ceiling) - (fed_at_base + state_at_base)
+
+
+class TestComputeConversionPlan:
+    """Tests for the closed-form conversion planner.
+
+    The planner returns a ConversionPlan with the conversion amount, a
+    per-category tax payment plan, the AGI impact of paying that tax,
+    and the marginal tax bill.
+    """
+
     def test_no_headroom(self):
         """AGI already at ceiling — no conversion possible."""
-        result = solve_max_conversion(
+        plan = compute_conversion_plan(
             base_agi=210000,
             ceiling=206000,
             deduction=DEDUCTION,
             fed_brackets=SIMPLE_BRACKETS,
             state_rate=STATE_RATE,
-            cash_available=50000,
-            brokerage_snapshot=[],
+            ss_taxable=0,
             available_ira=100000,
+            withdrawal_order=["cash", "brokerage"],
+            cash_available=50000,
+            pretax_available=0,
+            roth_available=0,
+            brokerage_snapshot=[],
         )
-        assert result == 0.0
+        assert plan.conversion == 0.0
+        assert plan.tax_payments == []
 
     def test_no_ira_balance(self):
-        result = solve_max_conversion(
+        plan = compute_conversion_plan(
             base_agi=100000,
             ceiling=206000,
             deduction=DEDUCTION,
             fed_brackets=SIMPLE_BRACKETS,
             state_rate=STATE_RATE,
-            cash_available=50000,
-            brokerage_snapshot=[],
+            ss_taxable=0,
             available_ira=0,
+            withdrawal_order=["cash", "brokerage"],
+            cash_available=50000,
+            pretax_available=0,
+            roth_available=0,
+            brokerage_snapshot=[],
         )
-        assert result == 0.0
+        assert plan.conversion == 0.0
 
     def test_headroom_below_minimum(self):
         """Less than $5K headroom — not worth converting."""
-        result = solve_max_conversion(
+        plan = compute_conversion_plan(
             base_agi=202000,
             ceiling=206000,
             deduction=DEDUCTION,
             fed_brackets=SIMPLE_BRACKETS,
             state_rate=STATE_RATE,
-            cash_available=50000,
-            brokerage_snapshot=[],
+            ss_taxable=0,
             available_ira=100000,
+            withdrawal_order=["cash", "brokerage"],
+            cash_available=50000,
+            pretax_available=0,
+            roth_available=0,
+            brokerage_snapshot=[],
         )
-        assert result == 0.0
+        assert plan.conversion == 0.0
 
     def test_cash_pays_tax_no_feedback(self):
-        """When cash covers the tax bill, no feedback loop — full headroom used."""
+        """When cash covers the tax bill, no AGI impact — full headroom used."""
         ceiling = 206000
         base_agi = 100000
-        result = solve_max_conversion(
+        plan = compute_conversion_plan(
             base_agi=base_agi,
             ceiling=ceiling,
             deduction=DEDUCTION,
             fed_brackets=SIMPLE_BRACKETS,
             state_rate=STATE_RATE,
-            cash_available=500000,
-            brokerage_snapshot=[],
+            ss_taxable=0,
             available_ira=500000,
+            withdrawal_order=["cash", "brokerage"],
+            cash_available=500000,
+            pretax_available=0,
+            roth_available=0,
+            brokerage_snapshot=[],
         )
-        # With cash paying tax, conversion = min(headroom, ira)
-        assert result == pytest.approx(ceiling - base_agi, abs=2)
+        # Cash has zero AGI impact → conversion = full headroom
+        assert plan.conversion == pytest.approx(ceiling - base_agi)
+        assert plan.agi_impact == 0
+        # Cash should be the only category in the tax_payments list
+        assert all(cat == "cash" for cat, _ in plan.tax_payments)
+
+    def test_pretax_funded_closed_form(self):
+        """Tax paid from pretax: C = headroom − T_marginal (closed form)."""
+        ceiling = 206000
+        base_agi = 100000
+        plan = compute_conversion_plan(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            ss_taxable=0,
+            available_ira=500000,
+            withdrawal_order=["pretax"],
+            cash_available=0,
+            pretax_available=500000,
+            roth_available=0,
+            brokerage_snapshot=[],
+        )
+        expected_t_marginal = _marginal_tax(base_agi, ceiling)
+        assert plan.marginal_tax == pytest.approx(expected_t_marginal)
+        # Pretax tax payment is fully ordinary income
+        assert plan.agi_impact == pytest.approx(expected_t_marginal)
+        # Conversion = headroom − tax (which all became AGI)
+        assert plan.conversion == pytest.approx(ceiling - base_agi - expected_t_marginal)
+        assert plan.tax_payments == [("pretax", pytest.approx(expected_t_marginal))]
 
     def test_brokerage_feedback_reduces_conversion(self):
         """Brokerage gains from tax payment should reduce the conversion amount."""
         ceiling = 206000
         base_agi = 100000
 
-        # With cash: full headroom
-        result_cash = solve_max_conversion(
+        plan_cash = compute_conversion_plan(
             base_agi=base_agi,
             ceiling=ceiling,
             deduction=DEDUCTION,
             fed_brackets=SIMPLE_BRACKETS,
             state_rate=STATE_RATE,
+            ss_taxable=0,
+            available_ira=500000,
+            withdrawal_order=["cash"],
             cash_available=500000,
+            pretax_available=0,
+            roth_available=0,
             brokerage_snapshot=[],
-            available_ira=500000,
         )
-        # Without cash, low-basis brokerage: feedback loop reduces conversion
-        result_brokerage = solve_max_conversion(
+        plan_brokerage = compute_conversion_plan(
             base_agi=base_agi,
             ceiling=ceiling,
             deduction=DEDUCTION,
             fed_brackets=SIMPLE_BRACKETS,
             state_rate=STATE_RATE,
-            cash_available=0,
-            brokerage_snapshot=[(500000, 0.3)],
+            ss_taxable=0,
             available_ira=500000,
+            withdrawal_order=["brokerage"],
+            cash_available=0,
+            pretax_available=0,
+            roth_available=0,
+            brokerage_snapshot=[(500000, 0.3)],
         )
-        assert result_brokerage < result_cash
-        # The solver should keep total AGI at or below ceiling
-        tax_on_conv = _combined_tax(base_agi + result_brokerage, DEDUCTION) - _combined_tax(
-            base_agi, DEDUCTION
-        )
-        gains = estimate_withdrawal_gains(tax_on_conv, 0, [(500000, 0.3)])
-        total_agi = base_agi + result_brokerage + gains
-        assert total_agi <= ceiling + 2  # within tolerance
+        # Brokerage funding has a (smaller) AGI impact than pretax but
+        # nonzero, so conversion should be less than the cash case.
+        assert plan_brokerage.conversion < plan_cash.conversion
+        # Total AGI (base + conversion + agi_impact) should be at the
+        # ceiling exactly (ignoring rounding).
+        total_agi = base_agi + plan_brokerage.conversion + plan_brokerage.agi_impact
+        assert total_agi == pytest.approx(ceiling, abs=2)
 
     def test_high_basis_less_feedback(self):
-        """High cost basis = less gains = less feedback loop impact."""
+        """High cost basis = less gains = less AGI impact = larger conversion."""
         ceiling = 206000
         base_agi = 100000
-        result_low_basis = solve_max_conversion(
+        plan_low = compute_conversion_plan(
             base_agi=base_agi,
             ceiling=ceiling,
             deduction=DEDUCTION,
             fed_brackets=SIMPLE_BRACKETS,
             state_rate=STATE_RATE,
+            ss_taxable=0,
+            available_ira=500000,
+            withdrawal_order=["brokerage"],
             cash_available=0,
+            pretax_available=0,
+            roth_available=0,
             brokerage_snapshot=[(500000, 0.2)],
-            available_ira=500000,
         )
-        result_high_basis = solve_max_conversion(
+        plan_high = compute_conversion_plan(
             base_agi=base_agi,
             ceiling=ceiling,
             deduction=DEDUCTION,
             fed_brackets=SIMPLE_BRACKETS,
             state_rate=STATE_RATE,
-            cash_available=0,
-            brokerage_snapshot=[(500000, 0.9)],
+            ss_taxable=0,
             available_ira=500000,
+            withdrawal_order=["brokerage"],
+            cash_available=0,
+            pretax_available=0,
+            roth_available=0,
+            brokerage_snapshot=[(500000, 0.9)],
         )
-        # Higher basis → less gains → more room → higher conversion
-        assert result_high_basis > result_low_basis
+        assert plan_high.conversion > plan_low.conversion
 
     def test_ira_limited(self):
         """Conversion capped by available IRA balance, not headroom."""
-        result = solve_max_conversion(
+        plan = compute_conversion_plan(
             base_agi=100000,
             ceiling=300000,
             deduction=DEDUCTION,
             fed_brackets=SIMPLE_BRACKETS,
             state_rate=STATE_RATE,
-            cash_available=100000,
-            brokerage_snapshot=[],
+            ss_taxable=0,
             available_ira=10000,
+            withdrawal_order=["cash"],
+            cash_available=100000,
+            pretax_available=0,
+            roth_available=0,
+            brokerage_snapshot=[],
         )
-        assert result == pytest.approx(10000, abs=2)
+        assert plan.conversion == pytest.approx(10000)
 
     def test_piecewise_accounts(self):
-        """Multiple brokerage accounts with different basis ratios."""
+        """Multi-brokerage with different basis ratios — piecewise gain calculation."""
         ceiling = 206000
         base_agi = 150000
-        # First account has high gains, second has low gains
         snapshot = [(10000, 0.2), (200000, 0.9)]
-        result = solve_max_conversion(
+        plan = compute_conversion_plan(
             base_agi=base_agi,
             ceiling=ceiling,
             deduction=DEDUCTION,
             fed_brackets=SIMPLE_BRACKETS,
             state_rate=STATE_RATE,
-            cash_available=0,
-            brokerage_snapshot=snapshot,
+            ss_taxable=0,
             available_ira=500000,
+            withdrawal_order=["brokerage"],
+            cash_available=0,
+            pretax_available=0,
+            roth_available=0,
+            brokerage_snapshot=snapshot,
         )
-        assert 0 < result < (ceiling - base_agi)
-        # Verify constraint holds
-        tax_on_conv = _combined_tax(base_agi + result, DEDUCTION) - _combined_tax(
-            base_agi, DEDUCTION
+        assert 0 < plan.conversion < (ceiling - base_agi)
+        total_agi = base_agi + plan.conversion + plan.agi_impact
+        assert total_agi == pytest.approx(ceiling, abs=2)
+
+    def test_pretax_depletes_falls_through_to_brokerage(self):
+        """Pretax can't fully fund the marginal tax — falls through to brokerage."""
+        ceiling = 206000
+        base_agi = 100000
+        # Only $5K of pretax, not enough for the full marginal tax.
+        # Falls through to brokerage for the rest.
+        plan = compute_conversion_plan(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            ss_taxable=0,
+            available_ira=500000,
+            withdrawal_order=["pretax", "brokerage"],
+            cash_available=0,
+            pretax_available=5000,
+            roth_available=0,
+            brokerage_snapshot=[(500000, 0.5)],
         )
-        gains = estimate_withdrawal_gains(tax_on_conv, 0, snapshot)
-        assert base_agi + result + gains <= ceiling + 2
+        # Both categories should appear in the tax_payments list
+        cats = [c for c, _ in plan.tax_payments]
+        assert "pretax" in cats
+        assert "brokerage" in cats
+        # Conversion is positive and AGI lands at ceiling
+        assert plan.conversion > 0
+        total_agi = base_agi + plan.conversion + plan.agi_impact
+        assert total_agi == pytest.approx(ceiling, abs=2)
+
+    def test_marginal_tax_invariant(self):
+        """The marginal tax bill is fixed by base + ceiling regardless of source."""
+        ceiling = 206000
+        base_agi = 100000
+        expected_t = _marginal_tax(base_agi, ceiling)
+
+        # Same base/ceiling, different funding sources — marginal_tax must
+        # be identical because it depends only on the bracket structure.
+        plan_cash = compute_conversion_plan(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            ss_taxable=0,
+            available_ira=500000,
+            withdrawal_order=["cash"],
+            cash_available=500000,
+            pretax_available=0,
+            roth_available=0,
+            brokerage_snapshot=[],
+        )
+        plan_pretax = compute_conversion_plan(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            ss_taxable=0,
+            available_ira=500000,
+            withdrawal_order=["pretax"],
+            cash_available=0,
+            pretax_available=500000,
+            roth_available=0,
+            brokerage_snapshot=[],
+        )
+        plan_brok = compute_conversion_plan(
+            base_agi=base_agi,
+            ceiling=ceiling,
+            deduction=DEDUCTION,
+            fed_brackets=SIMPLE_BRACKETS,
+            state_rate=STATE_RATE,
+            ss_taxable=0,
+            available_ira=500000,
+            withdrawal_order=["brokerage"],
+            cash_available=0,
+            pretax_available=0,
+            roth_available=0,
+            brokerage_snapshot=[(500000, 0.5)],
+        )
+        assert plan_cash.marginal_tax == pytest.approx(expected_t)
+        assert plan_pretax.marginal_tax == pytest.approx(expected_t)
+        assert plan_brok.marginal_tax == pytest.approx(expected_t)

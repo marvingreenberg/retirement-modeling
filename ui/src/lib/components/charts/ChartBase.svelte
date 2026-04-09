@@ -39,6 +39,11 @@
       // changes trigger ChartBase's rebuild $effect. Defaults to a
       // constant when not used.
       rebuildKey = '',
+      // Force nominal-dollar rendering regardless of the global pvMode
+      // store. Used by FanChart for Monte Carlo, where each simulation
+      // path samples its own inflation sequence and there is no single
+      // rate to discount by.
+      forceNominal = false,
    }: {
       buildChart: BuildChartFn;
       data: unknown;
@@ -51,6 +56,7 @@
       years?: YearResult[];
       getYValue?: (idx: number) => number;
       rebuildKey?: string;
+      forceNominal?: boolean;
    } = $props();
 
    let canvas: HTMLCanvasElement;
@@ -195,7 +201,7 @@
    function rebuild() {
       chart?.destroy();
       const mapper = createDataMapper(
-         pvMode.value,
+         forceNominal ? false : pvMode.value,
          portfolio.value.config.inflation_rate,
       );
       const annotations = {
@@ -208,12 +214,18 @@
    onMount(() => rebuild());
 
    $effect(() => {
+      // pvMode is read here so reactive rebuilds happen on toggle.
+      // forceNominal short-circuits the actual mapping inside rebuild(),
+      // but the dependency still has to be tracked so that toggling the
+      // store triggers other (non-MC) charts to update.
       const _pv = pvMode.value;
       const _data = data;
       const _rebuildKey = rebuildKey;
+      const _force = forceNominal;
       void _pv;
       void _data;
       void _rebuildKey;
+      void _force;
       if (canvas) untrack(() => rebuild());
    });
 </script>

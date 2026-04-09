@@ -39,6 +39,7 @@
       startYear = 0,
       events = [],
       desiredSpending = [],
+      compact = false,
    }: {
       years: YearResult[];
       retirementAge?: number | null;
@@ -46,6 +47,7 @@
       startYear?: number;
       events?: ChartEvent[];
       desiredSpending?: number[];
+      compact?: boolean;
    } = $props();
 
    function buildChart(
@@ -204,4 +206,5 @@
    {events}
    {years}
    getYValue={(idx) => totalAvailableForYear(years[idx] ?? years[0])}
+   rebuildKey={compact ? 'compact' : 'wide'}
 />

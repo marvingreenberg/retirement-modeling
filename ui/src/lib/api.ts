@@ -35,9 +35,11 @@ export async function runSimulation(
 export async function runMonteCarlo(
    portfolio: Portfolio,
    numSimulations = 1000,
+   seed: number | null = null,
 ): Promise<MonteCarloResponse> {
    return post<MonteCarloResponse>('/monte-carlo', {
       portfolio,
       num_simulations: numSimulations,
+      ...(seed != null && { seed }),
    });
 }

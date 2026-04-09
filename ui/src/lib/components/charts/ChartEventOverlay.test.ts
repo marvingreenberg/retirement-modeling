@@ -42,7 +42,7 @@ function makeYears(count: number, startYear = 2026): YearResult[] {
       roth_balance: 300_000,
       roth_conversion_balance: 0,
       brokerage_balance: 300_000,
-      tax_adjusted_balance: 950_000 - i * 25_000,
+      inherited_value: 950_000 - i * 25_000,
       after_tax_value: 950_000 - i * 25_000,
       pretax_401k_deposit: 0,
       roth_401k_deposit: 0,

@@ -159,5 +159,9 @@
             </tbody>
          </table>
       </div>
+      <p class="mt-3 text-xs italic text-warning-600 dark:text-warning-400">
+         Note: Conservative growth and inflation rate are not used by Monte
+         Carlo analysis.
+      </p>
    {/if}
 </div>

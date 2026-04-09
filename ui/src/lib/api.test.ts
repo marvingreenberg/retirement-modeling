@@ -111,4 +111,35 @@ describe('runMonteCarlo', () => {
       const callBody = JSON.parse((fetch as any).mock.calls[0][1].body);
       expect(callBody.num_simulations).toBe(500);
    });
+
+   it('forwards the seed when one is provided', async () => {
+      vi.stubGlobal(
+         'fetch',
+         vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({}),
+         }),
+      );
+
+      await runMonteCarlo(mockPortfolio, 500, 12345);
+      const callBody = JSON.parse((fetch as any).mock.calls[0][1].body);
+      expect(callBody.seed).toBe(12345);
+   });
+
+   it('omits seed entirely when null', async () => {
+      vi.stubGlobal(
+         'fetch',
+         vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({}),
+         }),
+      );
+
+      // Backend treats `seed: null` as "fresh random" — equivalent to
+      // omitting the field — but sending it explicitly would break the
+      // reproducibility contract for callers reading the request shape.
+      await runMonteCarlo(mockPortfolio, 500, null);
+      const callBody = JSON.parse((fetch as any).mock.calls[0][1].body);
+      expect('seed' in callBody).toBe(false);
+   });
 });

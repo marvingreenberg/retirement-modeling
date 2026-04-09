@@ -202,9 +202,127 @@ HISTORICAL_INFLATION = [
 ]
 
 
+# 10-Year Treasury Bond annual total returns 1928-2023 (matches the
+# 1928-2023 indexing of SP500_ANNUAL_RETURNS and HISTORICAL_INFLATION
+# year-by-year, so block-sampling the same indices preserves historical
+# stock/bond/inflation cross-correlation).
+# Source: Aswath Damodaran NYU Stern dataset
+#   https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html
+# (file: https://www.stern.nyu.edu/~adamodar/pc/datasets/histretSP.xls,
+# sheet "Returns by year", column "US T. Bond (10-year)")
+BOND_ANNUAL_RETURNS = [
+    0.0084,  # 1928
+    0.0420,  # 1929
+    0.0454,  # 1930
+    -0.0256,  # 1931
+    0.0879,  # 1932
+    0.0186,  # 1933
+    0.0796,  # 1934
+    0.0447,  # 1935
+    0.0502,  # 1936
+    0.0138,  # 1937
+    0.0421,  # 1938
+    0.0441,  # 1939
+    0.0540,  # 1940
+    -0.0202,  # 1941
+    0.0229,  # 1942
+    0.0249,  # 1943
+    0.0258,  # 1944
+    0.0380,  # 1945
+    0.0313,  # 1946
+    0.0092,  # 1947
+    0.0195,  # 1948
+    0.0466,  # 1949
+    0.0043,  # 1950
+    -0.0030,  # 1951
+    0.0227,  # 1952
+    0.0414,  # 1953
+    0.0329,  # 1954
+    -0.0134,  # 1955
+    -0.0226,  # 1956
+    0.0680,  # 1957
+    -0.0210,  # 1958
+    -0.0265,  # 1959
+    0.1164,  # 1960
+    0.0206,  # 1961
+    0.0569,  # 1962
+    0.0168,  # 1963
+    0.0373,  # 1964
+    0.0072,  # 1965
+    0.0291,  # 1966
+    -0.0158,  # 1967
+    0.0327,  # 1968
+    -0.0501,  # 1969
+    0.1675,  # 1970
+    0.0979,  # 1971
+    0.0282,  # 1972
+    0.0366,  # 1973
+    0.0199,  # 1974
+    0.0361,  # 1975
+    0.1598,  # 1976
+    0.0129,  # 1977
+    -0.0078,  # 1978
+    0.0067,  # 1979
+    -0.0299,  # 1980
+    0.0820,  # 1981
+    0.3281,  # 1982
+    0.0320,  # 1983
+    0.1373,  # 1984
+    0.2571,  # 1985
+    0.2428,  # 1986
+    -0.0496,  # 1987
+    0.0822,  # 1988
+    0.1769,  # 1989
+    0.0624,  # 1990
+    0.1500,  # 1991
+    0.0936,  # 1992
+    0.1421,  # 1993
+    -0.0804,  # 1994
+    0.2348,  # 1995
+    0.0143,  # 1996
+    0.0994,  # 1997
+    0.1492,  # 1998
+    -0.0825,  # 1999
+    0.1666,  # 2000
+    0.0557,  # 2001
+    0.1512,  # 2002
+    0.0038,  # 2003
+    0.0449,  # 2004
+    0.0287,  # 2005
+    0.0196,  # 2006
+    0.1021,  # 2007
+    0.2010,  # 2008
+    -0.1112,  # 2009
+    0.0846,  # 2010
+    0.1604,  # 2011
+    0.0297,  # 2012
+    -0.0910,  # 2013
+    0.1075,  # 2014
+    0.0128,  # 2015
+    0.0069,  # 2016
+    0.0280,  # 2017
+    -0.0002,  # 2018
+    0.0964,  # 2019
+    0.1133,  # 2020
+    -0.0442,  # 2021
+    -0.1783,  # 2022
+    0.0388,  # 2023
+]
+
+
 def get_historical_returns() -> list[float]:
     """Get historical S&P 500 annual returns."""
     return SP500_ANNUAL_RETURNS.copy()
+
+
+def get_historical_bond_returns() -> list[float]:
+    """Get historical 10-Year Treasury Bond annual total returns.
+
+    Aligned year-by-year with get_historical_returns() and
+    get_historical_inflation() so block-sampling the same indices
+    yields a paired (equity, bond, inflation) triple per year.
+    """
+    return BOND_ANNUAL_RETURNS.copy()
 
 
 def get_historical_inflation() -> list[float]:

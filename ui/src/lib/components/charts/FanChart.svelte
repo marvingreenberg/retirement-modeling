@@ -19,6 +19,7 @@
       startAge = 0,
       startYear = 0,
       helpTopic = 'outcome-distribution',
+      compact = false,
    }: {
       percentiles: YearlyResultPercentiles[];
       metric?: FanMetric;
@@ -26,6 +27,7 @@
       startAge?: number;
       startYear?: number;
       helpTopic?: string;
+      compact?: boolean;
    } = $props();
 
    function getData(p: YearlyResultPercentiles, level: string): number {
@@ -132,4 +134,6 @@
    {startYear}
    yearLabels={percentiles.map((p) => `${p.year}`)}
    {helpTopic}
+   rebuildKey={compact ? 'compact' : 'wide'}
+   forceNominal
 />

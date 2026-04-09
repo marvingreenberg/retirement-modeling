@@ -83,6 +83,7 @@
          startYear={config?.start_year ?? 0}
          events={chartEvents}
          {desiredSpending}
+         {compact}
       />
    {:else if activeTab === 'monte_carlo'}
       {#if entry.mcResult}
@@ -92,6 +93,7 @@
             retirementAge={config?.retirement_age}
             startAge={config?.current_age_primary ?? 0}
             startYear={config?.start_year ?? 0}
+            {compact}
          />
       {:else}
          <div

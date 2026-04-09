@@ -4,11 +4,13 @@
       validationErrors,
       simulateBlockedSection,
       numSimulations as numSimsStore,
+      monteCarloSeed,
       comparisonEntries,
       selectedEntryIds,
       resultPaneTab,
       selectedYearIdx,
       portfolioFingerprint,
+      pvMode,
    } from '$lib/stores';
    import type { ResultPaneTab } from '$lib/stores.svelte';
    import { validatePortfolio } from '$lib/validation';
@@ -151,6 +153,18 @@
    type TopTab = 'approach' | 'scenarios';
    let topTab = $state<TopTab>('approach');
 
+   // Reset the Monte Carlo seed whenever the comparison set empties.
+   // The seed is generated on the 0→1 transition (first scenario added)
+   // and reused across every scenario in the set so all fan charts are
+   // drawn from identical random sequences. Clearing the set (Clear All
+   // or auto-clear on portfolio fingerprint change) gets a fresh draw
+   // for the next set.
+   $effect(() => {
+      if (comparisonEntries.value.length === 0) {
+         monteCarloSeed.value = null;
+      }
+   });
+
    // Clear entries when structural portfolio inputs change
    let lastFingerprint = $state(portfolioFingerprint(portfolio.value));
    let comparisonClearedMsg = $state('');
@@ -251,7 +265,7 @@
             const lastYear = years.at(-1);
             patchEntry({
                singleResult: sResult,
-               afterTaxFinalBalance: lastYear?.tax_adjusted_balance ?? 0,
+               afterTaxFinalBalance: lastYear?.after_tax_value ?? 0,
                totalTaxesPV: pvTotalTaxes(years, inf),
             });
             loading = false;
@@ -261,7 +275,14 @@
             throw e;
          });
 
-      const mcPromise = runMonteCarlo(p, numSims)
+      // Generate the seed on first scenario in this comparison set, then
+      // reuse it for every subsequent scenario so all fans share the same
+      // random sequences. The reset effect above clears it when the set
+      // empties.
+      if (monteCarloSeed.value == null) {
+         monteCarloSeed.value = Math.floor(Math.random() * 0x7fffffff);
+      }
+      const mcPromise = runMonteCarlo(p, numSims, monteCarloSeed.value)
          .then((mResult) => {
             patchEntry({
                mcResult: mResult,
@@ -366,7 +387,7 @@
    {:else if selectedEntries.length > 0}
       <!-- Tab bar (shared between panes) -->
       <div
-         class="flex gap-1 border-b border-surface-300 dark:border-surface-700"
+         class="flex items-center gap-1 border-b border-surface-300 dark:border-surface-700"
       >
          {#each tabs as tab (tab.id)}
             <button
@@ -379,6 +400,26 @@
                {tab.label}
             </button>
          {/each}
+         <!-- Present-value toggle: only meaningful for the deterministic
+              Balance and Spending charts. Monte Carlo always renders
+              nominal because each MC run samples its own historical
+              inflation sequence -- there's no single rate to discount by. -->
+         {#if resultPaneTab.value === 'balance' || resultPaneTab.value === 'spending'}
+            <label
+               class="ml-auto mr-2 flex items-center gap-2 text-sm text-surface-600 dark:text-surface-400 cursor-pointer select-none"
+            >
+               <input
+                  type="checkbox"
+                  class="checkbox"
+                  checked={pvMode.value}
+                  onchange={(e) =>
+                     (pvMode.value = (
+                        e.currentTarget as HTMLInputElement
+                     ).checked)}
+               />
+               Present value
+            </label>
+         {/if}
       </div>
 
       <!-- Result panes -->

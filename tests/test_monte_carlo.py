@@ -3,6 +3,9 @@
 import pytest
 
 from retirement_model.historical_returns import (
+    BOND_ANNUAL_RETURNS,
+    SP500_ANNUAL_RETURNS,
+    get_historical_bond_returns,
     get_historical_inflation,
     get_historical_returns,
 )
@@ -37,29 +40,79 @@ class TestHistoricalReturns:
         assert len(inflation) > 90
         assert all(isinstance(i, float) for i in inflation)
 
+    def test_bond_series_aligned_with_equity_and_inflation(self):
+        # The three historical series must be the same length and
+        # year-aligned, since sample_historical_sequence indexes them
+        # together to preserve cross-correlation. Catches a regression
+        # where the bond series gets out of sync with S&P / CPI.
+        assert len(BOND_ANNUAL_RETURNS) == len(SP500_ANNUAL_RETURNS)
+        assert len(BOND_ANNUAL_RETURNS) == len(get_historical_inflation())
+
+    def test_bond_series_known_year_spot_checks(self):
+        # 2008 is the canonical equity-down / bonds-up year. 2022 is
+        # the canonical equity-down / bonds-down year (rate shock).
+        # Both spot-checks would fail catastrophically if the bond
+        # column were transcribed wrong or shifted by a year.
+        bonds = get_historical_bond_returns()
+        idx_2008 = 2008 - 1928
+        idx_2022 = 2022 - 1928
+        assert bonds[idx_2008] > 0.15  # actual: 0.20
+        assert bonds[idx_2022] < -0.10  # actual: -0.18
+
+    def test_bond_series_mean_in_sane_range(self):
+        # 10-Year T-Bond annual mean over 1928-2023 is roughly 5%.
+        # Catches a wholesale data swap (e.g., accidentally pasting
+        # equity returns into the bond list).
+        bonds = get_historical_bond_returns()
+        mean = sum(bonds) / len(bonds)
+        assert 0.03 < mean < 0.08
+
 
 class TestSampleHistoricalSequence:
     def test_correct_length(self):
         returns = get_historical_returns()
+        bonds = get_historical_bond_returns()
         inflation = get_historical_inflation()
-        sampled_r, sampled_i = sample_historical_sequence(30, returns, inflation, seed=42)
+        sampled_r, sampled_b, sampled_i = sample_historical_sequence(
+            30, returns, bonds, inflation, seed=42
+        )
         assert len(sampled_r) == 30
+        assert len(sampled_b) == 30
         assert len(sampled_i) == 30
 
     def test_reproducible_with_seed(self):
         returns = get_historical_returns()
+        bonds = get_historical_bond_returns()
         inflation = get_historical_inflation()
-        seq1_r, seq1_i = sample_historical_sequence(10, returns, inflation, seed=123)
-        seq2_r, seq2_i = sample_historical_sequence(10, returns, inflation, seed=123)
+        seq1_r, seq1_b, seq1_i = sample_historical_sequence(10, returns, bonds, inflation, seed=123)
+        seq2_r, seq2_b, seq2_i = sample_historical_sequence(10, returns, bonds, inflation, seed=123)
         assert seq1_r == seq2_r
+        assert seq1_b == seq2_b
         assert seq1_i == seq2_i
 
     def test_different_without_seed(self):
         returns = get_historical_returns()
+        bonds = get_historical_bond_returns()
         inflation = get_historical_inflation()
-        seq1_r, _ = sample_historical_sequence(10, returns, inflation, seed=1)
-        seq2_r, _ = sample_historical_sequence(10, returns, inflation, seed=2)
+        seq1_r, _, _ = sample_historical_sequence(10, returns, bonds, inflation, seed=1)
+        seq2_r, _, _ = sample_historical_sequence(10, returns, bonds, inflation, seed=2)
         assert seq1_r != seq2_r
+
+    def test_equity_bond_inflation_share_indices(self):
+        # All three series are sampled from identical year indices so
+        # cross-correlation (e.g. 2008's stock crash + bond rally) is
+        # preserved within each block. This test catches a regression
+        # where the three lists are sampled independently.
+        returns = get_historical_returns()
+        bonds = get_historical_bond_returns()
+        inflation = get_historical_inflation()
+        sr, sb, si = sample_historical_sequence(20, returns, bonds, inflation, seed=7)
+        # For each sampled equity value, the bond and inflation values
+        # at the same position must come from the same historical year.
+        for r_val, b_val, i_val in zip(sr, sb, si):
+            idx = returns.index(r_val)
+            assert bonds[idx] == b_val
+            assert inflation[idx] == i_val
 
 
 @pytest.fixture

@@ -88,6 +88,14 @@ export const simulateBlockedSection = createStore<string | null>(null);
 export const numSimulations = createStore<number>(1000);
 export const pvMode = createStore<boolean>(false);
 
+// Active Monte Carlo seed. Generated on the 0→1 transition of
+// comparisonEntries (first scenario added) and reused across every
+// subsequent scenario in the comparison set so all fans are drawn from
+// identical random sequences. Cleared whenever the comparison set
+// empties (Clear All button or auto-clear on portfolio fingerprint
+// change), so the next scenario in a fresh set gets a fresh draw.
+export const monteCarloSeed = createStore<number | null>(null);
+
 // Unified comparison view stores
 export const comparisonEntries = createStore<ComparisonEntry[]>([]);
 export const selectedEntryIds = createStore<string[]>([]);

@@ -207,21 +207,50 @@ def account_growth_rate(stock_pct: float | None, account_type: AccountType) -> f
 
 
 def apply_growth(
-    accounts: list[Account], rate: float | None = None, conservative: bool = False
+    accounts: list[Account],
+    flat_rate: float | None = None,
+    equity_rate: float | None = None,
+    bond_rate: float | None = None,
+    conservative: bool = False,
 ) -> float:
     """Apply investment growth to all accounts and return total balance.
 
-    When rate is provided (MC path), use it for all accounts.
-    When rate is None (single-run), compute per-account rate from stock_pct.
-    Cash/CD accounts always get 0% growth. Brokerage accounts suffer tax drag.
+    Three operating modes:
+
+    - **Flat override** (flat_rate set): every non-cash account is grown
+      at flat_rate. Used by the deterministic path when the user has
+      set growth_rate_override.
+    - **MC blend** (equity_rate or bond_rate set): each account blends
+      the per-year sampled equity_rate / bond_rate using its own
+      stock_pct. Either rate alone falls back to the constant for the
+      missing leg (so MC can ship with sampled equity + constant bond
+      and add sampled bonds later). Conservative multiplier is
+      intentionally not applied in MC mode -- MC variance is its own
+      conservatism.
+    - **Deterministic per-account** (none set): each account is grown
+      at account_growth_rate(stock_pct, type), with optional
+      conservative scaling. The default path for single-run sims that
+      don't override growth.
+
+    Cash/CD accounts always get 0% growth. Brokerage accounts suffer
+    tax drag (computed from stock_pct, unchanged by mode).
     """
+    mc_mode = equity_rate is not None or bond_rate is not None
+    eq = equity_rate if equity_rate is not None else EQUITY_RETURN
+    bd = bond_rate if bond_rate is not None else BOND_RETURN
     total = 0.0
     for acc in accounts:
         if acc.type != AccountType.CASH_CD:
             is_brokerage = tax_category(acc.type) == TaxCategory.BROKERAGE
 
-            if rate is not None:
-                acc_rate = rate
+            if mc_mode:
+                stock_pct = acc.stock_pct
+                if stock_pct is None:
+                    stock_pct = ACCOUNT_TYPE_DEFAULTS[acc.type]["default_stock_pct"]
+                s = float(stock_pct) / 100.0
+                acc_rate = s * eq + (1 - s) * bd
+            elif flat_rate is not None:
+                acc_rate = flat_rate
             else:
                 acc_rate = account_growth_rate(acc.stock_pct, acc.type)
                 if conservative:
@@ -325,7 +354,7 @@ def compute_brokerage_after_tax(accounts: list[Account], cap_gains_rate: float) 
 
     Used to compute YearResult.after_tax_value, which models a full
     liquidation rather than the step-up-at-death scenario captured by
-    YearResult.tax_adjusted_balance.
+    YearResult.inherited_value.
     """
     total = 0.0
     for acc in accounts:

@@ -46,14 +46,18 @@
    }
 
    // Build a chartjs-plugin-annotation 'label' annotation pinned with its
-   // bottom-right corner exactly at (year, Estate value). The Estate value
-   // (= tax_adjusted_balance) is the visual anchor — it's one of the two
-   // values in the label's content, so anchoring there gives users an
-   // unambiguous "this label corresponds to the line at this year" cue.
+   // bottom-right corner on the stacked total line at this year. Anchoring
+   // at total_balance (the visible top of the stacked area) gives a clean
+   // right-angle marker on the chart trace itself.
    //
    // The bottom-right corner is rendered as a square (no border-radius)
    // so it forms a clean right-angle marker at the data point. No callout
    // line is drawn — the corner itself IS the marker.
+   //
+   // The yValue is scriptable so we can clamp it down to keep the box
+   // inside the chart area: if anchoring at total_balance would push the
+   // box off the top, drop the anchor by exactly the box height in pixels
+   // (converted back to data units via the y-scale).
    //
    // `compactMode` shrinks font and padding for side-by-side display
    // where the chart canvas is roughly half-width.
@@ -64,18 +68,29 @@
       compactMode: boolean,
    ): AnnotationOptions {
       const afterTax = pv(yr.after_tax_value, idx);
-      const estate = pv(yr.tax_adjusted_balance, idx);
+      const inherited = pv(yr.inherited_value, idx);
+      const total = pv(yr.total_balance, idx);
+      // Approximate rendered box height: 2 monospace lines + padding +
+      // border. Tuned to match the font/padding settings below.
+      const boxHeightPx = compactMode ? 32 : 44;
       return {
          type: 'label',
          xValue: idx,
-         // Anchor at the Estate value, not the top of the stack — the
-         // user expects the corner to be at the value the label shows.
-         yValue: estate,
+         yValue: (ctx) => {
+            const yScale = ctx.chart.scales.y;
+            // yScale.top is the pixel of the chart area's top edge
+            // (small pixel = visually up). Moving boxHeightPx down in
+            // pixels lands us at the highest data value where the box
+            // still fits entirely inside the chart area.
+            const maxSafe = yScale.getValueForPixel(yScale.top + boxHeightPx);
+            return maxSafe == null ? total : Math.min(total, maxSafe);
+         },
          xAdjust: 0,
          yAdjust: 0,
          content: [
+            `Year: ${yr.year}`,
             `After Tax value: ${formatTick(afterTax)}`,
-            `Estate value:    ${formatTick(estate)}`,
+            `Inherited value: ${formatTick(inherited)}`,
          ],
          backgroundColor: 'rgba(38, 50, 56, 0.85)',
          color: '#f5f5f4',
@@ -90,10 +105,10 @@
             bottomRight: 0,
          },
          font: {
-            size: compactMode ? 9 : 11,
+            size: compactMode ? 7 : 9,
             family: 'monospace',
          },
-         padding: compactMode ? 4 : 6,
+         padding: compactMode ? 2 : 4,
          textAlign: 'left',
          // Anchor the label box's bottom-right corner at (xValue, yValue).
          // The box extends up-and-left from there.
