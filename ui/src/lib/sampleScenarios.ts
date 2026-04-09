@@ -146,7 +146,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             ],
             income_streams: [
                {
-                  name: '__salary_primary',
+                  name: 'Jordan Salary',
                   kind: 'employment',
                   amount: 140000,
                   start_age: 63,
@@ -267,15 +267,15 @@ export const sampleScenarios: Record<string, SampleScenario> = {
                spouse_benefit: 2000,
                spouse_start_age: 65,
             },
-            rmd_start_age: 73,
+            rmd_start_age: 75,
             planned_expenses: [
                {
-                  name: 'Managed Care',
-                  amount: 150000,
+                  name: 'Mortgage',
+                  amount: 2200,
                   expense_type: 'recurring',
-                  inflation_adjusted: true,
-                  start_year: 2032,
-                  end_year: 2038,
+                  inflation_adjusted: false,
+                  start_year: 2026,
+                  end_year: 2032,
                },
                {
                   name: 'New Car',
@@ -302,7 +302,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
          accounts: [
             {
                id: 'wlth_roth_p',
-               name: 'Alex-WF-RothIRA',
+               name: 'Alex-RothIRA',
                balance: 48000,
                type: 'roth_ira',
                owner: 'primary',
@@ -312,7 +312,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             },
             {
                id: 'wlth_brok_p1',
-               name: 'Alex-WF-JointInvestment',
+               name: 'Alex-Invst',
                balance: 658000,
                type: 'brokerage',
                owner: 'primary',
@@ -322,7 +322,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             },
             {
                id: 'wlth_ira_p',
-               name: 'Alex-WF-IRA',
+               name: 'Alex-IRA',
                balance: 318000,
                type: 'ira',
                owner: 'primary',
@@ -331,18 +331,8 @@ export const sampleScenarios: Record<string, SampleScenario> = {
                stock_pct: 84,
             },
             {
-               id: 'wlth_brok_p2',
-               name: 'Alex-Vanguard-Investment',
-               balance: 183000,
-               type: 'brokerage',
-               owner: 'primary',
-               cost_basis_ratio: 0.4,
-               available_at_age: 0,
-               stock_pct: 97,
-            },
-            {
                id: 'wlth_401k_p',
-               name: 'Alex-Leidos-Empower-401K',
+               name: 'Alex-401K',
                balance: 1012000,
                type: '401k',
                owner: 'primary',
@@ -352,7 +342,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             },
             {
                id: 'wlth_roth_s',
-               name: 'Sam-WF-RothIRA',
+               name: 'Sam-RothIRA',
                balance: 162000,
                type: 'roth_ira',
                owner: 'spouse',
@@ -362,7 +352,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             },
             {
                id: 'wlth_ira_s1',
-               name: 'Sam-WF-IRA',
+               name: 'Sam-IRA',
                balance: 294000,
                type: 'ira',
                owner: 'spouse',
@@ -372,7 +362,7 @@ export const sampleScenarios: Record<string, SampleScenario> = {
             },
             {
                id: 'wlth_ira_s2',
-               name: 'Sam-WF-IRA-401k',
+               name: 'Sam-IRA-from-401k',
                balance: 751000,
                type: 'ira',
                owner: 'spouse',
